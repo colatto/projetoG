@@ -1,0 +1,14 @@
+{
+  "name": "projetog-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "db:login": "pnpm dlx supabase login",
+    "db:link": "pnpm dlx supabase link --project-ref lkfevrdhofxlmwjfhnru",
+    "db:push": "pnpm dlx supabase db push",
+    "db:pull": "pnpm dlx supabase db pull",
+    "db:types": "pnpm dlx supabase gen types typescript --project-id lkfevrdhofxlmwjfhnru > packages/shared/src/database.types.ts"
+  }
+}

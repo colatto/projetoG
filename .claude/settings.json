@@ -1,0 +1,24 @@
+{
+  "projectName": "projetoG",
+  "primaryLanguage": "pt-BR",
+  "stack": {
+    "frontend": "React + TypeScript + Vite + Vercel",
+    "backend": "TypeScript + apps/api",
+    "database": "Supabase Postgres",
+    "auth": "Supabase Auth",
+    "async": "Workers/Jobs dedicados",
+    "integration": "Sienge"
+  },
+  "sourceOfTruth": [
+    "PRDGlobal.md",
+    "docs/architecture.md",
+    "docs/decisions/ADR-0001-repo-structure.md",
+    "docs/decisions/ADR-0002-backend-framework.md",
+    "docs/decisions/ADR-0003-workspace-manager.md",
+    "docs/decisions/ADR-0004-workers-runtime.md",
+    "docs/identidade_visual.md",
+    "docs/paleta_de_cores.md",
+    "docs/prd/",
+    "docs/decisions/relatorio-reconhecimento.md"
+  ]
+}
