@@ -46,7 +46,7 @@ Antes de iniciar o setup:
    9.1 (CONCLUÍDO) Implementar Frontend Autenticação e Gestão React/Vite (Sprint C concluída).
 10. Configurar deploy principal do web na Vercel.
 11. Definir estrategia de deploy standalone para `apps/api` e `workers/`.
-12. Implementar integracao inicial com Sienge.
+12. (CONCLUÍDO) Implementar integracao inicial com Sienge (Cliente HTTP Base e Resiliência).
 
 ## Variaveis e configuracao inicial
 

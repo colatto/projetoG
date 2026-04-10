@@ -1,7 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { buildApp } from '../app.js';
 
 describe('Health Route', () => {
+  beforeEach(() => {
+    // Ensure env vars needed by plugins are set for test
+    process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
+    process.env.SUPABASE_SERVICE_ROLE_KEY =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+  });
+
   it('deve retornar HTTP 200 e payload válido no endpoint de saúde rotineira', async () => {
     const app = buildApp();
 

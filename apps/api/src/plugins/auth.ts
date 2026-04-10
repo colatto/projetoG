@@ -17,6 +17,7 @@ declare module '@fastify/jwt' {
     user: {
       sub: string;
       email: string;
+      name?: string;
       role?: UserRole;
       status?: UserStatus;
       app_metadata?: any;

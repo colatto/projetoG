@@ -154,6 +154,7 @@ export class AuthController {
       data: {
         id: request.user.sub,
         email: request.user.email,
+        name: request.user.name,
         role: request.user.role,
         status: request.user.status,
       },

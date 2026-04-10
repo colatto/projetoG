@@ -19,4 +19,5 @@ Concentrar os adaptadores e fluxos de integracao com o Sienge.
 - respostas de cotacao so podem ser escritas apos aprovacao de `Compras`;
 - cada chamada deve registrar contexto tecnico para auditoria e suporte;
 - falhas devem permitir retry e reprocessamento controlado;
-- os adaptadores devem poder ser consumidos por `apps/api` e pela camada de workers sem duplicar logica.
+- os adaptadores devem poder ser consumidos por `apps/api` e pela camada de workers sem duplicar logica;
+- infraestrutura base HTTP já inicializada e centralizada na classe `SiengeClient` (com limites de retry e mascaramento de logs estritos).

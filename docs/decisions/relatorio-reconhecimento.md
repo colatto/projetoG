@@ -15,7 +15,7 @@
 | **Banco de dados**    | PostgreSQL gerenciado (Supabase)                | Projeto `dbGRF` ativo em `sa-east-1`. O schema `public` possui a modelagem relacional inicial criada via migrações (tabelas e RLS). Sem seeds. |
 | **Autenticação**      | Supabase Auth (e-mail/senha)                    | Não configurada.                                                                                                                               |
 | **Domínio**           | `packages/domain` — TypeScript puro             | Apenas `CLAUDE.md` com subdominios esperados. Nenhuma entidade, enum ou caso de uso implementado.                                              |
-| **Integração Sienge** | `packages/integration-sienge` — clientes HTTP   | Apenas `CLAUDE.md`. Nenhum adaptador, cliente ou mappeador criado.                                                                             |
+| **Integração Sienge** | `packages/integration-sienge` — clientes HTTP   | Inicializado. Adaptador de HTTP construído com `Axios`, possuindo Retry controlado, mascaramento e repasse de contexto.                        |
 | **Shared**            | `packages/shared` — tipos e utilitários         | Apenas `CLAUDE.md`. Nenhum artefato compartilhado implementado.                                                                                |
 | **Workers**           | Camada explícita para polling, retry, follow-up | Diretório `workers/` contém apenas `README.md`. Nenhum job ou scheduler criado.                                                                |
 | **Deploy frontend**   | Vercel (planejado)                              | Não configurado.                                                                                                                               |
@@ -98,17 +98,17 @@ projetoG/
 
 Os 9 módulos funcionais do PRDGlobal são mapeados abaixo:
 
-| #   | Módulo                                      | PRD Seções | Estado     | Detalhe                                                                                                                                                                |
-| --- | ------------------------------------------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Autenticação e Perfis**                   | §3, §11    | 🔴 Ausente | Nenhuma implementação de auth, RBAC, primeiro acesso ou gestão de usuários. Supabase Auth não configurado.                                                             |
-| 2   | **Fluxo de Cotação**                        | §4         | 🔴 Ausente | Nenhuma entidade, endpoint, tela ou lógica de cotação implementada.                                                                                                    |
-| 3   | **Notificações de Cotação**                 | §5         | 🔴 Ausente | Nenhum serviço de e-mail, template ou trigger de notificação.                                                                                                          |
-| 4   | **Follow-up Logístico**                     | §6         | 🔴 Ausente | Nenhuma régua de cobrança, cálculo de dias úteis, cron ou scheduler implementado.                                                                                      |
-| 5   | **Entrega, Divergência e Status de Pedido** | §7         | 🔴 Ausente | Nenhuma sincronização de pedidos/entregas, cálculo de status ou validação de divergência.                                                                              |
-| 6   | **Avaria e Ação Corretiva**                 | §8         | 🔴 Ausente | Nenhuma modelagem de avaria, reposição ou ação corretiva.                                                                                                              |
-| 7   | **Integração com Sienge**                   | §9         | 🔴 Ausente | Nenhum cliente HTTP, adaptador, tratamento de webhook ou lógica de reconciliação. O pacote `packages/integration-sienge` existe apenas como diretório com `CLAUDE.md`. |
-| 8   | **Dashboard e Indicadores**                 | §13        | 🔴 Ausente | Nenhum KPI, fórmula, agregação ou componente de dashboard implementado.                                                                                                |
-| 9   | **Backoffice, Auditoria e Operação**        | §12        | 🔴 Ausente | Nenhuma tela de backoffice, trilha de auditoria ou filtro operacional implementado.                                                                                    |
+| #   | Módulo                                      | PRD Seções | Estado     | Detalhe                                                                                                                                                 |
+| --- | ------------------------------------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Autenticação e Perfis**                   | §3, §11    | 🔴 Ausente | Nenhuma implementação de auth, RBAC, primeiro acesso ou gestão de usuários. Supabase Auth não configurado.                                              |
+| 2   | **Fluxo de Cotação**                        | §4         | 🔴 Ausente | Nenhuma entidade, endpoint, tela ou lógica de cotação implementada.                                                                                     |
+| 3   | **Notificações de Cotação**                 | §5         | 🔴 Ausente | Nenhum serviço de e-mail, template ou trigger de notificação.                                                                                           |
+| 4   | **Follow-up Logístico**                     | §6         | 🔴 Ausente | Nenhuma régua de cobrança, cálculo de dias úteis, cron ou scheduler implementado.                                                                       |
+| 5   | **Entrega, Divergência e Status de Pedido** | §7         | 🔴 Ausente | Nenhuma sincronização de pedidos/entregas, cálculo de status ou validação de divergência.                                                               |
+| 6   | **Avaria e Ação Corretiva**                 | §8         | 🔴 Ausente | Nenhuma modelagem de avaria, reposição ou ação corretiva.                                                                                               |
+| 7   | **Integração com Sienge**                   | §9         | 🟡 Parcial | Infraestrutura básica do cliente HTTP isolada e resiliente implementada. Tratamento de payloads, webhooks e mapeamentos de IDs dependem de homologação. |
+| 8   | **Dashboard e Indicadores**                 | §13        | 🔴 Ausente | Nenhum KPI, fórmula, agregação ou componente de dashboard implementado.                                                                                 |
+| 9   | **Backoffice, Auditoria e Operação**        | §12        | 🔴 Ausente | Nenhuma tela de backoffice, trilha de auditoria ou filtro operacional implementado.                                                                     |
 
 **Conclusão: Todos os 9 módulos ainda carecem de implementação de rotas e componentes.** O repositório já possui a infraestrutura base do frontend e backend inicializadas, assim como a modelagem relacional criada no banco, mas a lógica de negócios ainda não existe.
 

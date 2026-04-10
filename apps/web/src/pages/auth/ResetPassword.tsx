@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, ResetPasswordDto } from '@projetog/shared';
@@ -6,6 +6,9 @@ import { api } from '../../lib/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import logoGrf from '../../assets/GRFlogo.png';
+
+type FlowType = 'first-access' | 'recovery';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -13,9 +16,20 @@ export default function ResetPassword() {
   const [token, setToken] = useState<string>('');
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Detect flow context: Supabase invite links contain type=invite,
+  // recovery links contain type=recovery. We also check hash params
+  // as Supabase may send tokens via URL fragment.
+  const flowType = useMemo<FlowType>(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const hashParams = new URLSearchParams(location.hash.replace('#', '?'));
+
+    const typeParam = queryParams.get('type') || hashParams.get('type') || '';
+    return typeParam === 'invite' || typeParam === 'signup' ? 'first-access' : 'recovery';
+  }, [location]);
+
+  const isFirstAccess = flowType === 'first-access';
+
   useEffect(() => {
-    // Supabase Magic Link sends token usually in the hash for PKCE or inside query strings depending on auth.admin link payload.
-    // Let's assume it routes here as ?token=XYZ or #access_token=XYZ
     const queryParams = new URLSearchParams(location.search);
     const hashParams = new URLSearchParams(location.hash.replace('#', '?'));
 
@@ -34,12 +48,15 @@ export default function ResetPassword() {
   const onSubmit = async (data: ResetPasswordDto) => {
     try {
       setApiError(null);
-      // Inclui o token se ele nao veio no hook form (para o caso de recuperacao linkada)
       const payload = { ...data, token: token || data.token };
 
       await api.post('/auth/reset-password', payload);
       navigate('/login', {
-        state: { message: 'Senha registrada com sucesso. Você já pode fazer login.' },
+        state: {
+          message: isFirstAccess
+            ? 'Senha definida com sucesso. Você já pode fazer login.'
+            : 'Senha redefinida com sucesso. Você já pode fazer login.',
+        },
       });
     } catch (error: any) {
       setApiError(
@@ -54,11 +71,40 @@ export default function ResetPassword() {
       className="flex justify-center items-center h-screen w-full"
       style={{ background: 'var(--color-gray-50)' }}
     >
-      <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+      <div
+        className="card"
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          padding: '2.5rem 2rem',
+          boxShadow:
+            '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+        }}
+      >
         <div className="text-center mb-6">
-          <h2>Nova Senha</h2>
-          <p className="text-muted" style={{ fontSize: '0.875rem' }}>
-            A senha deve conter no mínimo 8 caracteres.
+          <img
+            src={logoGrf}
+            alt="GRF Incorporadora"
+            style={{
+              height: '65px',
+              margin: '0 auto',
+              marginBottom: '1.5rem',
+              display: 'block',
+            }}
+          />
+          <h2
+            style={{
+              color: 'var(--color-primary)',
+              fontSize: '1.25rem',
+              marginBottom: '0.25rem',
+            }}
+          >
+            {isFirstAccess ? 'Definir Senha' : 'Nova Senha'}
+          </h2>
+          <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>
+            {isFirstAccess
+              ? 'Bem-vindo ao Portal GRF! Defina sua senha de acesso.'
+              : 'A senha deve conter no mínimo 8 caracteres.'}
           </p>
         </div>
 
@@ -76,7 +122,6 @@ export default function ResetPassword() {
           </div>
         )}
 
-        {/* If token couldn't be extracted, we let the user manually input it just in case */}
         <form onSubmit={handleSubmit(onSubmit)}>
           {!token && (
             <Input
@@ -89,7 +134,7 @@ export default function ResetPassword() {
           )}
 
           <Input
-            label="Digite a nova senha"
+            label={isFirstAccess ? 'Defina sua senha' : 'Digite a nova senha'}
             type="password"
             placeholder="Mínimo 8 caracteres"
             {...register('new_password')}
@@ -97,7 +142,7 @@ export default function ResetPassword() {
           />
 
           <Button type="submit" className="w-full mt-4" isLoading={isSubmitting}>
-            Salvar e Acessar
+            {isFirstAccess ? 'Definir Senha e Acessar' : 'Salvar e Acessar'}
           </Button>
         </form>
       </div>

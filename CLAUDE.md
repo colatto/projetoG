@@ -24,6 +24,8 @@ Construir uma aplicacao web para a GRF com:
 - Framework do backend: `docs/decisions/ADR-0002-backend-framework.md` (Fastify v5) <!-- atualizado -->
 - Gerenciador de workspace: `docs/decisions/ADR-0003-workspace-manager.md` (pnpm) <!-- atualizado -->
 - Runtime e framework de workers: `docs/decisions/ADR-0004-workers-runtime.md` (Node.js + pg-boss) <!-- atualizado -->
+- Fronteira de integração API/Workers/Supabase: `docs/decisions/fronteira-integracao.md` <!-- atualizado -->
+- Política de logs e mascaramento: `docs/decisions/politica-logs.md` <!-- atualizado -->
 
 ## Regras obrigatorias
 
@@ -41,15 +43,19 @@ Construir uma aplicacao web para a GRF com:
 - `supabase/`: configuracoes de banco, autenticacao e operacao de dados.
 - `workers/`: processamento assincrono para follow-up, polling, retry e reprocessamento.
 - `packages/domain`: entidades, status, regras e casos de uso.
-- `packages/integration-sienge`: clientes e adaptadores do ERP.
+- `packages/integration-sienge`: clientes e adaptadores do ERP (infraestrutura HTTP base inicializada).
 - `packages/shared`: tipos compartilhados, contratos e utilitarios.
 
 ## Perfis oficiais
 
-- `Fornecedor`
-- `Compras`
-- `Administrador`
-- `Visualizador de Pedidos`
+<!-- relatorio-reconhecimento §perfis: cada perfil tem permissoes e restricoes explicitas -->
+
+| Perfil                    | Pode                                                                                                                            | Nao pode                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `Fornecedor`              | Acessar proprios dados, responder cotacoes, sugerir novas datas, registrar avarias                                              | Aprovar propria resposta, aprovar nova data, modificar dados de outros |
+| `Compras`                 | Revisar dados do Sienge, aprovar/reprovar respostas de cotacao, aprovar/reprovar novas datas, validar entregas, tratar excecoes | Gerir acessos, parametrizar sistema                                    |
+| `Administrador`           | Criar/editar/bloquear/reativar/remover acessos, parametrizar workflow, editar templates de notificacao                          | Aprovar respostas de cotacao, definir acoes corretivas de avaria       |
+| `Visualizador de Pedidos` | Consultar pedidos e entregas                                                                                                    | Alterar dados, acessar dashboards, indicadores ou acoes operacionais   |
 
 ## Entidades centrais
 
@@ -63,6 +69,8 @@ Construir uma aplicacao web para a GRF com:
 - auditoria
 - evento de integracao
 - usuario interno
+
+> **Nota de implementacao:** a entidade `users` do PRD-01 foi implementada como tabela `profiles` no banco (`public.profiles`), vinculada diretamente a `auth.users(id)`. Toda referencia do PRD a "tabela users" corresponde a `profiles` no schema real. A API e o frontend já consomem `profiles` de forma consistente.
 
 ## Identificadores minimos persistidos
 
@@ -97,6 +105,21 @@ Antes de criar codigo novo, verificar se a mudanca impacta:
 - NAO ignorar idempotencia em integracao com o Sienge — toda chamada de escrita deve ser reprocessavel.
 - NAO criar novos perfis de acesso sem atualizacao do RBAC em `apps/api` e `packages/domain`.
 - NAO remover trilha de auditoria de eventos criticos (cotacao, aprovacao, avaria, integracao).
+- NAO reutilizar artefatos, tabelas ou Edge Functions do projeto legado `dbOrion` (`jvonweijpbyyjgywlfxu`) para este produto sem validacao explicita. <!-- relatorio-reconhecimento §Projeto Supabase legado -->
+
+## Funcionalidades fora do escopo da V1.0 <!-- relatorio-reconhecimento §out of scope -->
+
+As seguintes funcionalidades estao explicitamente excluidas da V1.0 e nao devem ser implementadas:
+
+- Alteracao automatica de data planejada no Sienge a partir de sugestao do fornecedor.
+- Auto cadastro de fornecedor.
+- Ativacao autonoma de credenciais sem acao do Administrador.
+- Envio de anexos/documentos pelo fornecedor.
+- Exposicao de propostas concorrentes entre fornecedores.
+- Automacoes financeiras, fiscais ou contabeis alem do uso logistico de NF.
+- Regua separada por parcela de entrega do mesmo item.
+- Politicas avancadas de seguranca alem do minimo operacional.
+- Notificacao por WhatsApp (planejado para V2.0).
 
 ## Diretriz visual minima
 
@@ -132,16 +155,20 @@ As variaveis abaixo sao esperadas com base na stack definida. Os valores exatos 
 - `SUPABASE_URL` — URL do projeto Supabase (projeto `dbGRF`)
 - `SUPABASE_SERVICE_ROLE_KEY` — chave de servico do Supabase para operacoes privilegiadas
 - `SIENGE_BASE_URL` — URL base da API do Sienge
-- `SIENGE_API_KEY` ou `SIENGE_TOKEN` — credencial de acesso ao Sienge
-- `JWT_SECRET` — segredo para verificacao de tokens internos
+- `SIENGE_API_KEY` — usuario da API do Sienge (Basic Auth — user)
+- `SIENGE_API_SECRET` — senha da API do Sienge (Basic Auth — password)
+- `JWT_SECRET` — segredo exclusivo para verificacao de tokens JWT internos
 - `PORT` — porta de execucao da API
 
 ### `workers/`
 
+<!-- ADR-0004 §vars env: estas variaveis sao necessarias e confirmadas pela decisao de workers -->
+
 - `SUPABASE_URL` — mesma instancia da API
 - `SUPABASE_SERVICE_ROLE_KEY` — chave de servico
-- `SIENGE_BASE_URL` — mesma instancia da API [VERIFICAR]
-- `SIENGE_API_KEY` — mesma instancia da API [VERIFICAR]
+- `SIENGE_BASE_URL` — URL base da API Sienge
+- `SIENGE_API_KEY` — usuario da API do Sienge (Basic Auth — user)
+- `SIENGE_API_SECRET` — senha da API do Sienge (Basic Auth — password)
 - `DATABASE_URL` — string de conexao direta ao PostgreSQL, necessaria para inicializacao do pg-boss.
 
 > `.env.example` criado na raiz com todas as variaveis documentadas por modulo.
@@ -164,25 +191,29 @@ As variaveis abaixo sao esperadas com base na stack definida. Os valores exatos 
 
 ## Comandos essenciais <!-- atualizado -->
 
-Os comandos abaixo assumem os pacotes `@projetog/` instalados via workspace (ADR-0003):
+Os comandos abaixo assumem os pacotes `@projetog/` instalados via workspace (ADR-0003).
 
-| Acao                      | Comando                                   |
-| ------------------------- | ----------------------------------------- |
-| Instalar dependencias     | `pnpm install`                            |
-| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`         |
-| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`         |
-| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`     |
-| Build frontend            | `pnpm --filter @projetog/web build`       |
-| Build API                 | `pnpm --filter @projetog/api build`       |
-| Build workers             | `pnpm --filter @projetog/workers build`   |
-| Testes (todos os modulos) | `pnpm -r run test`                        |
-| Lint (todos os modulos)   | `pnpm -r run lint`                        |
-| Format (todos os modulos) | `pnpm run format`                         |
-| Autenticar Supabase       | `pnpm run db:login`                       |
-| Ligar Supabase            | `pnpm run db:link`                        |
-| Migracoes (Supabase)      | `pnpm run db:push`                        |
-| Deploy frontend           | Vercel via CI/CD [VERIFICAR]              |
-| Adicionar dep a um modulo | `npx pnpm --filter <modulo> add <pacote>` |
-| Adicionar devDep global   | `npx pnpm add -D <pacote> -w`             |
+> **Nota (ADR-0003):** use sempre `pnpm` diretamente. Nao misture `npm` ou `yarn` — isso quebra o `pnpm-lock.yaml`. Use `pnpm dlx` no lugar de `npx` para execucao de binarios sem instalacao global.
+
+> **Nota (ADR-0002):** o backend (`apps/api`) deve rodar como servidor standalone dedicado. Deploy na Vercel como funcao serverless curta nao e o modo otimizado para este produto.
+
+| Acao                      | Comando                                 |
+| ------------------------- | --------------------------------------- |
+| Instalar dependencias     | `pnpm install`                          |
+| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`       |
+| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`       |
+| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`   |
+| Build frontend            | `pnpm --filter @projetog/web build`     |
+| Build API                 | `pnpm --filter @projetog/api build`     |
+| Build workers             | `pnpm --filter @projetog/workers build` |
+| Testes (todos os modulos) | `pnpm -r run test`                      |
+| Lint (todos os modulos)   | `pnpm -r run lint`                      |
+| Format (todos os modulos) | `pnpm run format`                       |
+| Autenticar Supabase       | `pnpm run db:login`                     |
+| Ligar Supabase            | `pnpm run db:link`                      |
+| Migracoes (Supabase)      | `pnpm run db:push`                      |
+| Deploy frontend           | Vercel via CI/CD [VERIFICAR]            |
+| Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
+| Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
 
 > As estruturas base dos diretórios já foram inicializadas. Consultar `docs/runbooks/setup.md` para as etapas faltantes.

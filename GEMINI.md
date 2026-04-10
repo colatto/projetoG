@@ -17,17 +17,18 @@ Quando houver duvida, consulte os documentos nesta ordem:
 5. `docs/decisions/ADR-0002-backend-framework.md`
 6. `docs/decisions/ADR-0003-workspace-manager.md`
 7. `docs/decisions/ADR-0004-workers-runtime.md`
-8. `docs/decisions/relatorio-reconhecimento.md`
-9. `docs/prd/` (PRDs filhos por modulo)
-10. `apps/web/CLAUDE.md`
-11. `apps/api/CLAUDE.md`
-12. `packages/domain/CLAUDE.md`
-13. `packages/integration-sienge/CLAUDE.md`
-14. `packages/shared/CLAUDE.md`
-15. `docs/identidade_visual.md`
-16. `docs/paleta_de_cores.md`
-17. `docs/runbooks/setup.md`
-18. `.claude/settings.json`
+8. `docs/decisions/fronteira-integracao.md`
+9. `docs/decisions/relatorio-reconhecimento.md`
+10. `docs/prd/` (PRDs filhos por modulo)
+11. `apps/web/CLAUDE.md`
+12. `apps/api/CLAUDE.md`
+13. `packages/domain/CLAUDE.md`
+14. `packages/integration-sienge/CLAUDE.md`
+15. `packages/shared/CLAUDE.md`
+16. `docs/identidade_visual.md`
+17. `docs/paleta_de_cores.md`
+18. `docs/runbooks/setup.md`
+19. `.claude/settings.json`
 
 Se dois documentos parecerem conflitar, nao invente conciliacao. Priorize o de maior precedencia e registre a divergencia na resposta.
 
@@ -47,6 +48,7 @@ Este repositorio ja teve o seu Workspace inicializado, mas os dominios continuam
 - Os tipos do Supabase (database.types.ts) estão gerados no pacote `packages/shared`.
 - Foram implementadas as rotas definitivas de Autenticação e Gestão de Usuários (CRUD administrativo) e RBAC no backend (`apps/api`), bem como a criação das entidades correspondentes no Domínio. Com as Sprints A e B completas, a Fase 3 do PRD-01 (Backend) está concluída.
 - Foi implementado o pacote de Autenticação e Gestão de Usuários no frontend (`apps/web`). A **Sprint C** foi concluída com as interfaces, rotas em react-router, context API e wrappers Axios, utilizando Vanilla CSS integrado com a Identidade Visual do projeto (Fases 4 e 5). O ecossistema auth + contas administrativas está operante.
+- O pacote de integração (`packages/integration-sienge`) possui a infraestrutura base de cliente HTTP isolada e resiliente implementada (Axios + Retry + Mascaramento), exportada para consumo por `apps/api` e `workers/`.
   Consequencia pratica:
 
 - nao assumir que algo ja existe;
@@ -144,6 +146,8 @@ Entidades centrais:
 - evento de integracao;
 - usuario interno.
 
+> **Nota de implementacao:** a entidade `users` do PRD-01 foi implementada como tabela `profiles` no banco (`public.profiles`), vinculada diretamente a `auth.users(id)`. Toda referencia do PRD a "tabela users" corresponde a `profiles` no schema real. A API e o frontend já consomem `profiles` de forma consistente.
+
 Identificadores minimos persistidos:
 
 - `purchaseQuotationId`
@@ -200,11 +204,21 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 
 ### `apps/api`
 
-- Fastify v5;
+- Fastify v5; <!-- ADR-0002: Fastify escolhido sobre Hono e Express -->
 - responsavel por autenticacao, RBAC, webhooks, auditoria e orquestracao;
 - pode disparar jobs para workers;
 - deve ser testavel por `fastify.inject()`;
-- nao deve ser modelada como apenas funcao serverless curta.
+- **nao deve ser modelada como apenas funcao serverless curta** — o produto exige polling, retries e reconciliacao de longa duracao; <!-- ADR-0002: deploy na Vercel como funcao serverless nao e o caso de uso otimizado -->
+- estrutura interna esperada (ADR-0002):
+  ```
+  apps/api/src/
+  ├── server.ts   # inicializa instancia Fastify e registra plugins
+  ├── app.ts      # factory exportavel para fastify.inject() em testes
+  ├── routes/     # rotas agrupadas por modulo de dominio
+  ├── plugins/    # plugins globais (auth, cors, helmet, sensible)
+  ├── hooks/      # lifecycle hooks (RBAC, auditoria)
+  └── schemas/    # JSON Schemas de request/response compartilhados
+  ```
 
 ### `packages/domain`
 
@@ -240,9 +254,10 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - usar portugues para mensagens de interface;
 - seguir commits convencionais: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`;
 - **Formatação de Código**: O projeto usa **Prettier** unificado na raiz do workspace.
-- **Lint**: O monorepo usa **ESLint 9 (Flat Config)** por workspace, executado no contexto do pacote/app correspondente e integrado ao `eslint-config-prettier` quando aplicavel.
+- **Lint**: O monorepo usa **ESLint 9 (Flat Config)** por workspace, executado **no contexto do pacote/app correspondente** e integrado ao `eslint-config-prettier` quando aplicavel. <!-- ADR-0003: o comando global pnpm -r run lint chama o lint de cada workspace individualmente, garantindo isolamento de config -->
 - **Pre-commit**: O monorepo possui **Husky** e **Lint-Staged** configurados na raiz. Commits na linha de comando corrigem a formatação e despacham o lint automaticamente para o workspace correto.
 - **Integração Contínua (CI)**: Pipeline ativa via **GitHub Actions** (`.github/workflows/ci.yml`) que barra Pull Requests que fujam aos testes, lints ou build.
+- **Execucao de binarios**: usar `pnpm dlx` no lugar de `npx` para nao quebrar o `pnpm-lock.yaml`. <!-- ADR-0003: misturar npm/npx com pnpm quebra o lockfile -->
 
 Sempre marcar incertezas ainda nao homologadas com `[VERIFICAR]` quando estiver documentando algo ainda nao confirmado.
 
@@ -267,15 +282,35 @@ Qualquer mudanca de branding deve refletir `docs/identidade_visual.md`.
 
 ---
 
+## 11b. Funcionalidades fora do escopo da V1.0 <!-- relatorio-reconhecimento §out of scope -->
+
+As seguintes funcionalidades estao explicitamente excluidas da V1.0. O Gemini nao deve implementa-las nem sugerir sua adicao sem instrucao explicita:
+
+- Alteracao automatica de data planejada no Sienge a partir de sugestao do fornecedor.
+- Auto cadastro de fornecedor.
+- Ativacao autonoma de credenciais sem acao do Administrador.
+- Envio de anexos/documentos pelo fornecedor.
+- Exposicao de propostas concorrentes entre fornecedores.
+- Automacoes financeiras, fiscais ou contabeis alem do uso logistico de NF.
+- Regua separada por parcela de entrega do mesmo item.
+- Politicas avancadas de seguranca alem do minimo operacional.
+- Notificacao por WhatsApp (planejado para V2.0).
+
+---
+
 ## 12. Workflow esperado do agente Gemini
 
 Antes de agir:
 
 1. ler `CLAUDE.md` da raiz;
 2. ler o `CLAUDE.md` do modulo afetado, se existir;
-3. validar o impacto em dominio, auditoria, RBAC, integracao e reprocessamento;
-4. checar se a mudanca respeita as ADRs e o estado atual do repositorio;
-5. se o tema envolver regras de produto, consultar `PRDGlobal.md` e os PRDs filhos correspondentes.
+3. se a mudanca afetar o backend (`apps/api`), ler `ADR-0002-backend-framework.md`; <!-- ADR-0002: entrypoint, dependencias e restricoes de deploy -->
+4. se a mudanca afetar o workspace ou scripts, ler `ADR-0003-workspace-manager.md`; <!-- ADR-0003: pnpm dlx, lockfile, filtros -->
+5. se a mudanca afetar workers ou jobs, ler `ADR-0004-workers-runtime.md`; <!-- ADR-0004: pg-boss, variaveis de ambiente, restricoes de Edge Functions -->
+6. se a mudanca envolver distribuicao de logica entre API/workers/Supabase, ler `docs/decisions/fronteira-integracao.md`;
+7. validar o impacto em dominio, auditoria, RBAC, integracao e reprocessamento;
+8. checar se a mudanca respeita as ADRs e o estado atual do repositorio;
+9. se o tema envolver regras de produto, consultar `PRDGlobal.md` e os PRDs filhos correspondentes.
 
 Durante a execucao:
 
@@ -298,7 +333,7 @@ Antes de encerrar:
 
 O relatorio de reconhecimento registra que varias validacoes ainda dependem de homologacao com o Sienge. Logo:
 
-- nao afirmar como definitivo o mapeamento `supplierId` -> `creditorId` sem validacao;
+- o mapeamento `supplierId` -> `creditorId` foi **confirmado** como direto (validacao V5, 30/30, 100%); <!-- validado 2026-04-10 -->
 - nao assumir comportamento final dos webhooks antes da homologacao;
 - nao assumir detalhes finais de payloads de escrita ou leitura ainda nao testados;
 - nao fechar decisoes de infraestrutura que ja estao definidas como `[VERIFICAR]` sem evidencia nova.
@@ -317,18 +352,25 @@ Quando necessario, use linguagem explicita:
 
 O workspace pnpm ja foi inicializado. Os comandos de referencia sao:
 
-- `pnpm install`
-- `pnpm --filter @projetog/web dev`
-- `pnpm --filter @projetog/api dev`
-- `pnpm --filter @projetog/workers dev`
-- `pnpm --filter @projetog/web build`
-- `pnpm --filter @projetog/api build`
-- `pnpm --filter @projetog/workers build`
-- `pnpm -r run test`
-- `pnpm -r run lint`
-- `pnpm run db:login`
-- `pnpm run db:link`
-- `pnpm run db:push`
+<!-- ADR-0003: usar sempre pnpm; pnpm dlx substitui npx; misturar npm/yarn quebra o pnpm-lock.yaml -->
+
+| Acao                      | Comando                                 |
+| ------------------------- | --------------------------------------- |
+| Instalar dependencias     | `pnpm install`                          |
+| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`       |
+| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`       |
+| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`   |
+| Build frontend            | `pnpm --filter @projetog/web build`     |
+| Build API                 | `pnpm --filter @projetog/api build`     |
+| Build workers             | `pnpm --filter @projetog/workers build` |
+| Testes (todos os modulos) | `pnpm -r run test`                      |
+| Lint (todos os modulos)   | `pnpm -r run lint`                      |
+| Format (todos os modulos) | `pnpm run format`                       |
+| Autenticar Supabase       | `pnpm run db:login`                     |
+| Ligar Supabase            | `pnpm run db:link`                      |
+| Migracoes (Supabase)      | `pnpm run db:push`                      |
+| Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
+| Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
 
 Importante:
 
