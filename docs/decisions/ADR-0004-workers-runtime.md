@@ -71,6 +71,7 @@ Adotar **Node.js + TypeScript em processo worker standalone** no mesmo monorepo 
 ### Supabase Edge Functions + pg_cron
 
 Nao adotado como solucao unica porque:
+
 - Edge Functions sao stateless e tem limite de tempo de execucao — incompativel com polling e reconciliacao.
 - pg_cron nao e disponivel em todos os planos Supabase e tem granularidade minima de 1 minuto.
 - Retry e dead-letter exigiriam implementacao manual.
@@ -80,12 +81,14 @@ Pode ser usado como complemento (ex.: trigger de webhook) mas nao como runtime p
 ### BullMQ + Redis
 
 Nao adotado porque:
+
 - Exige Redis como infraestrutura adicional, aumentando custo e complexidade operacional.
 - O projeto ja tem PostgreSQL disponivel — pg-boss oferece garantias equivalentes sem infra nova.
 
 ### Inngest
 
 Nao adotado porque:
+
 - Servico externo gerenciado — adiciona dependencia de vendor critico para o processamento assincrono.
 - Custo variavel por execucao em escala.
 - Menos controle sobre persistencia e auditoria de jobs.
@@ -111,13 +114,13 @@ workers/
 
 ## Dependencias principais esperadas
 
-| Pacote | Finalidade |
-|---|---|
-| `pg-boss` | Framework de filas e scheduling sobre PostgreSQL |
-| `pg` | Driver PostgreSQL para pg-boss |
+| Pacote                  | Finalidade                                        |
+| ----------------------- | ------------------------------------------------- |
+| `pg-boss`               | Framework de filas e scheduling sobre PostgreSQL  |
+| `pg`                    | Driver PostgreSQL para pg-boss                    |
 | `@supabase/supabase-js` | Cliente Supabase para acesso a dados operacionais |
-| `tsx` ou `ts-node` | Execucao TypeScript em desenvolvimento |
-| `vitest` | Testes unitarios dos handlers e logica de jobs |
+| `tsx` ou `ts-node`      | Execucao TypeScript em desenvolvimento            |
+| `vitest`                | Testes unitarios dos handlers e logica de jobs    |
 
 ## Variaveis de ambiente necessarias
 
@@ -131,11 +134,11 @@ Ja documentadas no `CLAUDE.md` e no `.env.example`:
 
 ## Comandos esperados apos inicializacao
 
-| Acao | Comando |
-|---|---|
-| Iniciar workers (dev) | `pnpm --filter workers dev` |
-| Build dos workers | `pnpm --filter workers build` |
-| Testes dos workers | `pnpm --filter workers test` |
+| Acao                  | Comando                       |
+| --------------------- | ----------------------------- |
+| Iniciar workers (dev) | `pnpm --filter workers dev`   |
+| Build dos workers     | `pnpm --filter workers build` |
+| Testes dos workers    | `pnpm --filter workers test`  |
 
 ## Referencias
 

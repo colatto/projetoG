@@ -19,13 +19,13 @@ O valor entregue inclui: monitoramento contínuo da operação com atualização
 
 ### 2.1 Incluso neste PRD
 
-- Implementação dos 5 dashboards oficiais da V1.0: Lead Time, Atrasos, Criticidade, Ranking de Fornecedores e Avarias. *(PRDGlobal §13.1)*
-- Implementação dos filtros globais de dashboard: Fornecedor, Obra, Pedido e Item. *(PRDGlobal §13.2)*
-- Frequência de atualização diária dos indicadores. *(PRDGlobal §13.3)*
-- Implementação dos 6 KPIs oficiais iniciais e suas fórmulas derivadas. *(PRDGlobal §13.4, §13.5)*
-- Implementação do cálculo de criticidade por item/insumo. *(PRDGlobal §13.6)*
-- Implementação da sinalização de confiabilidade do fornecedor (Confiável, Atenção, Crítico). *(PRDGlobal §13.7)*
-- Implementação dos resumos rápidos do dashboard. *(PRDGlobal §13.8)*
+- Implementação dos 5 dashboards oficiais da V1.0: Lead Time, Atrasos, Criticidade, Ranking de Fornecedores e Avarias. _(PRDGlobal §13.1)_
+- Implementação dos filtros globais de dashboard: Fornecedor, Obra, Pedido e Item. _(PRDGlobal §13.2)_
+- Frequência de atualização diária dos indicadores. _(PRDGlobal §13.3)_
+- Implementação dos 6 KPIs oficiais iniciais e suas fórmulas derivadas. _(PRDGlobal §13.4, §13.5)_
+- Implementação do cálculo de criticidade por item/insumo. _(PRDGlobal §13.6)_
+- Implementação da sinalização de confiabilidade do fornecedor (Confiável, Atenção, Crítico). _(PRDGlobal §13.7)_
+- Implementação dos resumos rápidos do dashboard. _(PRDGlobal §13.8)_
 - Camada de agregação e cálculo para alimentar os indicadores.
 - Componentes de interface para visualização dos dashboards.
 - Auditoria de acesso aos dashboards.
@@ -36,27 +36,27 @@ O valor entregue inclui: monitoramento contínuo da operação com atualização
 - Cálculo e gestão de status operacionais de pedido (Atrasado, Entregue, Parcialmente Entregue, etc.) — coberto pelo PRD 05 (Entrega, Divergência e Status de Pedido).
 - Cálculo e gestão da régua de follow-up e dias úteis — coberto pelo PRD 04 (Follow-up Logístico).
 - Registro e tratamento de avarias e ações corretivas — coberto pelo PRD 06 (Avaria e Ação Corretiva).
-- Filtro rápido "Exigem ação" e priorização visual da operação — coberto pelo PRD 09 (Backoffice, Auditoria e Operação). *(PRDGlobal §12.3, §12.4)*
+- Filtro rápido "Exigem ação" e priorização visual da operação — coberto pelo PRD 09 (Backoffice, Auditoria e Operação). _(PRDGlobal §12.3, §12.4)_
 - Tela de listagem de cotações e pedidos do backoffice — coberto pelo PRD 09.
 - Gestão de acessos e perfis — coberto pelo PRD 01 (Autenticação e Perfis).
 - Monitoramento de integrações e reprocessamento de falhas — coberto pelo PRD 09.
 
 ### 2.3 Fora de escopo da V1.0
 
-- Dashboards com atualização em tempo real (a V1.0 define atualização diária). *(PRDGlobal §13.3)*
+- Dashboards com atualização em tempo real (a V1.0 define atualização diária). _(PRDGlobal §13.3)_
 - Exportação de relatórios em PDF ou Excel a partir do dashboard (não mencionado no PRDGlobal §13).
 - Alertas proativos automatizados por e-mail baseados em indicadores do dashboard (não mencionado no PRDGlobal §13).
 - Dashboards personalizáveis pelo usuário (não mencionado no PRDGlobal §13).
-- Régua separada por parcela de entrega do mesmo item. *(PRDGlobal §2.3)*
+- Régua separada por parcela de entrega do mesmo item. _(PRDGlobal §2.3)_
 
 ## 3. Perfis envolvidos
 
-| Perfil | Acesso ao Dashboard | Permissões | Restrições |
-|--------|---------------------|------------|------------|
-| **Compras** | ✅ Sim | Visualizar todos os dashboards, aplicar filtros, consultar KPIs, rankings e resumos rápidos. | Não altera dados; apenas consulta. |
-| **Administrador** | ✅ Sim | Mesmo acesso de visualização que Compras. Parametrização de regras que afetam cálculos (via módulo de Backoffice). | Não altera dados diretamente no dashboard. |
-| **Fornecedor** | ❌ Não | Sem acesso a dashboards ou indicadores. | *(PRDGlobal §3.2 — Fornecedor consulta apenas histórico próprio)* |
-| **Visualizador de Pedidos** | ❌ Não | Sem acesso a dashboards, indicadores, parametrizações ou ações operacionais. | *(PRDGlobal §3.2 — explicitamente excluído)* |
+| Perfil                      | Acesso ao Dashboard | Permissões                                                                                                         | Restrições                                                        |
+| --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| **Compras**                 | ✅ Sim              | Visualizar todos os dashboards, aplicar filtros, consultar KPIs, rankings e resumos rápidos.                       | Não altera dados; apenas consulta.                                |
+| **Administrador**           | ✅ Sim              | Mesmo acesso de visualização que Compras. Parametrização de regras que afetam cálculos (via módulo de Backoffice). | Não altera dados diretamente no dashboard.                        |
+| **Fornecedor**              | ❌ Não              | Sem acesso a dashboards ou indicadores.                                                                            | _(PRDGlobal §3.2 — Fornecedor consulta apenas histórico próprio)_ |
+| **Visualizador de Pedidos** | ❌ Não              | Sem acesso a dashboards, indicadores, parametrizações ou ações operacionais.                                       | _(PRDGlobal §3.2 — explicitamente excluído)_                      |
 
 ## 4. Entidades e modelagem
 
@@ -64,19 +64,19 @@ O valor entregue inclui: monitoramento contínuo da operação com atualização
 
 Armazena snapshots diários dos indicadores agregados para suportar a frequência de atualização diária definida no PRDGlobal §13.3.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único do snapshot. |
-| `snapshot_date` | DATE | Sim | Data de referência do snapshot (dia da consolidação). |
-| `cotacoes_enviadas` | INTEGER | Sim | Total de cotações enviadas no período. *(§13.5)* |
-| `cotacoes_respondidas` | INTEGER | Sim | Total de cotações com resposta válida. *(§13.5)* |
-| `cotacoes_sem_resposta` | INTEGER | Sim | Total de cotações vencidas com status "Sem resposta". *(§13.5)* |
-| `pedidos_no_prazo` | INTEGER | Sim | Total de pedidos com entrega confirmada até a data prometida. *(§13.5)* |
-| `pedidos_atrasados` | INTEGER | Sim | Total de pedidos com status "Atrasado". *(§13.5)* |
-| `pedidos_com_avaria` | INTEGER | Sim | Total de pedidos com registro de avaria. *(§13.5)* |
-| `total_pedidos_monitorados` | INTEGER | Sim | Base de cálculo para taxas percentuais. |
-| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não | Média em dias úteis entre data do pedido e entrega confirmada. *(§13.5)* |
-| `created_at` | TIMESTAMPTZ | Sim | Data/hora de criação do snapshot. |
+| Campo                        | Tipo          | Obrigatório | Descrição                                                                |
+| ---------------------------- | ------------- | ----------- | ------------------------------------------------------------------------ |
+| `id`                         | UUID          | Sim         | Identificador único do snapshot.                                         |
+| `snapshot_date`              | DATE          | Sim         | Data de referência do snapshot (dia da consolidação).                    |
+| `cotacoes_enviadas`          | INTEGER       | Sim         | Total de cotações enviadas no período. _(§13.5)_                         |
+| `cotacoes_respondidas`       | INTEGER       | Sim         | Total de cotações com resposta válida. _(§13.5)_                         |
+| `cotacoes_sem_resposta`      | INTEGER       | Sim         | Total de cotações vencidas com status "Sem resposta". _(§13.5)_          |
+| `pedidos_no_prazo`           | INTEGER       | Sim         | Total de pedidos com entrega confirmada até a data prometida. _(§13.5)_  |
+| `pedidos_atrasados`          | INTEGER       | Sim         | Total de pedidos com status "Atrasado". _(§13.5)_                        |
+| `pedidos_com_avaria`         | INTEGER       | Sim         | Total de pedidos com registro de avaria. _(§13.5)_                       |
+| `total_pedidos_monitorados`  | INTEGER       | Sim         | Base de cálculo para taxas percentuais.                                  |
+| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não         | Média em dias úteis entre data do pedido e entrega confirmada. _(§13.5)_ |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data/hora de criação do snapshot.                                        |
 
 **Relacionamentos:** Nenhum FK direto; dados derivados de `cotacoes`, `pedidos`, `entregas` e `avarias`.
 **Índices sugeridos:** `(snapshot_date)` UNIQUE, `(created_at)`.
@@ -86,20 +86,20 @@ Armazena snapshots diários dos indicadores agregados para suportar a frequênci
 
 Armazena métricas diárias por fornecedor para suportar o ranking de fornecedores e a sinalização de confiabilidade.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único. |
-| `snapshot_date` | DATE | Sim | Data de referência do snapshot. |
-| `supplier_id` | INTEGER | Sim | `supplierId` do Sienge. |
-| `supplier_name` | VARCHAR(255) | Sim | Nome do fornecedor (desnormalizado para performance de consulta). |
-| `cotacoes_enviadas` | INTEGER | Sim | Total de cotações enviadas ao fornecedor. |
-| `cotacoes_respondidas` | INTEGER | Sim | Total de cotações respondidas pelo fornecedor. |
-| `pedidos_no_prazo` | INTEGER | Sim | Total de pedidos entregues no prazo. |
-| `pedidos_atrasados` | INTEGER | Sim | Total de pedidos atrasados. |
-| `pedidos_com_avaria` | INTEGER | Sim | Total de pedidos com avaria. |
-| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não | Lead time médio do fornecedor. |
-| `confiabilidade` | VARCHAR(20) | Sim | Classificação: `confiavel`, `atencao` ou `critico`. *(§13.7)* |
-| `created_at` | TIMESTAMPTZ | Sim | Data/hora de criação. |
+| Campo                        | Tipo          | Obrigatório | Descrição                                                         |
+| ---------------------------- | ------------- | ----------- | ----------------------------------------------------------------- |
+| `id`                         | UUID          | Sim         | Identificador único.                                              |
+| `snapshot_date`              | DATE          | Sim         | Data de referência do snapshot.                                   |
+| `supplier_id`                | INTEGER       | Sim         | `supplierId` do Sienge.                                           |
+| `supplier_name`              | VARCHAR(255)  | Sim         | Nome do fornecedor (desnormalizado para performance de consulta). |
+| `cotacoes_enviadas`          | INTEGER       | Sim         | Total de cotações enviadas ao fornecedor.                         |
+| `cotacoes_respondidas`       | INTEGER       | Sim         | Total de cotações respondidas pelo fornecedor.                    |
+| `pedidos_no_prazo`           | INTEGER       | Sim         | Total de pedidos entregues no prazo.                              |
+| `pedidos_atrasados`          | INTEGER       | Sim         | Total de pedidos atrasados.                                       |
+| `pedidos_com_avaria`         | INTEGER       | Sim         | Total de pedidos com avaria.                                      |
+| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não         | Lead time médio do fornecedor.                                    |
+| `confiabilidade`             | VARCHAR(20)   | Sim         | Classificação: `confiavel`, `atencao` ou `critico`. _(§13.7)_     |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data/hora de criação.                                             |
 
 **Relacionamentos:** Referência lógica a `fornecedores` via `supplier_id`.
 **Índices sugeridos:** `(snapshot_date, supplier_id)` UNIQUE, `(supplier_id)`, `(confiabilidade)`.
@@ -109,17 +109,17 @@ Armazena métricas diárias por fornecedor para suportar o ranking de fornecedor
 
 Armazena métricas diárias por obra para suportar os filtros por obra e o dashboard de criticidade.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único. |
-| `snapshot_date` | DATE | Sim | Data de referência do snapshot. |
-| `building_id` | INTEGER | Sim | `buildingId` do Sienge. |
-| `building_name` | VARCHAR(255) | Não | Nome da obra (desnormalizado, se disponível). |
-| `pedidos_no_prazo` | INTEGER | Sim | Total de pedidos no prazo para a obra. |
-| `pedidos_atrasados` | INTEGER | Sim | Total de pedidos atrasados. |
-| `pedidos_com_avaria` | INTEGER | Sim | Total de pedidos com avaria. |
-| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não | Lead time médio para a obra. |
-| `created_at` | TIMESTAMPTZ | Sim | Data/hora de criação. |
+| Campo                        | Tipo          | Obrigatório | Descrição                                     |
+| ---------------------------- | ------------- | ----------- | --------------------------------------------- |
+| `id`                         | UUID          | Sim         | Identificador único.                          |
+| `snapshot_date`              | DATE          | Sim         | Data de referência do snapshot.               |
+| `building_id`                | INTEGER       | Sim         | `buildingId` do Sienge.                       |
+| `building_name`              | VARCHAR(255)  | Não         | Nome da obra (desnormalizado, se disponível). |
+| `pedidos_no_prazo`           | INTEGER       | Sim         | Total de pedidos no prazo para a obra.        |
+| `pedidos_atrasados`          | INTEGER       | Sim         | Total de pedidos atrasados.                   |
+| `pedidos_com_avaria`         | INTEGER       | Sim         | Total de pedidos com avaria.                  |
+| `lead_time_medio_dias_uteis` | DECIMAL(10,2) | Não         | Lead time médio para a obra.                  |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data/hora de criação.                         |
 
 **Relacionamentos:** Referência lógica à obra via `building_id`.
 **Índices sugeridos:** `(snapshot_date, building_id)` UNIQUE, `(building_id)`.
@@ -129,49 +129,49 @@ Armazena métricas diárias por obra para suportar os filtros por obra e o dashb
 
 Armazena a classificação de criticidade por item/insumo conforme §13.6.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único. |
-| `snapshot_date` | DATE | Sim | Data de referência. |
-| `item_identifier` | VARCHAR(100) | Sim | Identificador do item/insumo. |
-| `item_description` | VARCHAR(500) | Não | Descrição do item. |
-| `building_id` | INTEGER | Não | Obra associada. |
-| `prazo_obra_dias_uteis` | INTEGER | Não | Prazo restante da obra em dias úteis. |
-| `media_historica_dias_uteis` | DECIMAL(10,2) | Não | Média histórica de entrega do item/insumo. |
-| `criticidade` | VARCHAR(20) | Sim | `urgente` ou `padrao`. *(§13.6)* |
-| `created_at` | TIMESTAMPTZ | Sim | Data/hora de criação. |
+| Campo                        | Tipo          | Obrigatório | Descrição                                  |
+| ---------------------------- | ------------- | ----------- | ------------------------------------------ |
+| `id`                         | UUID          | Sim         | Identificador único.                       |
+| `snapshot_date`              | DATE          | Sim         | Data de referência.                        |
+| `item_identifier`            | VARCHAR(100)  | Sim         | Identificador do item/insumo.              |
+| `item_description`           | VARCHAR(500)  | Não         | Descrição do item.                         |
+| `building_id`                | INTEGER       | Não         | Obra associada.                            |
+| `prazo_obra_dias_uteis`      | INTEGER       | Não         | Prazo restante da obra em dias úteis.      |
+| `media_historica_dias_uteis` | DECIMAL(10,2) | Não         | Média histórica de entrega do item/insumo. |
+| `criticidade`                | VARCHAR(20)   | Sim         | `urgente` ou `padrao`. _(§13.6)_           |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data/hora de criação.                      |
 
 **Relacionamentos:** Referência lógica a itens de pedido e obras.
 **Índices sugeridos:** `(snapshot_date, item_identifier)`, `(criticidade)`, `(building_id)`.
-**Regras de integridade:** Sem histórico suficiente, classificar como `padrao`. *(§13.6)*
+**Regras de integridade:** Sem histórico suficiente, classificar como `padrao`. _(§13.6)_
 
 ## 5. Regras de negócio
 
-- **RN-01:** Os dashboards oficiais da V1.0 são exclusivamente: Lead Time, Atrasos, Criticidade, Ranking de Fornecedores e Avarias. *(PRDGlobal §13.1)*
-- **RN-02:** Os filtros disponíveis em todos os dashboards são: Fornecedor, Obra, Pedido e Item. *(PRDGlobal §13.2)*
-- **RN-03:** A atualização dos indicadores é diária. Os dados exibidos refletem a situação consolidada até o fechamento do dia anterior. *(PRDGlobal §13.3)*
-- **RN-04:** `Cotações enviadas` = total de cotações enviadas no período selecionado. *(PRDGlobal §13.5)*
-- **RN-05:** `Cotações respondidas` = total de cotações com resposta válida do fornecedor no período selecionado. *(PRDGlobal §13.5)*
-- **RN-06:** `Cotações sem resposta` = total de cotações vencidas com status "Sem resposta" no período selecionado. *(PRDGlobal §13.5)*
-- **RN-07:** `Pedidos no prazo` = total de pedidos com entrega confirmada até a data prometida. *(PRDGlobal §13.5)*
-- **RN-08:** `Pedidos atrasados` = total de pedidos com status "Atrasado" no período selecionado. *(PRDGlobal §13.5)*
-- **RN-09:** `Pedidos com avaria` = total de pedidos que tiveram ao menos um registro de avaria no período selecionado. *(PRDGlobal §13.5)*
-- **RN-10:** `Taxa de resposta de cotação` = Cotações respondidas / Cotações enviadas × 100. *(PRDGlobal §13.5)*
-- **RN-11:** `Taxa de cotações sem resposta` = Cotações sem resposta / Cotações enviadas × 100. *(PRDGlobal §13.5)*
-- **RN-12:** `Taxa de pedidos no prazo` = Pedidos no prazo / Total de pedidos monitorados × 100. *(PRDGlobal §13.5)*
-- **RN-13:** `Taxa de atraso` = Pedidos atrasados / Total de pedidos monitorados × 100. *(PRDGlobal §13.5)*
-- **RN-14:** `Taxa de avaria` = Pedidos com avaria / Total de pedidos monitorados × 100. *(PRDGlobal §13.5)*
-- **RN-15:** `Lead time médio` = média, em dias úteis, entre a Data do Pedido no Sienge e a Data de entrega confirmada. *(PRDGlobal §13.5)*
-- **RN-16:** O cálculo de dias úteis considera apenas feriados nacionais (regra consistente com o módulo de Follow-up). *(PRDGlobal §6.1)*
-- **RN-17:** Criticidade `Urgente` quando o prazo da obra for menor que a média histórica do item ou insumo. *(PRDGlobal §13.6)*
-- **RN-18:** Criticidade `Padrão` quando o prazo da obra for maior ou igual à média histórica. *(PRDGlobal §13.6)*
-- **RN-19:** Sem histórico suficiente para calcular criticidade, classificar como `Padrão`. *(PRDGlobal §13.6)*
-- **RN-20:** Sinalização `Confiável`: sem atraso e sem avaria nos últimos 3 meses. *(PRDGlobal §13.7)*
-- **RN-21:** Sinalização `Atenção`: com atraso ou com avaria nos últimos 3 meses. *(PRDGlobal §13.7)*
-- **RN-22:** Sinalização `Crítico`: com atraso e com avaria nos últimos 3 meses. *(PRDGlobal §13.7)*
-- **RN-23:** O dashboard deve exibir no mínimo os resumos rápidos: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria e falhas de integração. *(PRDGlobal §13.8)*
-- **RN-24:** Apenas os perfis `Compras` e `Administrador` podem acessar dashboards e indicadores. O `Visualizador de Pedidos` está explicitamente excluído. *(PRDGlobal §3.2)*
-- **RN-25:** O `Fornecedor` não tem acesso a dashboards ou indicadores. *(PRDGlobal §3.2)*
+- **RN-01:** Os dashboards oficiais da V1.0 são exclusivamente: Lead Time, Atrasos, Criticidade, Ranking de Fornecedores e Avarias. _(PRDGlobal §13.1)_
+- **RN-02:** Os filtros disponíveis em todos os dashboards são: Fornecedor, Obra, Pedido e Item. _(PRDGlobal §13.2)_
+- **RN-03:** A atualização dos indicadores é diária. Os dados exibidos refletem a situação consolidada até o fechamento do dia anterior. _(PRDGlobal §13.3)_
+- **RN-04:** `Cotações enviadas` = total de cotações enviadas no período selecionado. _(PRDGlobal §13.5)_
+- **RN-05:** `Cotações respondidas` = total de cotações com resposta válida do fornecedor no período selecionado. _(PRDGlobal §13.5)_
+- **RN-06:** `Cotações sem resposta` = total de cotações vencidas com status "Sem resposta" no período selecionado. _(PRDGlobal §13.5)_
+- **RN-07:** `Pedidos no prazo` = total de pedidos com entrega confirmada até a data prometida. _(PRDGlobal §13.5)_
+- **RN-08:** `Pedidos atrasados` = total de pedidos com status "Atrasado" no período selecionado. _(PRDGlobal §13.5)_
+- **RN-09:** `Pedidos com avaria` = total de pedidos que tiveram ao menos um registro de avaria no período selecionado. _(PRDGlobal §13.5)_
+- **RN-10:** `Taxa de resposta de cotação` = Cotações respondidas / Cotações enviadas × 100. _(PRDGlobal §13.5)_
+- **RN-11:** `Taxa de cotações sem resposta` = Cotações sem resposta / Cotações enviadas × 100. _(PRDGlobal §13.5)_
+- **RN-12:** `Taxa de pedidos no prazo` = Pedidos no prazo / Total de pedidos monitorados × 100. _(PRDGlobal §13.5)_
+- **RN-13:** `Taxa de atraso` = Pedidos atrasados / Total de pedidos monitorados × 100. _(PRDGlobal §13.5)_
+- **RN-14:** `Taxa de avaria` = Pedidos com avaria / Total de pedidos monitorados × 100. _(PRDGlobal §13.5)_
+- **RN-15:** `Lead time médio` = média, em dias úteis, entre a Data do Pedido no Sienge e a Data de entrega confirmada. _(PRDGlobal §13.5)_
+- **RN-16:** O cálculo de dias úteis considera apenas feriados nacionais (regra consistente com o módulo de Follow-up). _(PRDGlobal §6.1)_
+- **RN-17:** Criticidade `Urgente` quando o prazo da obra for menor que a média histórica do item ou insumo. _(PRDGlobal §13.6)_
+- **RN-18:** Criticidade `Padrão` quando o prazo da obra for maior ou igual à média histórica. _(PRDGlobal §13.6)_
+- **RN-19:** Sem histórico suficiente para calcular criticidade, classificar como `Padrão`. _(PRDGlobal §13.6)_
+- **RN-20:** Sinalização `Confiável`: sem atraso e sem avaria nos últimos 3 meses. _(PRDGlobal §13.7)_
+- **RN-21:** Sinalização `Atenção`: com atraso ou com avaria nos últimos 3 meses. _(PRDGlobal §13.7)_
+- **RN-22:** Sinalização `Crítico`: com atraso e com avaria nos últimos 3 meses. _(PRDGlobal §13.7)_
+- **RN-23:** O dashboard deve exibir no mínimo os resumos rápidos: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria e falhas de integração. _(PRDGlobal §13.8)_
+- **RN-24:** Apenas os perfis `Compras` e `Administrador` podem acessar dashboards e indicadores. O `Visualizador de Pedidos` está explicitamente excluído. _(PRDGlobal §3.2)_
+- **RN-25:** O `Fornecedor` não tem acesso a dashboards ou indicadores. _(PRDGlobal §3.2)_
 
 ## 6. Fluxos operacionais
 
@@ -229,28 +229,28 @@ Retorna os resumos rápidos do dashboard conforme §13.8.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_referencia` | DATE | Não | Data do snapshot. Default: último snapshot disponível. |
+| Campo             | Tipo | Obrigatório | Descrição                                              |
+| ----------------- | ---- | ----------- | ------------------------------------------------------ |
+| `data_referencia` | DATE | Não         | Data do snapshot. Default: último snapshot disponível. |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `cotacoes_abertas` | INTEGER | Total de cotações com status em negociação. |
+| Campo                         | Tipo    | Descrição                                        |
+| ----------------------------- | ------- | ------------------------------------------------ |
+| `cotacoes_abertas`            | INTEGER | Total de cotações com status em negociação.      |
 | `cotacoes_aguardando_revisao` | INTEGER | Total de cotações aguardando revisão de Compras. |
-| `pedidos_atrasados` | INTEGER | Total de pedidos com status "Atrasado". |
-| `pedidos_em_avaria` | INTEGER | Total de pedidos com status "Em avaria". |
-| `falhas_integracao` | INTEGER | Total de falhas de integração ativas. |
-| `data_snapshot` | DATE | Data de referência dos dados. |
+| `pedidos_atrasados`           | INTEGER | Total de pedidos com status "Atrasado".          |
+| `pedidos_em_avaria`           | INTEGER | Total de pedidos com status "Em avaria".         |
+| `falhas_integracao`           | INTEGER | Total de falhas de integração ativas.            |
+| `data_snapshot`               | DATE    | Data de referência dos dados.                    |
 
 **Erros esperados:**
 
-| Código | Descrição |
-|--------|-----------|
-| 401 | Não autenticado. |
-| 403 | Perfil não autorizado (Fornecedor ou Visualizador de Pedidos). |
-| 404 | Nenhum snapshot disponível. |
+| Código | Descrição                                                      |
+| ------ | -------------------------------------------------------------- |
+| 401    | Não autenticado.                                               |
+| 403    | Perfil não autorizado (Fornecedor ou Visualizador de Pedidos). |
+| 404    | Nenhum snapshot disponível.                                    |
 
 **Perfis autorizados:** `Compras`, `Administrador`.
 
@@ -260,39 +260,39 @@ Retorna os KPIs oficiais e fórmulas derivadas conforme §13.4 e §13.5.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_inicio` | DATE | Não | Início do período. Default: 30 dias atrás. |
-| `data_fim` | DATE | Não | Fim do período. Default: data atual. |
-| `supplier_id` | INTEGER | Não | Filtro por fornecedor. |
-| `building_id` | INTEGER | Não | Filtro por obra. |
+| Campo         | Tipo    | Obrigatório | Descrição                                  |
+| ------------- | ------- | ----------- | ------------------------------------------ |
+| `data_inicio` | DATE    | Não         | Início do período. Default: 30 dias atrás. |
+| `data_fim`    | DATE    | Não         | Fim do período. Default: data atual.       |
+| `supplier_id` | INTEGER | Não         | Filtro por fornecedor.                     |
+| `building_id` | INTEGER | Não         | Filtro por obra.                           |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `cotacoes_enviadas` | INTEGER | *(§13.5)* |
-| `cotacoes_respondidas` | INTEGER | *(§13.5)* |
-| `cotacoes_sem_resposta` | INTEGER | *(§13.5)* |
-| `pedidos_no_prazo` | INTEGER | *(§13.5)* |
-| `pedidos_atrasados` | INTEGER | *(§13.5)* |
-| `pedidos_com_avaria` | INTEGER | *(§13.5)* |
-| `taxa_resposta_cotacao` | DECIMAL | *(§13.5)* |
-| `taxa_cotacoes_sem_resposta` | DECIMAL | *(§13.5)* |
-| `taxa_pedidos_no_prazo` | DECIMAL | *(§13.5)* |
-| `taxa_atraso` | DECIMAL | *(§13.5)* |
-| `taxa_avaria` | DECIMAL | *(§13.5)* |
-| `lead_time_medio_dias_uteis` | DECIMAL | *(§13.5)* |
-| `total_pedidos_monitorados` | INTEGER | Base de cálculo. |
-| `periodo` | OBJECT | `{ data_inicio, data_fim }` |
+| Campo                        | Tipo    | Descrição                   |
+| ---------------------------- | ------- | --------------------------- |
+| `cotacoes_enviadas`          | INTEGER | _(§13.5)_                   |
+| `cotacoes_respondidas`       | INTEGER | _(§13.5)_                   |
+| `cotacoes_sem_resposta`      | INTEGER | _(§13.5)_                   |
+| `pedidos_no_prazo`           | INTEGER | _(§13.5)_                   |
+| `pedidos_atrasados`          | INTEGER | _(§13.5)_                   |
+| `pedidos_com_avaria`         | INTEGER | _(§13.5)_                   |
+| `taxa_resposta_cotacao`      | DECIMAL | _(§13.5)_                   |
+| `taxa_cotacoes_sem_resposta` | DECIMAL | _(§13.5)_                   |
+| `taxa_pedidos_no_prazo`      | DECIMAL | _(§13.5)_                   |
+| `taxa_atraso`                | DECIMAL | _(§13.5)_                   |
+| `taxa_avaria`                | DECIMAL | _(§13.5)_                   |
+| `lead_time_medio_dias_uteis` | DECIMAL | _(§13.5)_                   |
+| `total_pedidos_monitorados`  | INTEGER | Base de cálculo.            |
+| `periodo`                    | OBJECT  | `{ data_inicio, data_fim }` |
 
 **Erros esperados:**
 
-| Código | Descrição |
-|--------|-----------|
-| 401 | Não autenticado. |
-| 403 | Perfil não autorizado. |
-| 400 | Período inválido (data_inicio > data_fim). |
+| Código | Descrição                                  |
+| ------ | ------------------------------------------ |
+| 401    | Não autenticado.                           |
+| 403    | Perfil não autorizado.                     |
+| 400    | Período inválido (data_inicio > data_fim). |
 
 **Perfis autorizados:** `Compras`, `Administrador`.
 
@@ -302,23 +302,23 @@ Retorna dados detalhados do dashboard de Lead Time.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_inicio` | DATE | Não | Início do período. |
-| `data_fim` | DATE | Não | Fim do período. |
-| `supplier_id` | INTEGER | Não | Filtro por fornecedor. |
-| `building_id` | INTEGER | Não | Filtro por obra. |
-| `purchase_order_id` | INTEGER | Não | Filtro por pedido. |
-| `item_identifier` | VARCHAR | Não | Filtro por item. |
+| Campo               | Tipo    | Obrigatório | Descrição              |
+| ------------------- | ------- | ----------- | ---------------------- |
+| `data_inicio`       | DATE    | Não         | Início do período.     |
+| `data_fim`          | DATE    | Não         | Fim do período.        |
+| `supplier_id`       | INTEGER | Não         | Filtro por fornecedor. |
+| `building_id`       | INTEGER | Não         | Filtro por obra.       |
+| `purchase_order_id` | INTEGER | Não         | Filtro por pedido.     |
+| `item_identifier`   | VARCHAR | Não         | Filtro por item.       |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `lead_time_medio_global` | DECIMAL | Lead time geral em dias úteis. |
-| `lead_time_por_fornecedor` | ARRAY | `[{ supplier_id, supplier_name, lead_time_medio }]` |
-| `lead_time_por_obra` | ARRAY | `[{ building_id, building_name, lead_time_medio }]` |
-| `evolucao_diaria` | ARRAY | `[{ data, lead_time_medio }]` — série temporal para gráfico. |
+| Campo                      | Tipo    | Descrição                                                    |
+| -------------------------- | ------- | ------------------------------------------------------------ |
+| `lead_time_medio_global`   | DECIMAL | Lead time geral em dias úteis.                               |
+| `lead_time_por_fornecedor` | ARRAY   | `[{ supplier_id, supplier_name, lead_time_medio }]`          |
+| `lead_time_por_obra`       | ARRAY   | `[{ building_id, building_name, lead_time_medio }]`          |
+| `evolucao_diaria`          | ARRAY   | `[{ data, lead_time_medio }]` — série temporal para gráfico. |
 
 **Erros esperados:** 401, 403.
 
@@ -330,22 +330,22 @@ Retorna dados detalhados do dashboard de Atrasos.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_inicio` | DATE | Não | Início do período. |
-| `data_fim` | DATE | Não | Fim do período. |
-| `supplier_id` | INTEGER | Não | Filtro por fornecedor. |
-| `building_id` | INTEGER | Não | Filtro por obra. |
+| Campo         | Tipo    | Obrigatório | Descrição              |
+| ------------- | ------- | ----------- | ---------------------- |
+| `data_inicio` | DATE    | Não         | Início do período.     |
+| `data_fim`    | DATE    | Não         | Fim do período.        |
+| `supplier_id` | INTEGER | Não         | Filtro por fornecedor. |
+| `building_id` | INTEGER | Não         | Filtro por obra.       |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `total_atrasados` | INTEGER | Total de pedidos atrasados. |
-| `taxa_atraso` | DECIMAL | Percentual de atraso. |
-| `atrasos_por_fornecedor` | ARRAY | `[{ supplier_id, supplier_name, total_atrasados, taxa_atraso }]` |
-| `atrasos_por_obra` | ARRAY | `[{ building_id, building_name, total_atrasados }]` |
-| `evolucao_diaria` | ARRAY | `[{ data, total_atrasados, taxa_atraso }]` — série temporal. |
+| Campo                    | Tipo    | Descrição                                                        |
+| ------------------------ | ------- | ---------------------------------------------------------------- |
+| `total_atrasados`        | INTEGER | Total de pedidos atrasados.                                      |
+| `taxa_atraso`            | DECIMAL | Percentual de atraso.                                            |
+| `atrasos_por_fornecedor` | ARRAY   | `[{ supplier_id, supplier_name, total_atrasados, taxa_atraso }]` |
+| `atrasos_por_obra`       | ARRAY   | `[{ building_id, building_name, total_atrasados }]`              |
+| `evolucao_diaria`        | ARRAY   | `[{ data, total_atrasados, taxa_atraso }]` — série temporal.     |
 
 **Erros esperados:** 401, 403.
 
@@ -357,18 +357,18 @@ Retorna dados detalhados do dashboard de Criticidade.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `building_id` | INTEGER | Não | Filtro por obra. |
-| `item_identifier` | VARCHAR | Não | Filtro por item. |
+| Campo             | Tipo    | Obrigatório | Descrição        |
+| ----------------- | ------- | ----------- | ---------------- |
+| `building_id`     | INTEGER | Não         | Filtro por obra. |
+| `item_identifier` | VARCHAR | Não         | Filtro por item. |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `total_urgentes` | INTEGER | Itens classificados como Urgente. |
-| `total_padrao` | INTEGER | Itens classificados como Padrão. |
-| `itens` | ARRAY | `[{ item_identifier, item_description, building_id, building_name, prazo_obra_dias_uteis, media_historica_dias_uteis, criticidade }]` |
+| Campo            | Tipo    | Descrição                                                                                                                             |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `total_urgentes` | INTEGER | Itens classificados como Urgente.                                                                                                     |
+| `total_padrao`   | INTEGER | Itens classificados como Padrão.                                                                                                      |
+| `itens`          | ARRAY   | `[{ item_identifier, item_description, building_id, building_name, prazo_obra_dias_uteis, media_historica_dias_uteis, criticidade }]` |
 
 **Erros esperados:** 401, 403.
 
@@ -380,15 +380,15 @@ Retorna dados detalhados do dashboard de Ranking de Fornecedores.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_inicio` | DATE | Não | Início do período. |
-| `data_fim` | DATE | Não | Fim do período. |
+| Campo         | Tipo | Obrigatório | Descrição          |
+| ------------- | ---- | ----------- | ------------------ |
+| `data_inicio` | DATE | Não         | Início do período. |
+| `data_fim`    | DATE | Não         | Fim do período.    |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
+| Campo          | Tipo  | Descrição                                                                                                                                                                            |
+| -------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `fornecedores` | ARRAY | `[{ supplier_id, supplier_name, cotacoes_enviadas, cotacoes_respondidas, taxa_resposta, pedidos_no_prazo, pedidos_atrasados, pedidos_com_avaria, lead_time_medio, confiabilidade }]` |
 
 **Erros esperados:** 401, 403.
@@ -401,23 +401,23 @@ Retorna dados detalhados do dashboard de Avarias.
 
 **Entrada:**
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `data_inicio` | DATE | Não | Início do período. |
-| `data_fim` | DATE | Não | Fim do período. |
-| `supplier_id` | INTEGER | Não | Filtro por fornecedor. |
-| `building_id` | INTEGER | Não | Filtro por obra. |
+| Campo         | Tipo    | Obrigatório | Descrição              |
+| ------------- | ------- | ----------- | ---------------------- |
+| `data_inicio` | DATE    | Não         | Início do período.     |
+| `data_fim`    | DATE    | Não         | Fim do período.        |
+| `supplier_id` | INTEGER | Não         | Filtro por fornecedor. |
+| `building_id` | INTEGER | Não         | Filtro por obra.       |
 
 **Saída:**
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `total_avarias` | INTEGER | Total de avarias registradas. |
-| `taxa_avaria` | DECIMAL | Percentual de pedidos com avaria. |
-| `avarias_por_fornecedor` | ARRAY | `[{ supplier_id, supplier_name, total_avarias, taxa_avaria }]` |
-| `avarias_por_obra` | ARRAY | `[{ building_id, building_name, total_avarias }]` |
-| `avarias_por_acao_corretiva` | OBJECT | `{ cancelamentos, reposicoes }` |
-| `evolucao_diaria` | ARRAY | `[{ data, total_avarias }]` — série temporal. |
+| Campo                        | Tipo    | Descrição                                                      |
+| ---------------------------- | ------- | -------------------------------------------------------------- |
+| `total_avarias`              | INTEGER | Total de avarias registradas.                                  |
+| `taxa_avaria`                | DECIMAL | Percentual de pedidos com avaria.                              |
+| `avarias_por_fornecedor`     | ARRAY   | `[{ supplier_id, supplier_name, total_avarias, taxa_avaria }]` |
+| `avarias_por_obra`           | ARRAY   | `[{ building_id, building_name, total_avarias }]`              |
+| `avarias_por_acao_corretiva` | OBJECT  | `{ cancelamentos, reposicoes }`                                |
+| `evolucao_diaria`            | ARRAY   | `[{ data, total_avarias }]` — série temporal.                  |
 
 **Erros esperados:** 401, 403.
 
@@ -435,9 +435,9 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 
 **Erros esperados:**
 
-| Erro | Tratamento |
-|------|------------|
-| Erro de conexão ao banco | Retry no próximo ciclo agendado. Log registrado. |
+| Erro                         | Tratamento                                                   |
+| ---------------------------- | ------------------------------------------------------------ |
+| Erro de conexão ao banco     | Retry no próximo ciclo agendado. Log registrado.             |
 | Snapshot do dia já existente | Job é idempotente — recalcula e substitui o snapshot do dia. |
 
 **Perfis autorizados:** Apenas job interno do sistema (sem interação de usuário).
@@ -449,18 +449,21 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 **Nome e propósito:** Visão geral rápida com os indicadores mais críticos da operação. Primeira tela exibida ao acessar a seção de Dashboard.
 
 **Campos exibidos:**
+
 - Cotações abertas (contagem com ícone).
 - Cotações aguardando revisão (contagem com ícone).
-- Pedidos atrasados (contagem com ícone, destaque vermelho). *(§12.5)*
-- Pedidos em avaria (contagem com ícone, destaque roxo). *(§12.5)*
-- Falhas de integração (contagem com ícone, destaque vermelho). *(§12.5)*
+- Pedidos atrasados (contagem com ícone, destaque vermelho). _(§12.5)_
+- Pedidos em avaria (contagem com ícone, destaque roxo). _(§12.5)_
+- Falhas de integração (contagem com ícone, destaque vermelho). _(§12.5)_
 - Data do último snapshot (informativo).
 
 **Ações disponíveis por perfil:**
+
 - `Compras`: Visualizar. Clicar em qualquer card para navegar ao dashboard detalhado correspondente.
 - `Administrador`: Mesmas ações que Compras.
 
 **Referências visuais:**
+
 - Cards com fundo branco (`#FFFFFF`), borda sutil e ícones na paleta institucional.
 - Valores numéricos em destaque com Azul Escuro (`#324598`).
 - Contagens de alerta com cores operacionais conforme §12.5.
@@ -471,6 +474,7 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 **Nome e propósito:** Análise do tempo médio entre pedido e entrega confirmada, permitindo identificar gargalos de eficiência por fornecedor e obra.
 
 **Campos exibidos:**
+
 - Lead time médio global (número grande em destaque).
 - Gráfico de evolução diária do lead time (linha temporal).
 - Lead time por fornecedor (tabela ordenável).
@@ -478,9 +482,11 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 - Filtros: Fornecedor, Obra, Pedido, Item.
 
 **Ações disponíveis por perfil:**
+
 - `Compras` / `Administrador`: Visualizar, aplicar filtros, ordenar tabelas.
 
 **Referências visuais:**
+
 - Gráfico com linha em Turquesa (`#19B4BE`) sobre fundo branco.
 - Área sob a linha com gradiente sutil de Azul Claro (`#6ED8E0`).
 - Cabeçalhos de tabela em Azul Escuro (`#324598`).
@@ -491,6 +497,7 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 **Nome e propósito:** Monitoramento de pedidos atrasados e taxa de atraso por fornecedor e obra.
 
 **Campos exibidos:**
+
 - Total de pedidos atrasados e taxa de atraso (cards de resumo).
 - Gráfico de evolução diária de atrasos (barras ou linha).
 - Atrasos por fornecedor (tabela com ranking).
@@ -498,26 +505,31 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 - Filtros: Fornecedor, Obra.
 
 **Ações disponíveis por perfil:**
+
 - `Compras` / `Administrador`: Visualizar, aplicar filtros, ordenar.
 
 **Referências visuais:**
+
 - Card de total de atrasos com fundo vermelho suave.
 - Barras do gráfico em vermelho com gradiente.
-- Meta de atraso < 10% indicada com linha de referência verde. *(§1.3)*
+- Meta de atraso < 10% indicada com linha de referência verde. _(§1.3)_
 
 ### 8.4 Tela: Dashboard de Criticidade
 
 **Nome e propósito:** Classificação de itens/insumos por criticidade operacional, identificando quais exigem atenção urgente.
 
 **Campos exibidos:**
+
 - Contagem de itens `Urgente` vs `Padrão` (donut chart ou cards).
 - Lista de itens com classificação de criticidade, obra, prazo da obra e média histórica.
 - Filtros: Obra, Item.
 
 **Ações disponíveis por perfil:**
+
 - `Compras` / `Administrador`: Visualizar, aplicar filtros.
 
 **Referências visuais:**
+
 - Badge `Urgente` com fundo vermelho.
 - Badge `Padrão` com fundo Azul Médio (`#465EBE`).
 - Itens urgentes destacados no topo da lista.
@@ -527,14 +539,17 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 **Nome e propósito:** Classificação e comparação dos fornecedores por desempenho operacional, incluindo taxa de resposta, atrasos, avarias e confiabilidade.
 
 **Campos exibidos:**
+
 - Tabela ranqueada com colunas: Fornecedor, Cotações enviadas, Cotações respondidas, Taxa de resposta, Pedidos no prazo, Pedidos atrasados, Pedidos com avaria, Lead time médio, Confiabilidade.
 - Badge de confiabilidade por fornecedor: `Confiável`, `Atenção`, `Crítico`.
 - Filtros: Período (data_inicio, data_fim).
 
 **Ações disponíveis por perfil:**
+
 - `Compras` / `Administrador`: Visualizar, ordenar por qualquer coluna, filtrar por período.
 
 **Referências visuais:**
+
 - Badge `Confiável` em verde.
 - Badge `Atenção` em amarelo/laranja.
 - Badge `Crítico` em vermelho.
@@ -546,6 +561,7 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 **Nome e propósito:** Consolidação de avarias por fornecedor, obra e tipo de ação corretiva, permitindo identificar padrões e fornecedores problemáticos.
 
 **Campos exibidos:**
+
 - Total de avarias e taxa de avaria (cards de resumo).
 - Gráfico de evolução diária de avarias (barras ou linha).
 - Avarias por fornecedor (tabela com ranking).
@@ -554,9 +570,11 @@ Serviço executado como job agendado (worker ou cron) para consolidação diári
 - Filtros: Fornecedor, Obra.
 
 **Ações disponíveis por perfil:**
+
 - `Compras` / `Administrador`: Visualizar, aplicar filtros, ordenar.
 
 **Referências visuais:**
+
 - Card de total de avarias com destaque roxo (`Em avaria` conforme §12.5).
 - Gráfico com barras em roxo e azul (reposição conforme §12.5).
 
@@ -593,7 +611,7 @@ Os KPIs de avarias e o dashboard de avarias dependem dos registros do módulo de
 
 Os resumos rápidos incluem "falhas de integração", que dependem dos status de integração definidos no PRD 07 e no PRD 09.
 
-- Dados consumidos: contagem de eventos de integração com status `Falha de integração`. *(PRDGlobal §12.1)*
+- Dados consumidos: contagem de eventos de integração com status `Falha de integração`. _(PRDGlobal §12.1)_
 
 ### 9.6 Integração direta com o Sienge
 
@@ -603,13 +621,14 @@ Este módulo **não realiza integração direta** com as APIs do Sienge. Todos o
 
 Eventos auditáveis gerados por este módulo, conforme §12.6 do PRDGlobal:
 
-| Evento | Tipo | Dados mínimos |
-|--------|------|---------------|
-| Acesso ao dashboard | `dashboard.access` | Data/hora, usuário, dashboard acessado. |
-| Snapshot diário gerado | `dashboard.snapshot_created` | Data/hora, data_referencia do snapshot, quantidade de registros. |
-| Erro na consolidação diária | `dashboard.consolidation_error` | Data/hora, data_referencia, tipo de erro, resumo da falha. |
+| Evento                      | Tipo                            | Dados mínimos                                                    |
+| --------------------------- | ------------------------------- | ---------------------------------------------------------------- |
+| Acesso ao dashboard         | `dashboard.access`              | Data/hora, usuário, dashboard acessado.                          |
+| Snapshot diário gerado      | `dashboard.snapshot_created`    | Data/hora, data_referencia do snapshot, quantidade de registros. |
+| Erro na consolidação diária | `dashboard.consolidation_error` | Data/hora, data_referencia, tipo de erro, resumo da falha.       |
 
-Cada evento deve exibir no mínimo: *(PRDGlobal §12.6)*
+Cada evento deve exibir no mínimo: _(PRDGlobal §12.6)_
+
 - Data e hora.
 - Tipo do evento.
 - Usuário ou origem do evento.
@@ -619,26 +638,26 @@ Cada evento deve exibir no mínimo: *(PRDGlobal §12.6)*
 
 Da §17 do PRDGlobal, os seguintes itens impactam indiretamente este módulo:
 
-| # | Item de homologação (§17) | Impacto no Dashboard |
-|---|--------------------------|---------------------|
-| 8 | Validar `GET /purchase-invoices/deliveries-attended` | O cálculo de `Pedidos no prazo` e `Lead time médio` depende de entregas confirmadas capturadas por este endpoint. Se o endpoint não cobrir todos os cenários de entrega, os KPIs podem ser subcontados. |
-| 1 | Validar se `supplierId` corresponde a `creditorId` | O ranking de fornecedores depende da identificação correta do fornecedor. Inconsistências entre `supplierId` e `creditorId` podem gerar duplicação no ranking. |
-| 7 | Validar cenários com múltiplas cotações em `purchaseQuotations[]` | Se um pedido referenciar múltiplas cotações, o contabilizador de "Cotações respondidas" e "Cotações enviadas" pode precisar de ajuste para evitar dupla contagem. |
+| #   | Item de homologação (§17)                                         | Impacto no Dashboard                                                                                                                                                                                    |
+| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8   | Validar `GET /purchase-invoices/deliveries-attended`              | O cálculo de `Pedidos no prazo` e `Lead time médio` depende de entregas confirmadas capturadas por este endpoint. Se o endpoint não cobrir todos os cenários de entrega, os KPIs podem ser subcontados. |
+| 1   | Validar se `supplierId` corresponde a `creditorId`                | O ranking de fornecedores depende da identificação correta do fornecedor. Inconsistências entre `supplierId` e `creditorId` podem gerar duplicação no ranking.                                          |
+| 7   | Validar cenários com múltiplas cotações em `purchaseQuotations[]` | Se um pedido referenciar múltiplas cotações, o contabilizador de "Cotações respondidas" e "Cotações enviadas" pode precisar de ajuste para evitar dupla contagem.                                       |
 
 ## 12. Critérios de aceite
 
-- [ ] Os 5 dashboards oficiais (Lead Time, Atrasos, Criticidade, Ranking de Fornecedores, Avarias) estão implementados e acessíveis. *(§13.1)*
-- [ ] Os filtros Fornecedor, Obra, Pedido e Item estão disponíveis e funcionais em todos os dashboards. *(§13.2)*
-- [ ] Os indicadores são atualizados diariamente por job agendado. *(§13.3)*
-- [ ] Os 6 KPIs oficiais (Cotações enviadas, Cotações respondidas, Cotações sem resposta, Pedidos no prazo, Pedidos atrasados, Pedidos com avaria) são exibidos corretamente. *(§13.4)*
+- [ ] Os 5 dashboards oficiais (Lead Time, Atrasos, Criticidade, Ranking de Fornecedores, Avarias) estão implementados e acessíveis. _(§13.1)_
+- [ ] Os filtros Fornecedor, Obra, Pedido e Item estão disponíveis e funcionais em todos os dashboards. _(§13.2)_
+- [ ] Os indicadores são atualizados diariamente por job agendado. _(§13.3)_
+- [ ] Os 6 KPIs oficiais (Cotações enviadas, Cotações respondidas, Cotações sem resposta, Pedidos no prazo, Pedidos atrasados, Pedidos com avaria) são exibidos corretamente. _(§13.4)_
 - [ ] As 12 fórmulas derivadas (taxas e lead time médio) são calculadas corretamente conforme §13.5.
-- [ ] O cálculo de lead time médio usa dias úteis, considerando apenas feriados nacionais. *(§13.5, §6.1)*
-- [ ] A criticidade é classificada como `Urgente` quando o prazo da obra for menor que a média histórica do item. *(§13.6)*
-- [ ] A criticidade é classificada como `Padrão` quando o prazo for maior ou igual à média histórica, ou quando não houver histórico suficiente. *(§13.6)*
-- [ ] A sinalização de confiabilidade do fornecedor está implementada: `Confiável` (sem atraso e sem avaria nos últimos 3 meses), `Atenção` (atraso ou avaria), `Crítico` (atraso e avaria). *(§13.7)*
-- [ ] Os resumos rápidos exibem: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria, falhas de integração. *(§13.8)*
-- [ ] Apenas `Compras` e `Administrador` acessam os dashboards. `Fornecedor` e `Visualizador de Pedidos` recebem erro 403. *(§3.2)*
-- [ ] O acesso ao dashboard gera evento de auditoria. *(§12.6)*
+- [ ] O cálculo de lead time médio usa dias úteis, considerando apenas feriados nacionais. _(§13.5, §6.1)_
+- [ ] A criticidade é classificada como `Urgente` quando o prazo da obra for menor que a média histórica do item. _(§13.6)_
+- [ ] A criticidade é classificada como `Padrão` quando o prazo for maior ou igual à média histórica, ou quando não houver histórico suficiente. _(§13.6)_
+- [ ] A sinalização de confiabilidade do fornecedor está implementada: `Confiável` (sem atraso e sem avaria nos últimos 3 meses), `Atenção` (atraso ou avaria), `Crítico` (atraso e avaria). _(§13.7)_
+- [ ] Os resumos rápidos exibem: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria, falhas de integração. _(§13.8)_
+- [ ] Apenas `Compras` e `Administrador` acessam os dashboards. `Fornecedor` e `Visualizador de Pedidos` recebem erro 403. _(§3.2)_
+- [ ] O acesso ao dashboard gera evento de auditoria. _(§12.6)_
 - [ ] O snapshot diário é atômico e idempotente (reenfileiramento seguro).
 - [ ] As cores operacionais seguem o padrão definido em §12.5.
 - [ ] A paleta de cores da interface segue `docs/paleta_de_cores.md`.
@@ -685,11 +704,11 @@ Da §17 do PRDGlobal, os seguintes itens impactam indiretamente este módulo:
 
 ## 14. Riscos específicos do módulo
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|---------------|---------|-----------|
-| **Dados dos módulos dependentes ausentes ou inconsistentes.** O dashboard depende de 4 módulos que precisam estar implementados e populados. | Alta (na V1.0 inicial) | Alto — dashboards vazios ou com dados incorretos. | Implementar mensagens informativas quando não houver dados. Criar o job de consolidação de forma defensiva (aceitar ausência parcial de dados sem falha). |
-| **Cálculo de lead time incorreto por diferença na implementação de dias úteis.** | Média | Médio — KPI principal inconsistente com follow-up. | Reutilizar exatamente a mesma função de dias úteis do PRD 04, centralizada em `packages/shared` ou `packages/domain`. |
-| **Performance da consolidação diária com grande volume de dados.** | Baixa (V1.0) | Médio — job lento pode conflitar com horário de operação. | Usar queries otimizadas, índices nas tabelas de origem e horário de consolidação fora do pico. |
-| **Criticidade imprecisa por falta de histórico.** | Alta (início da operação) | Baixo — classificação default é `Padrão`, que é conservadora. | Conforme §13.6, sem histórico suficiente classificar como `Padrão`. Comunicar ao usuário quando dado de média histórica é insuficiente. |
-| **Ranking de fornecedores com duplicação por inconsistência de `supplierId`.** | Baixa | Médio — ranking impreciso. | Depende da validação §17.1 (homologação). Implementar deduplicação por `supplier_id`. |
-| **Resumos rápidos exibindo dados desatualizados.** | Média | Baixo — dados refletem D-1 por design. | Exibir claramente a data do snapshot na interface. A atualização diária é uma decisão de produto. *(§13.3)* |
+| Risco                                                                                                                                        | Probabilidade             | Impacto                                                       | Mitigação                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dados dos módulos dependentes ausentes ou inconsistentes.** O dashboard depende de 4 módulos que precisam estar implementados e populados. | Alta (na V1.0 inicial)    | Alto — dashboards vazios ou com dados incorretos.             | Implementar mensagens informativas quando não houver dados. Criar o job de consolidação de forma defensiva (aceitar ausência parcial de dados sem falha). |
+| **Cálculo de lead time incorreto por diferença na implementação de dias úteis.**                                                             | Média                     | Médio — KPI principal inconsistente com follow-up.            | Reutilizar exatamente a mesma função de dias úteis do PRD 04, centralizada em `packages/shared` ou `packages/domain`.                                     |
+| **Performance da consolidação diária com grande volume de dados.**                                                                           | Baixa (V1.0)              | Médio — job lento pode conflitar com horário de operação.     | Usar queries otimizadas, índices nas tabelas de origem e horário de consolidação fora do pico.                                                            |
+| **Criticidade imprecisa por falta de histórico.**                                                                                            | Alta (início da operação) | Baixo — classificação default é `Padrão`, que é conservadora. | Conforme §13.6, sem histórico suficiente classificar como `Padrão`. Comunicar ao usuário quando dado de média histórica é insuficiente.                   |
+| **Ranking de fornecedores com duplicação por inconsistência de `supplierId`.**                                                               | Baixa                     | Médio — ranking impreciso.                                    | Depende da validação §17.1 (homologação). Implementar deduplicação por `supplier_id`.                                                                     |
+| **Resumos rápidos exibindo dados desatualizados.**                                                                                           | Média                     | Baixo — dados refletem D-1 por design.                        | Exibir claramente a data do snapshot na interface. A atualização diária é uma decisão de produto. _(§13.3)_                                               |

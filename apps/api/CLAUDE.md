@@ -38,16 +38,16 @@ Implementar o backend dedicado em TypeScript para API interna, autenticacao, web
 
 ## Dependencias principais esperadas <!-- atualizado -->
 
-| Pacote | Finalidade |
-|---|---|
-| `fastify` | Core do framework |
-| `@fastify/jwt` | Verificacao de JWT |
-| `@fastify/cors` | Politica CORS |
-| `@fastify/helmet` | Headers de seguranca |
-| `@fastify/sensible` | Utilitarios de respostas HTTP |
-| `@fastify/swagger` | Documentacao automatica de API |
-| `@supabase/supabase-js` | Cliente Supabase |
-| `zod` e `fastify-type-provider-zod` | Validacao de schemas |
+| Pacote                              | Finalidade                     |
+| ----------------------------------- | ------------------------------ |
+| `fastify`                           | Core do framework              |
+| `@fastify/jwt`                      | Verificacao de JWT             |
+| `@fastify/cors`                     | Politica CORS                  |
+| `@fastify/helmet`                   | Headers de seguranca           |
+| `@fastify/sensible`                 | Utilitarios de respostas HTTP  |
+| `@fastify/swagger`                  | Documentacao automatica de API |
+| `@supabase/supabase-js`             | Cliente Supabase               |
+| `zod` e `fastify-type-provider-zod` | Validacao de schemas           |
 
 ## Variaveis de ambiente esperadas <!-- atualizado -->
 

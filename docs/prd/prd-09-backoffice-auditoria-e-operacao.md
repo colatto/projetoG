@@ -49,38 +49,40 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 ## 3. Perfis envolvidos
 
-| Perfil | Permissões neste módulo | Restrições |
-|--------|------------------------|------------|
-| `Compras` | Acessa backoffice completo: listagens de cotações e pedidos, filtro "Exigem ação", tratamento de exceções, acionamento de reprocessamento manual, consulta à trilha de auditoria. | Não pode gerir acessos de usuários nem parametrizar workflow. |
-| `Administrador` | Acesso total ao backoffice, incluindo todas as permissões de `Compras`, além de parametrização de regras, monitoramento de integrações e governança. | Não pode aprovar respostas de cotação nem definir ações corretivas de avaria. |
-| `Visualizador de Pedidos` | Consulta pedidos e entregas no backoffice (somente leitura). | Não altera dados, não acessa filtro "Exigem ação", não acessa dashboards/indicadores, não aciona reprocessamento. *(PRDGlobal §3.2)* |
-| `Fornecedor` | Acessa apenas as listagens do portal do fornecedor (cotações e pedidos próprios). | Não acessa o backoffice interno. *(PRDGlobal §3.2)* |
+| Perfil                    | Permissões neste módulo                                                                                                                                                           | Restrições                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `Compras`                 | Acessa backoffice completo: listagens de cotações e pedidos, filtro "Exigem ação", tratamento de exceções, acionamento de reprocessamento manual, consulta à trilha de auditoria. | Não pode gerir acessos de usuários nem parametrizar workflow.                                                                        |
+| `Administrador`           | Acesso total ao backoffice, incluindo todas as permissões de `Compras`, além de parametrização de regras, monitoramento de integrações e governança.                              | Não pode aprovar respostas de cotação nem definir ações corretivas de avaria.                                                        |
+| `Visualizador de Pedidos` | Consulta pedidos e entregas no backoffice (somente leitura).                                                                                                                      | Não altera dados, não acessa filtro "Exigem ação", não acessa dashboards/indicadores, não aciona reprocessamento. _(PRDGlobal §3.2)_ |
+| `Fornecedor`              | Acessa apenas as listagens do portal do fornecedor (cotações e pedidos próprios).                                                                                                 | Não acessa o backoffice interno. _(PRDGlobal §3.2)_                                                                                  |
 
 ## 4. Entidades e modelagem
 
 ### 4.1 Entidade: `audit_events` (Trilha de Auditoria)
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|:-----------:|-----------|
-| `id` | UUID | Sim | Identificador único do evento. |
-| `event_type` | ENUM/VARCHAR | Sim | Tipo do evento (ver lista em §12.6). |
-| `event_timestamp` | TIMESTAMPTZ | Sim | Data e hora do evento (UTC). |
-| `actor_id` | UUID | Sim | ID do usuário ou serviço que originou o evento. |
-| `actor_type` | ENUM/VARCHAR | Sim | Tipo do ator: `user`, `system`, `integration`. |
-| `quotation_id` | UUID | Não | Cotação afetada, quando houver. |
-| `order_id` | UUID | Não | Pedido afetado, quando houver. |
-| `supplier_id` | UUID | Não | Fornecedor afetado, quando houver. |
-| `summary` | TEXT | Sim | Resumo da ação realizada. |
-| `metadata` | JSONB | Não | Dados complementares do evento (ex.: payload de integração, motivo de reprovação). |
-| `created_at` | TIMESTAMPTZ | Sim | Data de criação do registro. |
+| Campo             | Tipo         | Obrigatório | Descrição                                                                          |
+| ----------------- | ------------ | :---------: | ---------------------------------------------------------------------------------- |
+| `id`              | UUID         |     Sim     | Identificador único do evento.                                                     |
+| `event_type`      | ENUM/VARCHAR |     Sim     | Tipo do evento (ver lista em §12.6).                                               |
+| `event_timestamp` | TIMESTAMPTZ  |     Sim     | Data e hora do evento (UTC).                                                       |
+| `actor_id`        | UUID         |     Sim     | ID do usuário ou serviço que originou o evento.                                    |
+| `actor_type`      | ENUM/VARCHAR |     Sim     | Tipo do ator: `user`, `system`, `integration`.                                     |
+| `quotation_id`    | UUID         |     Não     | Cotação afetada, quando houver.                                                    |
+| `order_id`        | UUID         |     Não     | Pedido afetado, quando houver.                                                     |
+| `supplier_id`     | UUID         |     Não     | Fornecedor afetado, quando houver.                                                 |
+| `summary`         | TEXT         |     Sim     | Resumo da ação realizada.                                                          |
+| `metadata`        | JSONB        |     Não     | Dados complementares do evento (ex.: payload de integração, motivo de reprovação). |
+| `created_at`      | TIMESTAMPTZ  |     Sim     | Data de criação do registro.                                                       |
 
 **Relacionamentos:**
+
 - `actor_id` → `users.id` (quando ator é usuário).
 - `quotation_id` → `quotations.id` (quando aplicável).
 - `order_id` → `orders.id` (quando aplicável).
 - `supplier_id` → `suppliers.id` (quando aplicável).
 
 **Índices sugeridos:**
+
 - `idx_audit_event_type` em `event_type`.
 - `idx_audit_event_timestamp` em `event_timestamp`.
 - `idx_audit_quotation_id` em `quotation_id`.
@@ -89,6 +91,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 - `idx_audit_actor_id` em `actor_id`.
 
 **Regras de integridade:**
+
 - `event_type` deve pertencer à lista de tipos auditáveis definidos em §12.6.
 - `event_timestamp` e `created_at` são preenchidos automaticamente pelo sistema.
 - A trilha de auditoria é append-only: registros nunca são editados ou removidos durante a operação.
@@ -96,33 +99,36 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 ### 4.2 Entidade: `integration_events` (Eventos de Integração)
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|:-----------:|-----------|
-| `id` | UUID | Sim | Identificador único do evento de integração. |
-| `integration_type` | VARCHAR | Sim | Tipo da integração (ex.: `quotation_response`, `delivery_sync`, `order_sync`). |
-| `status` | ENUM/VARCHAR | Sim | Status: `pending`, `success`, `failure`. |
-| `entity_type` | VARCHAR | Sim | Tipo da entidade envolvida (ex.: `quotation`, `order`, `invoice`). |
-| `entity_id` | UUID | Sim | ID da entidade envolvida. |
-| `attempt_count` | INTEGER | Sim | Número de tentativas realizadas (default: 1). |
-| `max_attempts` | INTEGER | Sim | Número máximo de tentativas automáticas (default: 3 para cotação). |
-| `next_retry_at` | TIMESTAMPTZ | Não | Data/hora da próxima tentativa automática. |
-| `last_error` | TEXT | Não | Mensagem de erro da última tentativa. |
-| `error_details` | JSONB | Não | Detalhes técnicos do erro (status HTTP, payload de resposta). |
-| `resolved_at` | TIMESTAMPTZ | Não | Data/hora em que a integração foi concluída com sucesso ou encerrada. |
-| `resolved_by` | UUID | Não | ID do usuário que acionou o reprocessamento manual bem-sucedido. |
-| `created_at` | TIMESTAMPTZ | Sim | Data de criação do registro. |
-| `updated_at` | TIMESTAMPTZ | Sim | Data da última atualização. |
+| Campo              | Tipo         | Obrigatório | Descrição                                                                      |
+| ------------------ | ------------ | :---------: | ------------------------------------------------------------------------------ |
+| `id`               | UUID         |     Sim     | Identificador único do evento de integração.                                   |
+| `integration_type` | VARCHAR      |     Sim     | Tipo da integração (ex.: `quotation_response`, `delivery_sync`, `order_sync`). |
+| `status`           | ENUM/VARCHAR |     Sim     | Status: `pending`, `success`, `failure`.                                       |
+| `entity_type`      | VARCHAR      |     Sim     | Tipo da entidade envolvida (ex.: `quotation`, `order`, `invoice`).             |
+| `entity_id`        | UUID         |     Sim     | ID da entidade envolvida.                                                      |
+| `attempt_count`    | INTEGER      |     Sim     | Número de tentativas realizadas (default: 1).                                  |
+| `max_attempts`     | INTEGER      |     Sim     | Número máximo de tentativas automáticas (default: 3 para cotação).             |
+| `next_retry_at`    | TIMESTAMPTZ  |     Não     | Data/hora da próxima tentativa automática.                                     |
+| `last_error`       | TEXT         |     Não     | Mensagem de erro da última tentativa.                                          |
+| `error_details`    | JSONB        |     Não     | Detalhes técnicos do erro (status HTTP, payload de resposta).                  |
+| `resolved_at`      | TIMESTAMPTZ  |     Não     | Data/hora em que a integração foi concluída com sucesso ou encerrada.          |
+| `resolved_by`      | UUID         |     Não     | ID do usuário que acionou o reprocessamento manual bem-sucedido.               |
+| `created_at`       | TIMESTAMPTZ  |     Sim     | Data de criação do registro.                                                   |
+| `updated_at`       | TIMESTAMPTZ  |     Sim     | Data da última atualização.                                                    |
 
 **Relacionamentos:**
+
 - `entity_id` → referência polimórfica à entidade envolvida.
 - `resolved_by` → `users.id`.
 
 **Índices sugeridos:**
+
 - `idx_integration_status` em `status`.
 - `idx_integration_entity` em `(entity_type, entity_id)`.
 - `idx_integration_next_retry` em `next_retry_at` (para o scheduler de reprocessamento).
 
 **Regras de integridade:**
+
 - O `status` inicial é `pending`.
 - Transições permitidas: `pending` → `success`, `pending` → `failure`, `failure` → `pending` (reprocessamento), `failure` → `success`.
 - `next_retry_at` deve ser calculado como `last_attempt_at + 24 horas` (§12.2).
@@ -130,19 +136,19 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 ## 5. Regras de negócio
 
-- **RN-01:** Os status mínimos de integração são `Pendente de integração`, `Integrado com sucesso` e `Falha de integração`. *(PRDGlobal §12.1)*
-- **RN-02:** Os status de integração devem ser exibidos com as seguintes cores: `Pendente de integração` = amarelo, `Integrado com sucesso` = verde, `Falha de integração` = vermelho. *(PRDGlobal §12.1)*
-- **RN-03:** Em caso de falha de integração com o Sienge, o sistema tenta novo reprocessamento automático após 24 horas. *(PRDGlobal §12.2)*
-- **RN-04:** No envio de resposta de cotação ao Sienge, o sistema tenta mais 2 reenvios automáticos, com intervalo de 24 horas (total de 3 tentativas). *(PRDGlobal §12.2)*
-- **RN-05:** Se a falha persistir após os reprocessamentos automáticos, `Compras` deve ser notificado. *(PRDGlobal §12.2)*
-- **RN-06:** `Compras` pode acionar novo reprocessamento manual a partir do backoffice. *(PRDGlobal §12.2)*
-- **RN-07:** Na V1.0, novas tentativas manuais podem continuar sendo feitas sem limite automático. *(PRDGlobal §12.2)*
-- **RN-08:** O filtro rápido "Exigem ação" deve contemplar no mínimo os seguintes status: `Aguardando revisão de Compras`, `Correção solicitada`, `Falha de integração`, `Fornecedor inválido no mapa de cotação`, `Atrasado`, `Divergência`, `Em avaria`, `Reposição`. *(PRDGlobal §12.3)*
-- **RN-09:** Na lista de pedidos e follow-up, a ordenação deve priorizar: pedidos `Atrasados` → pedidos em `Divergência` → pedidos em `Em avaria` ou `Reposição` → pedidos pendentes de resposta do fornecedor → pedidos no prazo ou entregues. *(PRDGlobal §12.4)*
-- **RN-10:** As cores operacionais obrigatórias são: `Atrasado` = vermelho, `Divergência` = laranja, `Em avaria` = roxo, `Reposição` = azul, `Entregue` = verde, `Parcialmente Entregue` = amarelo, `Cancelado` = cinza, `Aguardando reenvio ao Sienge` = amarelo, `Fornecedor inválido no mapa de cotação` = vermelho. *(PRDGlobal §12.5)*
-- **RN-11:** A auditoria operacional deve registrar no mínimo: envio de cotação, leitura da cotação, resposta do fornecedor, aprovação por `Compras`, reprovação por `Compras`, reenvio para correção, integração com sucesso, falha de integração, alteração de data prometida, confirmação de entrega no prazo, registro de avaria, definição de ação corretiva. *(PRDGlobal §12.6)*
-- **RN-12:** Cada evento de auditoria deve exibir: data e hora, tipo do evento, usuário ou origem do evento, cotação ou pedido afetado, fornecedor afetado (quando houver), resumo da ação realizada. *(PRDGlobal §12.6)*
-- **RN-13:** A trilha de auditoria tem retenção padrão de 1 ano, após o qual os dados podem ser arquivados. *(PRDGlobal §11.5)*
+- **RN-01:** Os status mínimos de integração são `Pendente de integração`, `Integrado com sucesso` e `Falha de integração`. _(PRDGlobal §12.1)_
+- **RN-02:** Os status de integração devem ser exibidos com as seguintes cores: `Pendente de integração` = amarelo, `Integrado com sucesso` = verde, `Falha de integração` = vermelho. _(PRDGlobal §12.1)_
+- **RN-03:** Em caso de falha de integração com o Sienge, o sistema tenta novo reprocessamento automático após 24 horas. _(PRDGlobal §12.2)_
+- **RN-04:** No envio de resposta de cotação ao Sienge, o sistema tenta mais 2 reenvios automáticos, com intervalo de 24 horas (total de 3 tentativas). _(PRDGlobal §12.2)_
+- **RN-05:** Se a falha persistir após os reprocessamentos automáticos, `Compras` deve ser notificado. _(PRDGlobal §12.2)_
+- **RN-06:** `Compras` pode acionar novo reprocessamento manual a partir do backoffice. _(PRDGlobal §12.2)_
+- **RN-07:** Na V1.0, novas tentativas manuais podem continuar sendo feitas sem limite automático. _(PRDGlobal §12.2)_
+- **RN-08:** O filtro rápido "Exigem ação" deve contemplar no mínimo os seguintes status: `Aguardando revisão de Compras`, `Correção solicitada`, `Falha de integração`, `Fornecedor inválido no mapa de cotação`, `Atrasado`, `Divergência`, `Em avaria`, `Reposição`. _(PRDGlobal §12.3)_
+- **RN-09:** Na lista de pedidos e follow-up, a ordenação deve priorizar: pedidos `Atrasados` → pedidos em `Divergência` → pedidos em `Em avaria` ou `Reposição` → pedidos pendentes de resposta do fornecedor → pedidos no prazo ou entregues. _(PRDGlobal §12.4)_
+- **RN-10:** As cores operacionais obrigatórias são: `Atrasado` = vermelho, `Divergência` = laranja, `Em avaria` = roxo, `Reposição` = azul, `Entregue` = verde, `Parcialmente Entregue` = amarelo, `Cancelado` = cinza, `Aguardando reenvio ao Sienge` = amarelo, `Fornecedor inválido no mapa de cotação` = vermelho. _(PRDGlobal §12.5)_
+- **RN-11:** A auditoria operacional deve registrar no mínimo: envio de cotação, leitura da cotação, resposta do fornecedor, aprovação por `Compras`, reprovação por `Compras`, reenvio para correção, integração com sucesso, falha de integração, alteração de data prometida, confirmação de entrega no prazo, registro de avaria, definição de ação corretiva. _(PRDGlobal §12.6)_
+- **RN-12:** Cada evento de auditoria deve exibir: data e hora, tipo do evento, usuário ou origem do evento, cotação ou pedido afetado, fornecedor afetado (quando houver), resumo da ação realizada. _(PRDGlobal §12.6)_
+- **RN-13:** A trilha de auditoria tem retenção padrão de 1 ano, após o qual os dados podem ser arquivados. _(PRDGlobal §11.5)_
 - **RN-14:** A trilha de auditoria é append-only; registros não podem ser editados ou removidos durante a operação.
 
 ## 6. Fluxos operacionais
@@ -163,6 +169,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
    - `Em avaria` / `Reposição` → `Compras` define ação corretiva (lógica no PRD 06).
 
 **Exceções:**
+
 - Se não houver registros no filtro "Exigem ação", o sistema exibe mensagem informativa.
 
 ### 6.2 Fluxo de reprocessamento de integração
@@ -206,6 +213,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 5. O usuário pode expandir um evento para ver detalhes adicionais (metadata).
 
 **Exceções:**
+
 - Eventos com mais de 1 ano podem estar arquivados e não aparecer na consulta padrão (RN-13).
 
 ## 7. Contratos de API / Serviços
@@ -214,7 +222,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 - **Método e rota:** `GET /api/backoffice/quotations`
 - **Entrada:** `page` (integer, opcional, default: 1), `limit` (integer, opcional, default: 50), `status` (string, opcional), `supplier_id` (UUID, opcional), `date_start` (date, opcional), `date_end` (date, opcional), `require_action` (boolean, opcional — ativa filtro "Exigem ação").
-- **Saída:** Lista paginada de cotações com campos mínimos: `quotation_number`, `supplier_name`, `status`, `date_start`, `date_end`, `read_indicator`, `response_status`, `closed_supplier` (boolean + nome e nº pedido quando houver), `purchase_order_number` (quando houver). *(PRDGlobal §14.1)*
+- **Saída:** Lista paginada de cotações com campos mínimos: `quotation_number`, `supplier_name`, `status`, `date_start`, `date_end`, `read_indicator`, `response_status`, `closed_supplier` (boolean + nome e nº pedido quando houver), `purchase_order_number` (quando houver). _(PRDGlobal §14.1)_
 - **Erros esperados:** `401 Unauthorized`, `403 Forbidden` (perfil sem acesso).
 - **Perfis autorizados:** `Compras`, `Administrador`.
 
@@ -222,7 +230,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 - **Método e rota:** `GET /api/backoffice/orders`
 - **Entrada:** `page` (integer, opcional), `limit` (integer, opcional), `status` (string, opcional), `supplier_id` (UUID, opcional), `building_id` (UUID, opcional), `require_action` (boolean, opcional), `sort_priority` (boolean, opcional, default: true — aplica ordenação por prioridade operacional conforme RN-09).
-- **Saída:** Lista paginada de pedidos com campos mínimos: `order_number`, `supplier_name`, `building_name`, `status`, `order_date`, `current_promised_date`, `delay_indicator`, `damage_or_divergence_indicator`, `pending_balance`, `linked_quotation_number`. *(PRDGlobal §14.1)*
+- **Saída:** Lista paginada de pedidos com campos mínimos: `order_number`, `supplier_name`, `building_name`, `status`, `order_date`, `current_promised_date`, `delay_indicator`, `damage_or_divergence_indicator`, `pending_balance`, `linked_quotation_number`. _(PRDGlobal §14.1)_
 - **Erros esperados:** `401 Unauthorized`, `403 Forbidden`.
 - **Perfis autorizados:** `Compras`, `Administrador`, `Visualizador de Pedidos` (somente leitura, sem filtro "Exigem ação").
 
@@ -230,7 +238,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 - **Método e rota:** `GET /api/supplier-portal/quotations`
 - **Entrada:** `page` (integer, opcional), `limit` (integer, opcional).
-- **Saída:** Lista paginada (apenas cotações do fornecedor autenticado) com campos mínimos: `quotation_number`, `status`, `date_start`, `date_end`, `read_indicator`, `response_status`. *(PRDGlobal §14.1)*
+- **Saída:** Lista paginada (apenas cotações do fornecedor autenticado) com campos mínimos: `quotation_number`, `status`, `date_start`, `date_end`, `read_indicator`, `response_status`. _(PRDGlobal §14.1)_
 - **Erros esperados:** `401 Unauthorized`, `403 Forbidden`.
 - **Perfis autorizados:** `Fornecedor`.
 
@@ -238,7 +246,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 - **Método e rota:** `GET /api/supplier-portal/orders`
 - **Entrada:** `page` (integer, opcional), `limit` (integer, opcional).
-- **Saída:** Lista paginada (apenas pedidos do fornecedor autenticado) com campos mínimos: `order_number`, `status`, `current_promised_date`, `order_date`, `delay_indicator`, `damage_or_replacement_indicator`, `building_name` (quando disponível). *(PRDGlobal §14.1)*
+- **Saída:** Lista paginada (apenas pedidos do fornecedor autenticado) com campos mínimos: `order_number`, `status`, `current_promised_date`, `order_date`, `delay_indicator`, `damage_or_replacement_indicator`, `building_name` (quando disponível). _(PRDGlobal §14.1)_
 - **Erros esperados:** `401 Unauthorized`, `403 Forbidden`.
 - **Perfis autorizados:** `Fornecedor`.
 
@@ -438,20 +446,20 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 Este módulo é o próprio responsável pela infraestrutura de auditoria do sistema. Os eventos auditáveis que devem ser registrados são definidos em §12.6 do PRDGlobal:
 
-| Tipo de evento | Descrição | Origem típica |
-|----------------|-----------|---------------|
-| `quotation_sent` | Envio de cotação ao fornecedor | PRD 02 |
-| `quotation_read` | Fornecedor abre a cotação no portal | PRD 02 |
-| `quotation_response` | Fornecedor responde a cotação | PRD 02 |
-| `quotation_approved` | Aprovação de resposta por `Compras` | PRD 02 |
-| `quotation_rejected` | Reprovação de resposta por `Compras` | PRD 02 |
-| `quotation_correction_requested` | Reenvio para correção | PRD 02 |
-| `integration_success` | Integração com Sienge bem-sucedida | PRD 07 |
-| `integration_failure` | Falha de integração com Sienge | PRD 07 |
-| `promised_date_changed` | Alteração de data prometida | PRD 04 |
-| `delivery_confirmed` | Confirmação de entrega no prazo | PRD 05 |
-| `damage_registered` | Registro de avaria | PRD 06 |
-| `corrective_action_defined` | Definição de ação corretiva | PRD 06 |
+| Tipo de evento                   | Descrição                            | Origem típica |
+| -------------------------------- | ------------------------------------ | ------------- |
+| `quotation_sent`                 | Envio de cotação ao fornecedor       | PRD 02        |
+| `quotation_read`                 | Fornecedor abre a cotação no portal  | PRD 02        |
+| `quotation_response`             | Fornecedor responde a cotação        | PRD 02        |
+| `quotation_approved`             | Aprovação de resposta por `Compras`  | PRD 02        |
+| `quotation_rejected`             | Reprovação de resposta por `Compras` | PRD 02        |
+| `quotation_correction_requested` | Reenvio para correção                | PRD 02        |
+| `integration_success`            | Integração com Sienge bem-sucedida   | PRD 07        |
+| `integration_failure`            | Falha de integração com Sienge       | PRD 07        |
+| `promised_date_changed`          | Alteração de data prometida          | PRD 04        |
+| `delivery_confirmed`             | Confirmação de entrega no prazo      | PRD 05        |
+| `damage_registered`              | Registro de avaria                   | PRD 06        |
+| `corrective_action_defined`      | Definição de ação corretiva          | PRD 06        |
 
 Cada evento deve conter os campos mínimos definidos em RN-12.
 
@@ -466,91 +474,107 @@ Os seguintes itens da §17 do PRDGlobal se aplicam a este módulo:
 ## 12. Critérios de aceite
 
 ### Backoffice — Cotações
-- [ ] A lista de cotações do backoffice exibe todos os campos mínimos obrigatórios: número da cotação, fornecedor, status, data de início, data de fim, indicação de leitura, situação da resposta, indicação `Fornecedor fechado` (com nome e nº pedido), número do pedido de compra. *(§14.1)*
-- [ ] O filtro "Exigem ação" filtra corretamente os 8 status obrigatórios. *(§12.3)*
+
+- [ ] A lista de cotações do backoffice exibe todos os campos mínimos obrigatórios: número da cotação, fornecedor, status, data de início, data de fim, indicação de leitura, situação da resposta, indicação `Fornecedor fechado` (com nome e nº pedido), número do pedido de compra. _(§14.1)_
+- [ ] O filtro "Exigem ação" filtra corretamente os 8 status obrigatórios. _(§12.3)_
 
 ### Backoffice — Pedidos e Follow-up
-- [ ] A lista de pedidos do backoffice exibe todos os campos mínimos obrigatórios: número do pedido, fornecedor, obra, status, data do pedido, data prometida atual, indicação de atraso, indicação de avaria/divergência, saldo pendente, número da cotação vinculada. *(§14.1)*
-- [ ] A ordenação padrão segue a priorização visual: Atrasados > Divergência > Em avaria/Reposição > pendentes de resposta > no prazo/entregues. *(§12.4)*
+
+- [ ] A lista de pedidos do backoffice exibe todos os campos mínimos obrigatórios: número do pedido, fornecedor, obra, status, data do pedido, data prometida atual, indicação de atraso, indicação de avaria/divergência, saldo pendente, número da cotação vinculada. _(§14.1)_
+- [ ] A ordenação padrão segue a priorização visual: Atrasados > Divergência > Em avaria/Reposição > pendentes de resposta > no prazo/entregues. _(§12.4)_
 
 ### Portal do Fornecedor — Cotações
-- [ ] A lista de cotações do portal exibe: número da cotação, status, data de início, data de fim, indicação de leitura, situação da resposta. *(§14.1)*
-- [ ] A ordenação segue a prioridade: abertas e pendentes > correção solicitada > em revisão > encerradas. *(§4.8)*
+
+- [ ] A lista de cotações do portal exibe: número da cotação, status, data de início, data de fim, indicação de leitura, situação da resposta. _(§14.1)_
+- [ ] A ordenação segue a prioridade: abertas e pendentes > correção solicitada > em revisão > encerradas. _(§4.8)_
 
 ### Portal do Fornecedor — Pedidos
-- [ ] A lista de pedidos do portal exibe: número do pedido, status, data prometida atual, data do pedido, indicação de atraso, indicação de avaria/reposição, obra (quando disponível). *(§14.1)*
+
+- [ ] A lista de pedidos do portal exibe: número do pedido, status, data prometida atual, data do pedido, indicação de atraso, indicação de avaria/reposição, obra (quando disponível). _(§14.1)_
 
 ### Status de Integração
-- [ ] Os 3 status de integração (`Pendente de integração`, `Integrado com sucesso`, `Falha de integração`) são exibidos com as cores corretas (amarelo, verde, vermelho). *(§12.1)*
+
+- [ ] Os 3 status de integração (`Pendente de integração`, `Integrado com sucesso`, `Falha de integração`) são exibidos com as cores corretas (amarelo, verde, vermelho). _(§12.1)_
 
 ### Reprocessamento
-- [ ] Em falha de integração, o sistema agenda reprocessamento automático após 24 horas. *(§12.2)*
-- [ ] No envio de cotação ao Sienge, o sistema tenta até 3 tentativas (1 original + 2 retries), com intervalo de 24 horas. *(§12.2)*
-- [ ] Após todos os retries automáticos, `Compras` é notificado. *(§12.2)*
-- [ ] `Compras` pode acionar reprocessamento manual sem limite na V1.0. *(§12.2)*
+
+- [ ] Em falha de integração, o sistema agenda reprocessamento automático após 24 horas. _(§12.2)_
+- [ ] No envio de cotação ao Sienge, o sistema tenta até 3 tentativas (1 original + 2 retries), com intervalo de 24 horas. _(§12.2)_
+- [ ] Após todos os retries automáticos, `Compras` é notificado. _(§12.2)_
+- [ ] `Compras` pode acionar reprocessamento manual sem limite na V1.0. _(§12.2)_
 
 ### Cores Operacionais
+
 - [ ] Todos os status operacionais são exibidos com as cores corretas conforme §12.5.
 
 ### Auditoria
-- [ ] Todos os 12 tipos de evento obrigatórios são registrados na trilha de auditoria. *(§12.6)*
-- [ ] Cada evento exibe: data/hora, tipo, usuário/origem, cotação/pedido afetado, fornecedor (quando houver), resumo da ação. *(§12.6)*
+
+- [ ] Todos os 12 tipos de evento obrigatórios são registrados na trilha de auditoria. _(§12.6)_
+- [ ] Cada evento exibe: data/hora, tipo, usuário/origem, cotação/pedido afetado, fornecedor (quando houver), resumo da ação. _(§12.6)_
 - [ ] A trilha de auditoria é consultável com filtros por tipo, cotação, pedido, fornecedor, usuário e período.
 - [ ] A trilha é append-only: nenhum registro pode ser editado ou removido.
 - [ ] A retenção padrão de 1 ano é respeitada conforme §11.5.
 
 ### Permissões
-- [ ] `Visualizador de Pedidos` acessa apenas consulta de pedidos e entregas, sem ações operacionais. *(§3.2)*
-- [ ] `Fornecedor` acessa apenas o portal do fornecedor, sem acesso ao backoffice interno. *(§3.2)*
+
+- [ ] `Visualizador de Pedidos` acessa apenas consulta de pedidos e entregas, sem ações operacionais. _(§3.2)_
+- [ ] `Fornecedor` acessa apenas o portal do fornecedor, sem acesso ao backoffice interno. _(§3.2)_
 
 ### Critérios Macro (§14)
-- [ ] Cotação: o sistema importa do Sienge, exige data de entrega na resposta, permite edição dentro do prazo, exige aprovação de `Compras`, bloqueia após integração. *(§14.2)*
-- [ ] Follow-up: inicia com pedido do Sienge, usa dias úteis e feriados nacionais, `Notificação 1` em 50% do prazo, títulos sequenciais, `Compras` copiado a partir da `Notificação 2`. *(§14.3)*
-- [ ] Entrega: importação automática, fonte oficial é `deliveries-attended`, `Compras` valida OK ou Divergência, status corretos. *(§14.4)*
-- [ ] Avaria: registrada por `Fornecedor` e `Compras`, status `Em avaria`, fornecedor sugere e `Compras` define, substituição vira `Reposição`. *(§14.5)*
-- [ ] Autenticação: login por e-mail/senha, primeiro acesso por link seguro (24h), `Administrador` gere acessos. *(§14.6)*
-- [ ] Integração: leitura pelos endpoints oficiais, e-mail via Credores, autenticação Basic, paginação, webhooks como gatilho, aprovação de `Compras` antes do retorno, falhas registradas/reprocessadas/notificadas. *(§14.7)*
+
+- [ ] Cotação: o sistema importa do Sienge, exige data de entrega na resposta, permite edição dentro do prazo, exige aprovação de `Compras`, bloqueia após integração. _(§14.2)_
+- [ ] Follow-up: inicia com pedido do Sienge, usa dias úteis e feriados nacionais, `Notificação 1` em 50% do prazo, títulos sequenciais, `Compras` copiado a partir da `Notificação 2`. _(§14.3)_
+- [ ] Entrega: importação automática, fonte oficial é `deliveries-attended`, `Compras` valida OK ou Divergência, status corretos. _(§14.4)_
+- [ ] Avaria: registrada por `Fornecedor` e `Compras`, status `Em avaria`, fornecedor sugere e `Compras` define, substituição vira `Reposição`. _(§14.5)_
+- [ ] Autenticação: login por e-mail/senha, primeiro acesso por link seguro (24h), `Administrador` gere acessos. _(§14.6)_
+- [ ] Integração: leitura pelos endpoints oficiais, e-mail via Credores, autenticação Basic, paginação, webhooks como gatilho, aprovação de `Compras` antes do retorno, falhas registradas/reprocessadas/notificadas. _(§14.7)_
 
 ## 13. Fases de implementação sugeridas
 
 ### Fase 1 — Infraestrutura de auditoria
+
 1. Criar a entidade `audit_events` no banco.
 2. Implementar o serviço interno `AuditService.registerEvent()`.
 3. Expor a API de consulta de auditoria (`GET /api/backoffice/audit`).
 
 ### Fase 2 — Infraestrutura de integração
+
 1. Criar a entidade `integration_events` no banco.
 2. Implementar o serviço interno `IntegrationService.registerEvent()`.
 3. Implementar o scheduler de reprocessamento automático (retry após 24h).
 4. Expor a API de listagem e reprocessamento manual de integrações.
 
 ### Fase 3 — Listagens do backoffice
+
 1. Implementar a listagem de cotações do backoffice com campos mínimos e filtros.
 2. Implementar a listagem de pedidos/follow-up do backoffice com priorização visual.
 3. Implementar o filtro "Exigem ação".
 4. Aplicar as cores operacionais a todos os status.
 
 ### Fase 4 — Listagens do portal do fornecedor
+
 1. Implementar a listagem de cotações do portal com campos mínimos.
 2. Implementar a listagem de pedidos do portal com campos mínimos.
 3. Aplicar a ordenação por prioridade definida em §4.8.
 
 ### Fase 5 — Monitor de integrações e reprocessamento
+
 1. Implementar a tela de monitor de integrações.
 2. Implementar o botão de reprocessamento manual com confirmação modal.
 3. Integrar com feedback visual de resultado.
 
 ### Fase 6 — Trilha de auditoria (UI)
+
 1. Implementar a tela de trilha de auditoria com filtros.
 2. Implementar a expansão de detalhes de evento.
 3. Validar que todos os 12 tipos de evento estão sendo registrados corretamente.
 
 ## 14. Riscos específicos do módulo
 
-| Risco | Impacto | Probabilidade | Mitigação |
-|-------|---------|---------------|-----------|
-| Dependência de todos os módulos anteriores para exibição correta de status e campos | Atraso na implementação se módulos anteriores não estiverem prontos | Alta | Definir contratos de interface (tipos e enums) antecipadamente; implementar stubs/mocks; começar pela infraestrutura de auditoria e integração que é independente. |
-| Volume de eventos de auditoria pode crescer rapidamente | Degradação de performance em consultas | Média | Índices otimizados; particionamento por data futuramente; política de arquivamento após 1 ano. |
-| Inconsistência de status entre módulos (ex.: status exibido no backoffice não reflete o estado real da entidade) | Decisões operacionais incorretas por `Compras` | Média | Todos os módulos devem usar a mesma fonte de verdade (tabela de status normalizada); testes de integração cross-module. |
-| Reprocessamento manual sem limite pode gerar sobrecarga de chamadas ao Sienge | Throttling ou bloqueio pela API do Sienge | Baixa | Implementar debounce no frontend (mínimo 30s entre cliques); respeitar rate limit de 200/min da API Sienge; feedback visual claro de processamento em andamento. |
-| Falha na gravação de auditoria pode passar despercebida | Perda de rastreabilidade e compliance | Baixa | Enfileiramento local em caso de falha; monitoramento de erros no serviço de auditoria; a falha nunca bloqueia a operação principal. |
+| Risco                                                                                                            | Impacto                                                             | Probabilidade | Mitigação                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dependência de todos os módulos anteriores para exibição correta de status e campos                              | Atraso na implementação se módulos anteriores não estiverem prontos | Alta          | Definir contratos de interface (tipos e enums) antecipadamente; implementar stubs/mocks; começar pela infraestrutura de auditoria e integração que é independente. |
+| Volume de eventos de auditoria pode crescer rapidamente                                                          | Degradação de performance em consultas                              | Média         | Índices otimizados; particionamento por data futuramente; política de arquivamento após 1 ano.                                                                     |
+| Inconsistência de status entre módulos (ex.: status exibido no backoffice não reflete o estado real da entidade) | Decisões operacionais incorretas por `Compras`                      | Média         | Todos os módulos devem usar a mesma fonte de verdade (tabela de status normalizada); testes de integração cross-module.                                            |
+| Reprocessamento manual sem limite pode gerar sobrecarga de chamadas ao Sienge                                    | Throttling ou bloqueio pela API do Sienge                           | Baixa         | Implementar debounce no frontend (mínimo 30s entre cliques); respeitar rate limit de 200/min da API Sienge; feedback visual claro de processamento em andamento.   |
+| Falha na gravação de auditoria pode passar despercebida                                                          | Perda de rastreabilidade e compliance                               | Baixa         | Enfileiramento local em caso de falha; monitoramento de erros no serviço de auditoria; a falha nunca bloqueia a operação principal.                                |

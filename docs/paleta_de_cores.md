@@ -63,5 +63,4 @@ Este documento consolida a paleta oficial de cores da **GRF Incorporadora**, vi
 
 ---
 
-*Documento de referência visual – uso contínuo para design, desenvolvimento e padronização institucional.*
-
+_Documento de referência visual – uso contínuo para design, desenvolvimento e padronização institucional._

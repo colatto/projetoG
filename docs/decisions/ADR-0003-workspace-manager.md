@@ -55,6 +55,7 @@ Adotar **pnpm** como gerenciador de workspace e de dependencias do monorepo.
 ### npm workspaces
 
 Nao adotado porque:
+
 - Mais lento em instalacoes grandes.
 - Sem otimizacao de disco (duplicacao de pacotes).
 - Sem isolamento de phantom dependencies.
@@ -62,6 +63,7 @@ Nao adotado porque:
 ### yarn workspaces
 
 Nao adotado porque:
+
 - Dois sabores incompativeis (v1 Classic vs v4 Berry) geram confusao.
 - yarn berry introduz PnP (Plug'n'Play) que pode ser incompativel com algumas ferramentas.
 - Sem vantagem clara sobre pnpm para este projeto.
@@ -95,17 +97,17 @@ packages:
 
 ## Comandos principais apos inicializacao
 
-| Acao | Comando |
-|---|---|
-| Instalar todas as dependencias | `pnpm install` |
-| Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>` |
-| Adicionar dep global (devDep raiz) | `pnpm add -D <pacote> -w` |
-| Iniciar frontend em dev | `pnpm --filter apps/web dev` |
-| Iniciar API em dev | `pnpm --filter apps/api dev` |
-| Rodar testes em todos os modulos | `pnpm -r run test` |
-| Rodar lint em todos os modulos | `pnpm -r run lint` |
-| Build do frontend | `pnpm --filter apps/web build` |
-| Migracoes Supabase | `pnpm dlx supabase db push` |
+| Acao                               | Comando                               |
+| ---------------------------------- | ------------------------------------- |
+| Instalar todas as dependencias     | `pnpm install`                        |
+| Adicionar dep a um modulo          | `pnpm --filter <modulo> add <pacote>` |
+| Adicionar dep global (devDep raiz) | `pnpm add -D <pacote> -w`             |
+| Iniciar frontend em dev            | `pnpm --filter apps/web dev`          |
+| Iniciar API em dev                 | `pnpm --filter apps/api dev`          |
+| Rodar testes em todos os modulos   | `pnpm -r run test`                    |
+| Rodar lint em todos os modulos     | `pnpm -r run lint`                    |
+| Build do frontend                  | `pnpm --filter apps/web build`        |
+| Migracoes Supabase                 | `pnpm dlx supabase db push`           |
 
 ## Inicializacao
 

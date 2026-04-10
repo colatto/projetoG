@@ -34,6 +34,6 @@ Implementar a SPA em React + TypeScript com Vite para:
 
 ## Contexto de testes <!-- atualizado -->
 
-- Framework esperado: [VERIFICAR] — Vitest + Testing Library na inicializacao.
+- **Framework**: Vitest + `@testing-library/react` + `jsdom` (integrado na etapa de testes do pipeline CI).
 - Padrao: testes de componente para fluxos criticos (login, cotacao, aprovacao).
 - Localizacao: `apps/web/src/**/*.test.tsx` ou subpastas `__tests__/`.

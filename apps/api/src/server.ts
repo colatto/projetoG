@@ -3,7 +3,7 @@ import { buildApp } from './app.js';
 
 const start = async () => {
   const app = buildApp();
-  
+
   try {
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
     const host = process.env.HOST || '0.0.0.0';

@@ -57,6 +57,7 @@ Adotar **Fastify** como framework HTTP do backend em `apps/api`.
 ### Hono
 
 Nao adotado como primeira escolha porque:
+
 - Melhor otimizado para ambientes Edge (Vercel Edge Functions, Cloudflare Workers, Deno Deploy).
 - Ecossistema de plugins ainda menor para cenarios de servidor standalone complexo.
 - O produto exige processamento de longa duracao (polling, retry, reconciliacao) que nao se beneficia do modelo stateless de Edge.
@@ -64,6 +65,7 @@ Nao adotado como primeira escolha porque:
 ### Express
 
 Nao adotado porque:
+
 - Sem tipos nativos — requer `@types/express` e adapters para TypeScript estrito.
 - Design mais antigo e menos performatico que Fastify.
 - Sem schema validation integrada — validacao manual ou dependencia de libs externas (Joi, Zod) sem integracao nativa.
@@ -84,18 +86,18 @@ apps/api/
 
 ## Dependencias principais esperadas
 
-| Pacote | Finalidade |
-|---|---|
-| `fastify` | Core do framework |
-| `@fastify/jwt` | Verificacao de JWT para autenticacao |
-| `@fastify/cors` | Politica CORS |
-| `@fastify/helmet` | Headers de seguranca |
-| `@fastify/sensible` | Utilitarios de respostas HTTP |
-| `@fastify/swagger` | Documentacao automatica de API |
-| `@supabase/supabase-js` | Cliente Supabase (autenticacao e dados) |
-| `pino` | Logging estruturado (incluso no Fastify) |
-| `zod` e `fastify-type-provider-zod`| Validacao e tipagem de schemas |
-| `vitest` | Framework de testes isolado (node environment) |
+| Pacote                              | Finalidade                                     |
+| ----------------------------------- | ---------------------------------------------- |
+| `fastify`                           | Core do framework                              |
+| `@fastify/jwt`                      | Verificacao de JWT para autenticacao           |
+| `@fastify/cors`                     | Politica CORS                                  |
+| `@fastify/helmet`                   | Headers de seguranca                           |
+| `@fastify/sensible`                 | Utilitarios de respostas HTTP                  |
+| `@fastify/swagger`                  | Documentacao automatica de API                 |
+| `@supabase/supabase-js`             | Cliente Supabase (autenticacao e dados)        |
+| `pino`                              | Logging estruturado (incluso no Fastify)       |
+| `zod` e `fastify-type-provider-zod` | Validacao e tipagem de schemas                 |
+| `vitest`                            | Framework de testes isolado (node environment) |
 
 ## Referencias
 

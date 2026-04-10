@@ -43,20 +43,20 @@ O valor entregue é a capacidade de acompanhar automaticamente o ciclo de vida d
 
 ### 2.3 Fora de escopo da V1.0
 
-- Régua separada por parcela de entrega do mesmo item *(PRDGlobal §2.3)*.
-- Automações financeiras, fiscais ou contábeis além do uso logístico de nota fiscal *(PRDGlobal §2.3)*.
-- Alteração automática de data planejada no Sienge a partir de sugestão do fornecedor *(PRDGlobal §2.3)*.
+- Régua separada por parcela de entrega do mesmo item _(PRDGlobal §2.3)_.
+- Automações financeiras, fiscais ou contábeis além do uso logístico de nota fiscal _(PRDGlobal §2.3)_.
+- Alteração automática de data planejada no Sienge a partir de sugestão do fornecedor _(PRDGlobal §2.3)_.
 
 ## 3. Perfis envolvidos
 
-| Perfil | Permissões neste módulo | Restrições |
-|--------|------------------------|------------|
-| **Fornecedor** | Consulta lista de pedidos e entregas próprias no portal. Visualiza status, data prometida, data do pedido, indicação de atraso, avaria ou reposição. | Apenas dados próprios. Não pode validar entrega, registrar divergência ou alterar status. |
-| **Compras** | Visualiza lista de pedidos e entregas no backoffice. Valida entrega (`OK` ou `Divergência`). Acompanha saldos pendentes e status operacionais. Recebe notificação automática quando entrega é identificada. | Não pode gerir acessos ou parametrizar o sistema. |
-| **Administrador** | Acesso administrativo completo ao sistema, inclusive consulta de entregas e pedidos. | Não valida entregas operacionalmente (função de `Compras`). |
-| **Visualizador de Pedidos** | Consulta pedidos e entregas. | Não altera dados. Não acessa dashboards, indicadores, parametrizações ou ações operacionais. *(PRDGlobal §3.2)* |
+| Perfil                      | Permissões neste módulo                                                                                                                                                                                     | Restrições                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Fornecedor**              | Consulta lista de pedidos e entregas próprias no portal. Visualiza status, data prometida, data do pedido, indicação de atraso, avaria ou reposição.                                                        | Apenas dados próprios. Não pode validar entrega, registrar divergência ou alterar status.                       |
+| **Compras**                 | Visualiza lista de pedidos e entregas no backoffice. Valida entrega (`OK` ou `Divergência`). Acompanha saldos pendentes e status operacionais. Recebe notificação automática quando entrega é identificada. | Não pode gerir acessos ou parametrizar o sistema.                                                               |
+| **Administrador**           | Acesso administrativo completo ao sistema, inclusive consulta de entregas e pedidos.                                                                                                                        | Não valida entregas operacionalmente (função de `Compras`).                                                     |
+| **Visualizador de Pedidos** | Consulta pedidos e entregas.                                                                                                                                                                                | Não altera dados. Não acessa dashboards, indicadores, parametrizações ou ações operacionais. _(PRDGlobal §3.2)_ |
 
-*(Referência: PRDGlobal §3)*
+_(Referência: PRDGlobal §3)_
 
 ## 4. Entidades e modelagem
 
@@ -64,36 +64,39 @@ O valor entregue é a capacidade de acompanhar automaticamente o ciclo de vida d
 
 Armazena cada entrega identificada a partir do Sienge.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único interno. |
-| `purchase_order_id` | INTEGER | Sim | ID do pedido de compra no Sienge (`purchaseOrderId`). |
-| `purchase_order_item_number` | INTEGER | Sim | Número do item do pedido (`purchaseOrderItemNumber`). |
-| `delivery_item_number` | INTEGER | Sim | Número do item de entrega do pedido (`deliveryItemPurchaseOrderNumber`). |
-| `attended_number` | INTEGER | Sim | Número do atendimento (`purchaseOrderItemAttendedNumber`). |
-| `sequential_number` | INTEGER | Sim | Número sequencial da nota fiscal (`sequentialNumber`). |
-| `invoice_item_number` | INTEGER | Sim | Número do item na nota fiscal (`invoiceItemNumber`). |
-| `delivery_date` | DATE | Sim | Data da entrega efetiva (`deliveryDate`). |
-| `quantity_delivered` | DECIMAL(15,4) | Sim | Quantidade entregue (`quantityDelivery`). |
-| `validation_status` | ENUM | Sim | Status da validação: `pending`, `ok`, `divergence`. Default: `pending`. |
-| `validated_by` | UUID | Não | ID do usuário que validou. |
-| `validated_at` | TIMESTAMPTZ | Não | Data/hora da validação. |
-| `validation_notes` | TEXT | Não | Observações da validação por `Compras`. |
-| `sienge_synced_at` | TIMESTAMPTZ | Sim | Data/hora da sincronização com o Sienge. |
-| `created_at` | TIMESTAMPTZ | Sim | Data de criação do registro. |
-| `updated_at` | TIMESTAMPTZ | Sim | Data da última atualização. |
+| Campo                        | Tipo          | Obrigatório | Descrição                                                                |
+| ---------------------------- | ------------- | ----------- | ------------------------------------------------------------------------ |
+| `id`                         | UUID          | Sim         | Identificador único interno.                                             |
+| `purchase_order_id`          | INTEGER       | Sim         | ID do pedido de compra no Sienge (`purchaseOrderId`).                    |
+| `purchase_order_item_number` | INTEGER       | Sim         | Número do item do pedido (`purchaseOrderItemNumber`).                    |
+| `delivery_item_number`       | INTEGER       | Sim         | Número do item de entrega do pedido (`deliveryItemPurchaseOrderNumber`). |
+| `attended_number`            | INTEGER       | Sim         | Número do atendimento (`purchaseOrderItemAttendedNumber`).               |
+| `sequential_number`          | INTEGER       | Sim         | Número sequencial da nota fiscal (`sequentialNumber`).                   |
+| `invoice_item_number`        | INTEGER       | Sim         | Número do item na nota fiscal (`invoiceItemNumber`).                     |
+| `delivery_date`              | DATE          | Sim         | Data da entrega efetiva (`deliveryDate`).                                |
+| `quantity_delivered`         | DECIMAL(15,4) | Sim         | Quantidade entregue (`quantityDelivery`).                                |
+| `validation_status`          | ENUM          | Sim         | Status da validação: `pending`, `ok`, `divergence`. Default: `pending`.  |
+| `validated_by`               | UUID          | Não         | ID do usuário que validou.                                               |
+| `validated_at`               | TIMESTAMPTZ   | Não         | Data/hora da validação.                                                  |
+| `validation_notes`           | TEXT          | Não         | Observações da validação por `Compras`.                                  |
+| `sienge_synced_at`           | TIMESTAMPTZ   | Sim         | Data/hora da sincronização com o Sienge.                                 |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data de criação do registro.                                             |
+| `updated_at`                 | TIMESTAMPTZ   | Sim         | Data da última atualização.                                              |
 
 **Relacionamentos:**
+
 - `purchase_order_id` → referência lógica ao pedido sincronizado (tabela de pedidos do módulo 7).
 - `validated_by` → `auth.users.id` (Supabase Auth).
 
 **Índices sugeridos:**
+
 - `(purchase_order_id, purchase_order_item_number)` — busca por pedido e item.
 - `(sequential_number)` — busca por nota fiscal.
 - `(validation_status)` — filtragem por status de validação.
 - `(delivery_date)` — ordenação temporal.
 
 **Regras de integridade:**
+
 - `validation_status` aceita apenas `pending`, `ok`, `divergence`.
 - `validated_by` e `validated_at` devem ser preenchidos simultaneamente quando `validation_status` != `pending`.
 - Não deve existir registro duplicado para a mesma combinação de `purchase_order_id` + `purchase_order_item_number` + `delivery_item_number` + `attended_number` + `sequential_number` + `invoice_item_number` (constraint UNIQUE).
@@ -102,21 +105,23 @@ Armazena cada entrega identificada a partir do Sienge.
 
 Registra cada transição de status de um pedido para auditoria.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | Identificador único. |
-| `purchase_order_id` | INTEGER | Sim | ID do pedido de compra no Sienge. |
-| `previous_status` | TEXT | Não | Status anterior (nulo na primeira atribuição). |
-| `new_status` | TEXT | Sim | Novo status atribuído. |
-| `reason` | TEXT | Não | Motivo da transição (ex.: "Divergência registrada por Compras"). |
-| `changed_by` | UUID | Não | ID do usuário que causou a mudança (nulo para mudanças automáticas). |
-| `changed_by_system` | BOOLEAN | Sim | `true` se a mudança foi automática (ex.: sincronização). Default: `false`. |
-| `created_at` | TIMESTAMPTZ | Sim | Data/hora da transição. |
+| Campo               | Tipo        | Obrigatório | Descrição                                                                  |
+| ------------------- | ----------- | ----------- | -------------------------------------------------------------------------- |
+| `id`                | UUID        | Sim         | Identificador único.                                                       |
+| `purchase_order_id` | INTEGER     | Sim         | ID do pedido de compra no Sienge.                                          |
+| `previous_status`   | TEXT        | Não         | Status anterior (nulo na primeira atribuição).                             |
+| `new_status`        | TEXT        | Sim         | Novo status atribuído.                                                     |
+| `reason`            | TEXT        | Não         | Motivo da transição (ex.: "Divergência registrada por Compras").           |
+| `changed_by`        | UUID        | Não         | ID do usuário que causou a mudança (nulo para mudanças automáticas).       |
+| `changed_by_system` | BOOLEAN     | Sim         | `true` se a mudança foi automática (ex.: sincronização). Default: `false`. |
+| `created_at`        | TIMESTAMPTZ | Sim         | Data/hora da transição.                                                    |
 
 **Índices sugeridos:**
+
 - `(purchase_order_id, created_at)` — histórico temporal por pedido.
 
 **Regras de integridade:**
+
 - `new_status` deve ser um dos status operacionais válidos definidos em §7.3.
 - Registros são imutáveis (append-only, sem UPDATE ou DELETE).
 
@@ -124,52 +129,52 @@ Registra cada transição de status de um pedido para auditoria.
 
 Este módulo espera que a entidade de pedido sincronizado (responsabilidade do módulo 7 — Integração com o Sienge) contenha pelo menos os seguintes campos operacionais calculados ou derivados:
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `current_status` | ENUM | Status operacional atual: `Parcialmente Entregue`, `Entregue`, `Atrasado`, `Divergência`, `Em avaria`, `Reposição`, `Cancelado`. |
-| `total_quantity_ordered` | DECIMAL(15,4) | Quantidade total pedida (soma dos itens). |
-| `total_quantity_delivered` | DECIMAL(15,4) | Quantidade total entregue (soma das entregas confirmadas com `OK`). |
-| `pending_quantity` | DECIMAL(15,4) | Saldo pendente (`total_quantity_ordered - total_quantity_delivered`). |
-| `has_divergence` | BOOLEAN | Flag indicando se existe divergência ativa. |
-| `last_delivery_date` | DATE | Data da última entrega confirmada. |
+| Campo                      | Tipo          | Descrição                                                                                                                        |
+| -------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `current_status`           | ENUM          | Status operacional atual: `Parcialmente Entregue`, `Entregue`, `Atrasado`, `Divergência`, `Em avaria`, `Reposição`, `Cancelado`. |
+| `total_quantity_ordered`   | DECIMAL(15,4) | Quantidade total pedida (soma dos itens).                                                                                        |
+| `total_quantity_delivered` | DECIMAL(15,4) | Quantidade total entregue (soma das entregas confirmadas com `OK`).                                                              |
+| `pending_quantity`         | DECIMAL(15,4) | Saldo pendente (`total_quantity_ordered - total_quantity_delivered`).                                                            |
+| `has_divergence`           | BOOLEAN       | Flag indicando se existe divergência ativa.                                                                                      |
+| `last_delivery_date`       | DATE          | Data da última entrega confirmada.                                                                                               |
 
 > **Nota:** Estes campos são calculados por este módulo e persistidos/atualizados na entidade de pedido. O módulo 7 provê a estrutura base; este módulo opera sobre ela.
 
 ## 5. Regras de negócio
 
-- **RN-01:** A fonte oficial de confirmação de entrega na V1.0 é a Nota Fiscal, obtida via `GET /purchase-invoices/deliveries-attended`. *(PRDGlobal §7.1)*
+- **RN-01:** A fonte oficial de confirmação de entrega na V1.0 é a Nota Fiscal, obtida via `GET /purchase-invoices/deliveries-attended`. _(PRDGlobal §7.1)_
 
-- **RN-02:** A entrada de nota fiscal deve ser puxada automaticamente do Sienge. *(PRDGlobal §7.2)*
+- **RN-02:** A entrada de nota fiscal deve ser puxada automaticamente do Sienge. _(PRDGlobal §7.2)_
 
-- **RN-03:** Após identificar uma entrega, o sistema notifica `Compras`. *(PRDGlobal §7.2)*
+- **RN-03:** Após identificar uma entrega, o sistema notifica `Compras`. _(PRDGlobal §7.2)_
 
-- **RN-04:** `Compras` valida a informação de entrega e decide entre `OK` ou `Divergência`. *(PRDGlobal §7.2)*
+- **RN-04:** `Compras` valida a informação de entrega e decide entre `OK` ou `Divergência`. _(PRDGlobal §7.2)_
 
-- **RN-05:** Se houver `Divergência` e o prazo ainda não tiver vencido, a régua de follow-up continua. *(PRDGlobal §7.2)*
+- **RN-05:** Se houver `Divergência` e o prazo ainda não tiver vencido, a régua de follow-up continua. _(PRDGlobal §7.2)_
 
-- **RN-06:** Se houver `Divergência` e o prazo já tiver vencido, o status permanece `Atrasado`. *(PRDGlobal §7.2)*
+- **RN-06:** Se houver `Divergência` e o prazo já tiver vencido, o status permanece `Atrasado`. _(PRDGlobal §7.2)_
 
-- **RN-07:** `Parcialmente Entregue` deve ser aplicado quando houver entrega parcial identificada no Sienge. *(PRDGlobal §7.3)*
+- **RN-07:** `Parcialmente Entregue` deve ser aplicado quando houver entrega parcial identificada no Sienge. _(PRDGlobal §7.3)_
 
-- **RN-08:** O pedido deve permanecer `Parcialmente Entregue` até que todos os itens restantes tenham sido entregues, cancelados ou encaminhados para `Reposição`. *(PRDGlobal §7.3)*
+- **RN-08:** O pedido deve permanecer `Parcialmente Entregue` até que todos os itens restantes tenham sido entregues, cancelados ou encaminhados para `Reposição`. _(PRDGlobal §7.3)_
 
-- **RN-09:** Um pedido só pode ficar `Entregue` quando todos os itens tiverem entrega confirmada no Sienge. *(PRDGlobal §7.3)*
+- **RN-09:** Um pedido só pode ficar `Entregue` quando todos os itens tiverem entrega confirmada no Sienge. _(PRDGlobal §7.3)_
 
-- **RN-10:** `Reposição` pode valer no nível de item ou no nível de pedido, dependendo da abrangência da substituição aprovada por `Compras`. *(PRDGlobal §7.3)*
+- **RN-10:** `Reposição` pode valer no nível de item ou no nível de pedido, dependendo da abrangência da substituição aprovada por `Compras`. _(PRDGlobal §7.3)_
 
-- **RN-11:** Em devolução total da compra, o pedido inteiro deve ficar `Cancelado` no sistema e a régua de follow-up deve ser encerrada imediatamente. *(PRDGlobal §7.3)*
+- **RN-11:** Em devolução total da compra, o pedido inteiro deve ficar `Cancelado` no sistema e a régua de follow-up deve ser encerrada imediatamente. _(PRDGlobal §7.3)_
 
-- **RN-12:** O sistema recalcula internamente saldo, valor e status quando houver cancelamento ou devolução de item. O pedido no Sienge nunca é alterado por essas ações. *(PRDGlobal §8.5)*
+- **RN-12:** O sistema recalcula internamente saldo, valor e status quando houver cancelamento ou devolução de item. O pedido no Sienge nunca é alterado por essas ações. _(PRDGlobal §8.5)_
 
-- **RN-13:** O pedido deve permanecer com status `Em avaria` quando uma avaria for registrada (responsabilidade do módulo 6), até que a ação corretiva seja definida. *(PRDGlobal §8.1)*
+- **RN-13:** O pedido deve permanecer com status `Em avaria` quando uma avaria for registrada (responsabilidade do módulo 6), até que a ação corretiva seja definida. _(PRDGlobal §8.1)_
 
-- **RN-14:** Quando a data prometida vencer e no dia útil seguinte ainda não houver nota fiscal no Sienge confirmando a entrega, o pedido deve ser sinalizado como `Atrasado`. *(PRDGlobal §6.6)*
+- **RN-14:** Quando a data prometida vencer e no dia útil seguinte ainda não houver nota fiscal no Sienge confirmando a entrega, o pedido deve ser sinalizado como `Atrasado`. _(PRDGlobal §6.6)_
 
-- **RN-15:** Em entrega parcial, a régua de follow-up continua apenas enquanto existir saldo pendente no pedido. *(PRDGlobal §6.6)*
+- **RN-15:** Em entrega parcial, a régua de follow-up continua apenas enquanto existir saldo pendente no pedido. _(PRDGlobal §6.6)_
 
-- **RN-16:** O vínculo operacional mínimo `nota → pedido` deve considerar `purchaseOrderId`, `purchaseOrderItemNumber`, `sequentialNumber`, `invoiceItemNumber`, `deliveryDate` e `quantityDelivery`. *(PRDGlobal §9.7)*
+- **RN-16:** O vínculo operacional mínimo `nota → pedido` deve considerar `purchaseOrderId`, `purchaseOrderItemNumber`, `sequentialNumber`, `invoiceItemNumber`, `deliveryDate` e `quantityDelivery`. _(PRDGlobal §9.7)_
 
-- **RN-17:** O sistema não deve tentar ligar nota fiscal à cotação diretamente por fornecedor, data ou número textual. O caminho correto é `Nota Fiscal → purchaseOrderId → item do pedido → purchaseQuotations[].purchaseQuotationId → Cotação`. *(PRDGlobal §9.7)*
+- **RN-17:** O sistema não deve tentar ligar nota fiscal à cotação diretamente por fornecedor, data ou número textual. O caminho correto é `Nota Fiscal → purchaseOrderId → item do pedido → purchaseQuotations[].purchaseQuotationId → Cotação`. _(PRDGlobal §9.7)_
 
 ## 6. Fluxos operacionais
 
@@ -313,14 +318,17 @@ OK?     │          │(devolução total)│
 
 - **Método e rota:** `POST /api/deliveries/{deliveryRecordId}/validate`
 - **Entrada:**
+
   ```json
   {
     "decision": "ok" | "divergence",
     "notes": "Observação opcional"
   }
   ```
+
   - `decision` (STRING, obrigatório) — `ok` ou `divergence`.
   - `notes` (STRING, opcional) — observações da validação.
+
 - **Saída:**
   ```json
   {
@@ -424,12 +432,15 @@ OK?     │          │(devolução total)│
 
 - **Método e rota:** `POST /api/orders/{purchaseOrderId}/cancel`
 - **Entrada:**
+
   ```json
   {
     "reason": "Devolução total da compra"
   }
   ```
+
   - `reason` (STRING, obrigatório) — motivo do cancelamento.
+
 - **Saída:**
   ```json
   {
@@ -550,30 +561,35 @@ OK?     │          │(devolução total)│
 - **Propósito:** Consulta de pedidos e entregas sem capacidade de alteração.
 - **Campos exibidos:** mesmos da tela do backoffice (§8.1).
 - **Ações disponíveis:** nenhuma ação operacional. Somente leitura.
-- **Restrições:** não acessa dashboards, indicadores, parametrizações ou ações operacionais *(PRDGlobal §3.2)*.
+- **Restrições:** não acessa dashboards, indicadores, parametrizações ou ações operacionais _(PRDGlobal §3.2)_.
 
 ## 9. Integrações e dependências externas
 
 ### 9.1 Integração com o Sienge — Leitura de entregas
 
 **Endpoint principal:**
-- `GET /purchase-invoices/deliveries-attended` *(PRDGlobal §9.3.5)*
+
+- `GET /purchase-invoices/deliveries-attended` _(PRDGlobal §9.3.5)_
 
 **Uso neste módulo:**
+
 - Confirmar entrega efetiva.
 - Ligar pedido a nota fiscal.
 - Ligar item do pedido a item da nota.
 - Capturar data e quantidade entregues.
 
 **Filtros obrigatórios:**
+
 - `purchaseOrderId` — filtro principal por pedido monitorado.
 
 **Regras de combinação de filtros:**
+
 - Se `billId` não for informado, é obrigatório informar `sequentialNumber` ou `purchaseOrderId`.
 - Se `sequentialNumber` não for informado, é obrigatório informar `billId` ou `purchaseOrderId`.
 - Se `purchaseOrderId` não for informado, é obrigatório informar `sequentialNumber` ou `billId`.
 
 **Campos consumidos no retorno:**
+
 - `purchaseOrderId`
 - `purchaseOrderItemNumber`
 - `deliveryItemPurchaseOrderNumber`
@@ -583,34 +599,39 @@ OK?     │          │(devolução total)│
 - `deliveryDate`
 - `quantityDelivery`
 
-*(Referência: PRDGlobal §9.3.5)*
+_(Referência: PRDGlobal §9.3.5)_
 
 ### 9.2 Integração com o Sienge — Leitura complementar de notas fiscais
 
 **Endpoints complementares (quando necessário para auditoria ou detalhamento):**
-- `GET /purchase-invoices/{sequentialNumber}` *(PRDGlobal §9.3.5)*
-- `GET /purchase-invoices/{sequentialNumber}/items` *(PRDGlobal §9.3.5)*
+
+- `GET /purchase-invoices/{sequentialNumber}` _(PRDGlobal §9.3.5)_
+- `GET /purchase-invoices/{sequentialNumber}/items` _(PRDGlobal §9.3.5)_
 
 **Campos relevantes:**
+
 - `supplierId`, `number`, `companyId`, `issueDate`, `movementDate`, `sequentialNumber`, `consistency`, `invoiceDeliveryId`.
 
 ### 9.3 Integração com o Sienge — Entregas programadas
 
 **Endpoint:**
-- `GET /purchase-orders/{purchaseOrderId}/items/{itemNumber}/delivery-schedules` *(PRDGlobal §9.3.4)*
+
+- `GET /purchase-orders/{purchaseOrderId}/items/{itemNumber}/delivery-schedules` _(PRDGlobal §9.3.4)_
 
 **Uso neste módulo:**
+
 - Comparar previsto versus entregue.
 - Acompanhar saldo em aberto.
 
 **Campos consumidos:**
+
 - `deliveryScheduleNumber`
 - `sheduledDate` (grafia sem `c` — respeitar contrato real)
 - `sheduledQuantity` (grafia sem `c` — respeitar contrato real)
 - `deliveredQuantity`
 - `openQuantity`
 
-*(Referência: PRDGlobal §9.3.4, §9.10)*
+_(Referência: PRDGlobal §9.3.4, §9.10)_
 
 ### 9.4 Dependência do módulo 7 — Integração com o Sienge
 
@@ -631,30 +652,31 @@ OK?     │          │(devolução total)│
 
 ### 9.7 Tratamento de falhas de integração
 
-- Em caso de falha de integração com o Sienge, o sistema tenta novo reprocessamento automático após `24 horas` *(PRDGlobal §12.2)*.
-- Se a falha persistir, `Compras` deve ser notificado *(PRDGlobal §12.2)*.
-- `Compras` pode acionar reprocessamento manual no backoffice *(PRDGlobal §12.2)*.
+- Em caso de falha de integração com o Sienge, o sistema tenta novo reprocessamento automático após `24 horas` _(PRDGlobal §12.2)_.
+- Se a falha persistir, `Compras` deve ser notificado _(PRDGlobal §12.2)_.
+- `Compras` pode acionar reprocessamento manual no backoffice _(PRDGlobal §12.2)_.
 
 ### 9.8 Regra de vínculo nota → pedido → cotação
 
-- Para ligar nota fiscal ao pedido, usar `GET /purchase-invoices/deliveries-attended` *(PRDGlobal §9.7)*.
-- Para ligar nota fiscal à cotação, seguir o caminho: `Nota Fiscal → purchaseOrderId → item do pedido → purchaseQuotations[].purchaseQuotationId → Cotação` *(PRDGlobal §9.7)*.
-- O sistema **não deve** tentar ligar nota fiscal à cotação diretamente por fornecedor, data ou número textual *(PRDGlobal §9.7)*.
+- Para ligar nota fiscal ao pedido, usar `GET /purchase-invoices/deliveries-attended` _(PRDGlobal §9.7)_.
+- Para ligar nota fiscal à cotação, seguir o caminho: `Nota Fiscal → purchaseOrderId → item do pedido → purchaseQuotations[].purchaseQuotationId → Cotação` _(PRDGlobal §9.7)_.
+- O sistema **não deve** tentar ligar nota fiscal à cotação diretamente por fornecedor, data ou número textual _(PRDGlobal §9.7)_.
 
 ## 10. Auditoria e rastreabilidade
 
 Eventos auditáveis gerados por este módulo, conforme §12.6 do PRDGlobal:
 
-| Evento | Descrição | Dados mínimos registrados |
-|--------|-----------|--------------------------|
-| `delivery_identified` | Nova entrega identificada via sincronização com Sienge. | Data/hora, pedido, item, NF, quantidade, origem (sistema). |
-| `delivery_validated_ok` | Entrega validada como `OK` por `Compras`. | Data/hora, pedido, item, NF, usuário (`Compras`), observações. |
-| `delivery_validated_divergence` | Entrega validada como `Divergência` por `Compras`. | Data/hora, pedido, item, NF, usuário (`Compras`), observações. |
-| `order_status_changed` | Status do pedido foi alterado. | Data/hora, pedido, status anterior, novo status, motivo, usuário ou sistema. |
-| `order_cancelled` | Pedido marcado como `Cancelado` (devolução total). | Data/hora, pedido, motivo, usuário (`Compras`). |
-| `followup_termination_requested` | Solicitação de encerramento da régua de follow-up enviada ao módulo 4. | Data/hora, pedido, motivo. |
+| Evento                           | Descrição                                                              | Dados mínimos registrados                                                    |
+| -------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `delivery_identified`            | Nova entrega identificada via sincronização com Sienge.                | Data/hora, pedido, item, NF, quantidade, origem (sistema).                   |
+| `delivery_validated_ok`          | Entrega validada como `OK` por `Compras`.                              | Data/hora, pedido, item, NF, usuário (`Compras`), observações.               |
+| `delivery_validated_divergence`  | Entrega validada como `Divergência` por `Compras`.                     | Data/hora, pedido, item, NF, usuário (`Compras`), observações.               |
+| `order_status_changed`           | Status do pedido foi alterado.                                         | Data/hora, pedido, status anterior, novo status, motivo, usuário ou sistema. |
+| `order_cancelled`                | Pedido marcado como `Cancelado` (devolução total).                     | Data/hora, pedido, motivo, usuário (`Compras`).                              |
+| `followup_termination_requested` | Solicitação de encerramento da régua de follow-up enviada ao módulo 4. | Data/hora, pedido, motivo.                                                   |
 
 Cada evento deve seguir o formato mínimo de auditoria definido no PRDGlobal §12.6:
+
 - data e hora;
 - tipo do evento;
 - usuário ou origem do evento;
@@ -666,12 +688,12 @@ Cada evento deve seguir o formato mínimo de auditoria definido no PRDGlobal §1
 
 Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 
-| # | Item de homologação | Impacto neste módulo |
-|---|---------------------|---------------------|
-| 8 | Validar se `GET /purchase-invoices/deliveries-attended` cobre todos os cenários reais de entrega da operação. | **Crítico.** Este é o endpoint principal deste módulo. Se ele não cobrir cenários como entrega parcial, entrega em múltiplas remessas ou devolução, o cálculo de status será incorreto. |
-| 7 | Validar cenários reais em que um item do pedido possa referenciar mais de uma cotação no array `purchaseQuotations[]`. | **Relevante.** Impacta o vínculo de rastreabilidade nota → pedido → cotação. |
-| 1 | Validar se `supplierId` corresponde a `creditorId`. | **Relevante.** Necessário para confirmar que o fornecedor da entrega é o mesmo fornecedor do pedido e da cotação. |
-| 9 | Validar variações reais do contrato do campo `openQuantity` em `delivery-requirements`. | **Impacto indireto.** Usado para comparação previsto vs. entregue. |
+| #   | Item de homologação                                                                                                    | Impacto neste módulo                                                                                                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8   | Validar se `GET /purchase-invoices/deliveries-attended` cobre todos os cenários reais de entrega da operação.          | **Crítico.** Este é o endpoint principal deste módulo. Se ele não cobrir cenários como entrega parcial, entrega em múltiplas remessas ou devolução, o cálculo de status será incorreto. |
+| 7   | Validar cenários reais em que um item do pedido possa referenciar mais de uma cotação no array `purchaseQuotations[]`. | **Relevante.** Impacta o vínculo de rastreabilidade nota → pedido → cotação.                                                                                                            |
+| 1   | Validar se `supplierId` corresponde a `creditorId`.                                                                    | **Relevante.** Necessário para confirmar que o fornecedor da entrega é o mesmo fornecedor do pedido e da cotação.                                                                       |
+| 9   | Validar variações reais do contrato do campo `openQuantity` em `delivery-requirements`.                                | **Impacto indireto.** Usado para comparação previsto vs. entregue.                                                                                                                      |
 
 ## 12. Critérios de aceite
 
@@ -740,11 +762,11 @@ Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 
 ## 14. Riscos específicos do módulo
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|--------------|---------|-----------|
-| `GET /purchase-invoices/deliveries-attended` não cobrir todos os cenários de entrega (parcial, múltiplas remessas, devolução). | Média | Alto | Listar cenários reais durante homologação. Prever tratamento manual por `Compras` no backoffice como fallback. |
-| Inconsistência de dados entre quantidade entregue no Sienge e saldo calculado localmente. | Média | Médio | Implementar validação de consistência com alerta para `Compras`. Nunca alterar dados no Sienge. |
-| Volumes de entregas mal sincronizados gerando atraso na detecção. | Baixa | Médio | Calibrar frequência de polling. Complementar com webhooks quando disponíveis. |
-| Complexidade na interação entre status de múltiplos módulos (Divergência × Avaria × Reposição × Atraso). | Alta | Alto | Definir hierarquia clara de precedência de status. Implementar testes unitários para cada combinação de transição. |
-| Grafia incorreta dos campos do Sienge (`sheduledDate`, `sheduledQuantity`) causando falha no parser. | Baixa | Alto | Respeitar a grafia do contrato público real. Não normalizar implicitamente. Cobrir com testes de integração. |
-| Dependência circular entre módulos 4, 5 e 6 para cálculo de status. | Média | Médio | Definir contratos claros de interface entre módulos. Usar eventos/notificações assíncronas em vez de chamadas síncronas. |
+| Risco                                                                                                                          | Probabilidade | Impacto | Mitigação                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `GET /purchase-invoices/deliveries-attended` não cobrir todos os cenários de entrega (parcial, múltiplas remessas, devolução). | Média         | Alto    | Listar cenários reais durante homologação. Prever tratamento manual por `Compras` no backoffice como fallback.           |
+| Inconsistência de dados entre quantidade entregue no Sienge e saldo calculado localmente.                                      | Média         | Médio   | Implementar validação de consistência com alerta para `Compras`. Nunca alterar dados no Sienge.                          |
+| Volumes de entregas mal sincronizados gerando atraso na detecção.                                                              | Baixa         | Médio   | Calibrar frequência de polling. Complementar com webhooks quando disponíveis.                                            |
+| Complexidade na interação entre status de múltiplos módulos (Divergência × Avaria × Reposição × Atraso).                       | Alta          | Alto    | Definir hierarquia clara de precedência de status. Implementar testes unitários para cada combinação de transição.       |
+| Grafia incorreta dos campos do Sienge (`sheduledDate`, `sheduledQuantity`) causando falha no parser.                           | Baixa         | Alto    | Respeitar a grafia do contrato público real. Não normalizar implicitamente. Cobrir com testes de integração.             |
+| Dependência circular entre módulos 4, 5 e 6 para cálculo de status.                                                            | Média         | Médio   | Definir contratos claros de interface entre módulos. Usar eventos/notificações assíncronas em vez de chamadas síncronas. |

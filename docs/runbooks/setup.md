@@ -40,9 +40,9 @@ Antes de iniciar o setup:
    - conexao de ambiente;
    - migracoes;
    - convencoes operacionais em `supabase/`.
-7. Configurar lint, formatacao, testes e CI.
-8. Modelar o banco relacional.
-9. Implementar autenticacao e RBAC.
+7. (CONCLUÍDO) Configurar lint, formatacao, testes e CI.
+8. (CONCLUÍDO) Modelar o banco relacional.
+9. (EM ANDAMENTO - Sprint A Concluída) Implementar autenticacao e RBAC.
 10. Configurar deploy principal do web na Vercel.
 11. Definir estrategia de deploy standalone para `apps/api` e `workers/`.
 12. Implementar integracao inicial com Sienge.

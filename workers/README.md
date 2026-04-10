@@ -3,12 +3,14 @@
 Este módulo é responsável por todo o processamento assíncrono e fora do ciclo HTTP da aplicação.
 
 ## Responsabilidades
+
 - **Polling das APIs do Sienge**: verificação periódica de cotações, pedidos e entregas.
 - **Follow-up logístico**: régua de cobrança via scheduler diário.
 - **Retries e reprocessamentos**: recuperação de falhas de integração.
 - **Reconciliação por webhook**: engatilhar a leitura detalhada a partir de notificações do Sienge.
 
 ## Stack
+
 - **Runtime**: Node.js standalone
 - **Linguagem**: TypeScript
 - **Framework de Filas**: `pg-boss` (usando o Supabase PostgreSQL `dbGRF`)
@@ -24,6 +26,7 @@ pnpm --filter @projetog/workers dev
 Este comando já inicializará os jobs e consumirá das filas cadastradas.
 
 ## Estrutura
+
 - `src/index.ts`: Ponto de entrada (conecta o pg-boss e cadastra os handlers).
 - `src/boss.ts`: Fábrica do Singleton `pg-boss`.
 - `src/jobs/`: Implementação de cada rotina assíncrona isolada.

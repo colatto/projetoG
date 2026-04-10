@@ -43,9 +43,9 @@ Este repositorio ja teve o seu Workspace inicializado, mas os dominios continuam
 - O frontend (`apps/web`) possui o scaffold inicial do framework (Vite + React + TypeScript), porem sem implementacao de negocio.
 - O backend (`apps/api`) possui o scaffold inicial do framework (Fastify v5 + Zod + Vitest), configurado como ECMAScript Module e pronto para orquestracao.
 - O modulo de processamento assincrono (`workers/`) possui o scaffold inicial (Node.js + pg-boss + TypeScript), com os handlers registrados, porem sem regras de negocio de polling/reconciliacao implementadas.
-- O diretorio `supabase/` esta inicializado, autenticado e linkado ao projeto real via CLI, porem sem schemas de dados e aplicacao definitivos.
-- Nao existem migrations, seeds, rotas definitivas de negocio, componentes ou entidades implementados.
-- Os diretorios `packages/domain`, `packages/integration-sienge`, `packages/shared` possuem pacotes stub prontos.
+- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional base e os gatilhos para a V1.0 foram criados via migração inicial e a infraestrutura de Autenticação/Auditoria foi estabilizada através de migrações sequenciais (Sprint A do PRD-01 concluída).
+- Os tipos do Supabase (database.types.ts) estão gerados no pacote `packages/shared`.
+- Foram iniciadas as rotas definitivas de Autenticação e RBAC no backend (em `apps/api`) e a criação das entidades de Domínio correspondentes (User, AuditLog). Entretanto, ainda não existem seeds ou componentes completos de frontend (`apps/web`).
 
 Consequencia pratica:
 
@@ -238,7 +238,11 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - preferir imports absolutos por alias quando o monorepo estiver configurado;
 - usar ingles para identificadores e comentarios tecnicos;
 - usar portugues para mensagens de interface;
-- seguir commits convencionais: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
+- seguir commits convencionais: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`;
+- **Formatação de Código**: O projeto usa **Prettier** unificado na raiz do workspace.
+- **Lint**: O monorepo usa **ESLint 9 (Flat Config)** por workspace, executado no contexto do pacote/app correspondente e integrado ao `eslint-config-prettier` quando aplicavel.
+- **Pre-commit**: O monorepo possui **Husky** e **Lint-Staged** configurados na raiz. Commits na linha de comando corrigem a formatação e despacham o lint automaticamente para o workspace correto.
+- **Integração Contínua (CI)**: Pipeline ativa via **GitHub Actions** (`.github/workflows/ci.yml`) que barra Pull Requests que fujam aos testes, lints ou build.
 
 Sempre marcar incertezas ainda nao homologadas com `[VERIFICAR]` quando estiver documentando algo ainda nao confirmado.
 
@@ -327,6 +331,7 @@ O workspace pnpm ja foi inicializado. Os comandos de referencia sao:
 - `pnpm run db:push`
 
 Importante:
+
 - trate esses comandos como alvo de arquitetura;
 - apesar do workspace estar operante, a logica interna dos domínios ainda nao esta desenvolvida.
 

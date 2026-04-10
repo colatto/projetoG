@@ -49,18 +49,18 @@ O valor entregue é: automação confiável da troca de dados com o Sienge, com 
 
 ### 2.3 Fora de escopo da V1.0
 
-- Alteração automática da data planejada no Sienge a partir da data sugerida pelo fornecedor *(PRDGlobal §2.3)*.
-- Automações financeiras, fiscais ou contábeis além do uso logístico de nota fiscal *(PRDGlobal §2.3)*.
-- Régua separada por parcela de entrega do mesmo item *(PRDGlobal §2.3)*.
+- Alteração automática da data planejada no Sienge a partir da data sugerida pelo fornecedor _(PRDGlobal §2.3)_.
+- Automações financeiras, fiscais ou contábeis além do uso logístico de nota fiscal _(PRDGlobal §2.3)_.
+- Régua separada por parcela de entrega do mesmo item _(PRDGlobal §2.3)_.
 
 ## 3. Perfis envolvidos
 
-| Perfil | Interação com este módulo | Restrições |
-|--------|--------------------------|------------|
-| `Compras` | Aciona reprocessamento manual de falhas; aprova respostas antes da escrita no Sienge; recebe notificações de falha e divergência de reconciliação | Não altera configurações de integração |
-| `Administrador` | Parametriza credenciais da API do Sienge; configura subdomínio do cliente; monitora status de integração | Não aprova respostas de cotação |
-| `Fornecedor` | Consumidor indireto — seus dados são sincronizados do Sienge | Sem acesso direto às funcionalidades de integração |
-| `Visualizador de Pedidos` | Consumidor indireto — consulta pedidos sincronizados | Sem acesso direto às funcionalidades de integração |
+| Perfil                    | Interação com este módulo                                                                                                                         | Restrições                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `Compras`                 | Aciona reprocessamento manual de falhas; aprova respostas antes da escrita no Sienge; recebe notificações de falha e divergência de reconciliação | Não altera configurações de integração             |
+| `Administrador`           | Parametriza credenciais da API do Sienge; configura subdomínio do cliente; monitora status de integração                                          | Não aprova respostas de cotação                    |
+| `Fornecedor`              | Consumidor indireto — seus dados são sincronizados do Sienge                                                                                      | Sem acesso direto às funcionalidades de integração |
+| `Visualizador de Pedidos` | Consumidor indireto — consulta pedidos sincronizados                                                                                              | Sem acesso direto às funcionalidades de integração |
 
 ## 4. Entidades e modelagem
 
@@ -68,17 +68,17 @@ O valor entregue é: automação confiável da troca de dados com o Sienge, com 
 
 Armazena as credenciais de acesso à API do Sienge.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | PK |
-| `subdomain` | VARCHAR(100) | Sim | Subdomínio do cliente no Sienge |
-| `api_user` | VARCHAR(255) | Sim | Usuário da API (criptografado) |
-| `api_password` | TEXT | Sim | Senha da API (criptografada) |
-| `rest_rate_limit` | INTEGER | Sim | Rate limit REST (default: 200/min) |
-| `bulk_rate_limit` | INTEGER | Sim | Rate limit BULK (default: 20/min) |
-| `is_active` | BOOLEAN | Sim | Se a integração está ativa |
-| `created_at` | TIMESTAMPTZ | Sim | Data de criação |
-| `updated_at` | TIMESTAMPTZ | Sim | Última atualização |
+| Campo             | Tipo         | Obrigatório | Descrição                          |
+| ----------------- | ------------ | ----------- | ---------------------------------- |
+| `id`              | UUID         | Sim         | PK                                 |
+| `subdomain`       | VARCHAR(100) | Sim         | Subdomínio do cliente no Sienge    |
+| `api_user`        | VARCHAR(255) | Sim         | Usuário da API (criptografado)     |
+| `api_password`    | TEXT         | Sim         | Senha da API (criptografada)       |
+| `rest_rate_limit` | INTEGER      | Sim         | Rate limit REST (default: 200/min) |
+| `bulk_rate_limit` | INTEGER      | Sim         | Rate limit BULK (default: 20/min)  |
+| `is_active`       | BOOLEAN      | Sim         | Se a integração está ativa         |
+| `created_at`      | TIMESTAMPTZ  | Sim         | Data de criação                    |
+| `updated_at`      | TIMESTAMPTZ  | Sim         | Última atualização                 |
 
 - **Índices:** `idx_sienge_credentials_active` em `is_active`.
 - **Regras:** Apenas um registro ativo por vez. Credenciais devem ser armazenadas com criptografia em repouso.
@@ -87,26 +87,26 @@ Armazena as credenciais de acesso à API do Sienge.
 
 Registra cada operação de integração para rastreabilidade.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | PK |
-| `event_type` | VARCHAR(50) | Sim | Tipo: `sync_quotations`, `sync_creditor`, `sync_orders`, `sync_deliveries`, `write_negotiation`, `authorize_negotiation`, `webhook_received` |
-| `direction` | VARCHAR(10) | Sim | `inbound` ou `outbound` |
-| `endpoint` | VARCHAR(255) | Sim | URL do endpoint chamado |
-| `http_method` | VARCHAR(10) | Sim | GET, POST, PUT, PATCH |
-| `http_status` | INTEGER | Não | Status HTTP da resposta |
-| `request_payload` | JSONB | Não | Payload enviado (mascarado conforme §15.3) |
-| `response_payload` | JSONB | Não | Payload recebido (mascarado) |
-| `status` | VARCHAR(30) | Sim | `pending`, `success`, `failure`, `retry_scheduled` |
-| `error_message` | TEXT | Não | Mensagem de erro, se houver |
-| `retry_count` | INTEGER | Sim | Número de tentativas realizadas (default: 0) |
-| `max_retries` | INTEGER | Sim | Máximo de retries configurado |
-| `next_retry_at` | TIMESTAMPTZ | Não | Próximo retry agendado |
-| `related_entity_type` | VARCHAR(50) | Não | `quotation`, `order`, `invoice`, `creditor` |
-| `related_entity_id` | VARCHAR(100) | Não | ID da entidade relacionada no Sienge |
-| `idempotency_key` | VARCHAR(255) | Não | Chave de idempotência |
-| `created_at` | TIMESTAMPTZ | Sim | Data de criação |
-| `updated_at` | TIMESTAMPTZ | Sim | Última atualização |
+| Campo                 | Tipo         | Obrigatório | Descrição                                                                                                                                    |
+| --------------------- | ------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                  | UUID         | Sim         | PK                                                                                                                                           |
+| `event_type`          | VARCHAR(50)  | Sim         | Tipo: `sync_quotations`, `sync_creditor`, `sync_orders`, `sync_deliveries`, `write_negotiation`, `authorize_negotiation`, `webhook_received` |
+| `direction`           | VARCHAR(10)  | Sim         | `inbound` ou `outbound`                                                                                                                      |
+| `endpoint`            | VARCHAR(255) | Sim         | URL do endpoint chamado                                                                                                                      |
+| `http_method`         | VARCHAR(10)  | Sim         | GET, POST, PUT, PATCH                                                                                                                        |
+| `http_status`         | INTEGER      | Não         | Status HTTP da resposta                                                                                                                      |
+| `request_payload`     | JSONB        | Não         | Payload enviado (mascarado conforme §15.3)                                                                                                   |
+| `response_payload`    | JSONB        | Não         | Payload recebido (mascarado)                                                                                                                 |
+| `status`              | VARCHAR(30)  | Sim         | `pending`, `success`, `failure`, `retry_scheduled`                                                                                           |
+| `error_message`       | TEXT         | Não         | Mensagem de erro, se houver                                                                                                                  |
+| `retry_count`         | INTEGER      | Sim         | Número de tentativas realizadas (default: 0)                                                                                                 |
+| `max_retries`         | INTEGER      | Sim         | Máximo de retries configurado                                                                                                                |
+| `next_retry_at`       | TIMESTAMPTZ  | Não         | Próximo retry agendado                                                                                                                       |
+| `related_entity_type` | VARCHAR(50)  | Não         | `quotation`, `order`, `invoice`, `creditor`                                                                                                  |
+| `related_entity_id`   | VARCHAR(100) | Não         | ID da entidade relacionada no Sienge                                                                                                         |
+| `idempotency_key`     | VARCHAR(255) | Não         | Chave de idempotência                                                                                                                        |
+| `created_at`          | TIMESTAMPTZ  | Sim         | Data de criação                                                                                                                              |
+| `updated_at`          | TIMESTAMPTZ  | Sim         | Última atualização                                                                                                                           |
 
 - **Índices:** `idx_integration_events_status` em `status`; `idx_integration_events_type` em `event_type`; `idx_integration_events_entity` em `(related_entity_type, related_entity_id)`; `idx_integration_events_idempotency` em `idempotency_key` (UNIQUE quando não nulo); `idx_integration_events_retry` em `next_retry_at` WHERE `status = 'retry_scheduled'`.
 - **Retenção:** 1 ano conforme §11.5.
@@ -115,15 +115,15 @@ Registra cada operação de integração para rastreabilidade.
 
 Registra webhooks recebidos do Sienge.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | PK |
-| `webhook_type` | VARCHAR(100) | Sim | Tipo do webhook recebido |
-| `payload` | JSONB | Sim | Payload completo recebido |
-| `status` | VARCHAR(20) | Sim | `received`, `processing`, `processed`, `failed` |
-| `processed_at` | TIMESTAMPTZ | Não | Data de processamento |
-| `error_message` | TEXT | Não | Erro, se houver |
-| `created_at` | TIMESTAMPTZ | Sim | Data de recebimento |
+| Campo           | Tipo         | Obrigatório | Descrição                                       |
+| --------------- | ------------ | ----------- | ----------------------------------------------- |
+| `id`            | UUID         | Sim         | PK                                              |
+| `webhook_type`  | VARCHAR(100) | Sim         | Tipo do webhook recebido                        |
+| `payload`       | JSONB        | Sim         | Payload completo recebido                       |
+| `status`        | VARCHAR(20)  | Sim         | `received`, `processing`, `processed`, `failed` |
+| `processed_at`  | TIMESTAMPTZ  | Não         | Data de processamento                           |
+| `error_message` | TEXT         | Não         | Erro, se houver                                 |
+| `created_at`    | TIMESTAMPTZ  | Sim         | Data de recebimento                             |
 
 - **Índices:** `idx_webhook_events_type` em `webhook_type`; `idx_webhook_events_status` em `status`.
 
@@ -131,14 +131,14 @@ Registra webhooks recebidos do Sienge.
 
 Controla a posição de sincronização por tipo de recurso.
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `id` | UUID | Sim | PK |
-| `resource_type` | VARCHAR(50) | Sim | `quotations`, `orders`, `invoices`, `deliveries`, `creditors` |
-| `last_offset` | INTEGER | Sim | Último offset processado |
-| `last_synced_at` | TIMESTAMPTZ | Sim | Data da última sincronização |
-| `sync_status` | VARCHAR(20) | Sim | `idle`, `running`, `error` |
-| `error_message` | TEXT | Não | Erro da última execução |
+| Campo            | Tipo        | Obrigatório | Descrição                                                     |
+| ---------------- | ----------- | ----------- | ------------------------------------------------------------- |
+| `id`             | UUID        | Sim         | PK                                                            |
+| `resource_type`  | VARCHAR(50) | Sim         | `quotations`, `orders`, `invoices`, `deliveries`, `creditors` |
+| `last_offset`    | INTEGER     | Sim         | Último offset processado                                      |
+| `last_synced_at` | TIMESTAMPTZ | Sim         | Data da última sincronização                                  |
+| `sync_status`    | VARCHAR(20) | Sim         | `idle`, `running`, `error`                                    |
+| `error_message`  | TEXT        | Não         | Erro da última execução                                       |
 
 - **Índices:** `idx_sienge_sync_cursor_resource` em `resource_type` (UNIQUE).
 
@@ -146,35 +146,35 @@ Controla a posição de sincronização por tipo de recurso.
 
 A seguinte tabela consolida os identificadores que **devem** ser persistidos nas entidades dos módulos consumidores para manter rastreabilidade fim a fim:
 
-| Identificador | Origem | Uso |
-|---------------|--------|-----|
-| `purchaseQuotationId` | Cotação no Sienge | PK da cotação importada |
-| `supplierId` | Cotação/Pedido no Sienge | Identificador do fornecedor no fluxo de compras |
-| `negotiationId` / `negotiationNumber` | Negociação no Sienge | Rastrear resposta enviada |
-| `purchaseOrderId` | Pedido no Sienge | PK do pedido importado |
-| `purchaseOrderItemNumber` | Item do pedido | Detalhar itens |
-| `purchaseQuotationItemId` | Cotação/Item | Vínculo cotação-item |
-| `sequentialNumber` | Nota fiscal | PK da NF importada |
-| `invoiceItemNumber` | Item da NF | Detalhar itens da NF |
-| `creditorId` | API de Credores | Vínculo cadastral (pendente homologação §17) |
+| Identificador                         | Origem                   | Uso                                             |
+| ------------------------------------- | ------------------------ | ----------------------------------------------- |
+| `purchaseQuotationId`                 | Cotação no Sienge        | PK da cotação importada                         |
+| `supplierId`                          | Cotação/Pedido no Sienge | Identificador do fornecedor no fluxo de compras |
+| `negotiationId` / `negotiationNumber` | Negociação no Sienge     | Rastrear resposta enviada                       |
+| `purchaseOrderId`                     | Pedido no Sienge         | PK do pedido importado                          |
+| `purchaseOrderItemNumber`             | Item do pedido           | Detalhar itens                                  |
+| `purchaseQuotationItemId`             | Cotação/Item             | Vínculo cotação-item                            |
+| `sequentialNumber`                    | Nota fiscal              | PK da NF importada                              |
+| `invoiceItemNumber`                   | Item da NF               | Detalhar itens da NF                            |
+| `creditorId`                          | API de Credores          | Vínculo cadastral (pendente homologação §17)    |
 
 ## 5. Regras de negócio
 
-- **RN-01:** O Sienge prevalece como fonte principal de verdade para dados operacionais mestres. O sistema local mantém apenas exceções: e-mail alterado pelo Administrador, data prometida aprovada por Compras, status internos de workflow, registros de avaria e trilhas de auditoria. *(PRDGlobal §9.1)*
-- **RN-02:** A autenticação na API do Sienge usa `Basic Authorization` com header `Authorization: Basic base64(usuario-api:senha)`. *(PRDGlobal §9.2)*
-- **RN-03:** O rate limit deve ser respeitado: `200/minuto` para REST, `20/minuto` para BULK. *(PRDGlobal §9.2)*
-- **RN-04:** Paginação usa `limit` (padrão 100, máximo 200) e `offset` (padrão 0). O retorno paginado é tratado com `resultSetMetadata` e `results`. *(PRDGlobal §9.2)*
-- **RN-05:** O e-mail do fornecedor deve ser buscado em `GET /creditors/{creditorId}`, usando o primeiro `contacts[].email` preenchido. Se não houver e-mail preenchido, o fornecedor fica bloqueado até ajuste manual do Administrador. *(PRDGlobal §9.5)*
-- **RN-06:** O vínculo principal entre pedido e cotação é feito pelo webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`. O detalhamento por item (`purchaseQuotations[]`) é conferência, não regra principal. *(PRDGlobal §9.6)*
-- **RN-07:** O vínculo nota fiscal → pedido usa `GET /purchase-invoices/deliveries-attended`. O vínculo nota → cotação segue o caminho: `Nota → purchaseOrderId → item do pedido → purchaseQuotationId → Cotação`. *(PRDGlobal §9.7)*
-- **RN-08:** Webhooks são gatilhos de sincronização incremental. Após cada webhook, a aplicação deve reconsultar a API REST para reconciliação detalhada. *(PRDGlobal §9.8)*
-- **RN-09:** A ausência permanente do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` é bloqueio de homologação. Se a reconciliação divergir do vínculo criado pelo webhook, o sistema mantém o vínculo e notifica `Compras`. *(PRDGlobal §9.8)*
-- **RN-10:** Se o fornecedor foi removido do mapa de cotação no Sienge, o sistema não cria negociação automaticamente. O sistema alerta `Compras` antes de qualquer tentativa de escrita. O status exibido é `Fornecedor inválido no mapa de cotação` em vermelho. *(PRDGlobal §9.9)*
-- **RN-11:** O parser deve respeitar a grafia do contrato real (`sheduledDate`, `sheduledQuantity` sem o `c`). *(PRDGlobal §9.10)*
-- **RN-12:** O endpoint `PATCH .../negotiations/latest/authorize` só deve ser chamado após aprovação manual de `Compras`. *(PRDGlobal §9.3.7)*
-- **RN-13:** Em falha de integração, o sistema tenta novo reprocessamento automático após 24 horas. Para escrita de cotação, são 2 reenvios automáticos com intervalo de 24 horas. Se persistir, `Compras` é notificado. *(PRDGlobal §12.2)*
-- **RN-14:** Integrações devem ter idempotência, retry e rastreabilidade. *(PRDGlobal §15.2)*
-- **RN-15:** O endpoint `GET /purchase-quotations/comparison-map/pdf` não deve ser usado como fonte de automação. *(PRDGlobal §9.3.1)*
+- **RN-01:** O Sienge prevalece como fonte principal de verdade para dados operacionais mestres. O sistema local mantém apenas exceções: e-mail alterado pelo Administrador, data prometida aprovada por Compras, status internos de workflow, registros de avaria e trilhas de auditoria. _(PRDGlobal §9.1)_
+- **RN-02:** A autenticação na API do Sienge usa `Basic Authorization` com header `Authorization: Basic base64(usuario-api:senha)`. _(PRDGlobal §9.2)_
+- **RN-03:** O rate limit deve ser respeitado: `200/minuto` para REST, `20/minuto` para BULK. _(PRDGlobal §9.2)_
+- **RN-04:** Paginação usa `limit` (padrão 100, máximo 200) e `offset` (padrão 0). O retorno paginado é tratado com `resultSetMetadata` e `results`. _(PRDGlobal §9.2)_
+- **RN-05:** O e-mail do fornecedor deve ser buscado em `GET /creditors/{creditorId}`, usando o primeiro `contacts[].email` preenchido. Se não houver e-mail preenchido, o fornecedor fica bloqueado até ajuste manual do Administrador. _(PRDGlobal §9.5)_
+- **RN-06:** O vínculo principal entre pedido e cotação é feito pelo webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`. O detalhamento por item (`purchaseQuotations[]`) é conferência, não regra principal. _(PRDGlobal §9.6)_
+- **RN-07:** O vínculo nota fiscal → pedido usa `GET /purchase-invoices/deliveries-attended`. O vínculo nota → cotação segue o caminho: `Nota → purchaseOrderId → item do pedido → purchaseQuotationId → Cotação`. _(PRDGlobal §9.7)_
+- **RN-08:** Webhooks são gatilhos de sincronização incremental. Após cada webhook, a aplicação deve reconsultar a API REST para reconciliação detalhada. _(PRDGlobal §9.8)_
+- **RN-09:** A ausência permanente do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` é bloqueio de homologação. Se a reconciliação divergir do vínculo criado pelo webhook, o sistema mantém o vínculo e notifica `Compras`. _(PRDGlobal §9.8)_
+- **RN-10:** Se o fornecedor foi removido do mapa de cotação no Sienge, o sistema não cria negociação automaticamente. O sistema alerta `Compras` antes de qualquer tentativa de escrita. O status exibido é `Fornecedor inválido no mapa de cotação` em vermelho. _(PRDGlobal §9.9)_
+- **RN-11:** O parser deve respeitar a grafia do contrato real (`sheduledDate`, `sheduledQuantity` sem o `c`). _(PRDGlobal §9.10)_
+- **RN-12:** O endpoint `PATCH .../negotiations/latest/authorize` só deve ser chamado após aprovação manual de `Compras`. _(PRDGlobal §9.3.7)_
+- **RN-13:** Em falha de integração, o sistema tenta novo reprocessamento automático após 24 horas. Para escrita de cotação, são 2 reenvios automáticos com intervalo de 24 horas. Se persistir, `Compras` é notificado. _(PRDGlobal §12.2)_
+- **RN-14:** Integrações devem ter idempotência, retry e rastreabilidade. _(PRDGlobal §15.2)_
+- **RN-15:** O endpoint `GET /purchase-quotations/comparison-map/pdf` não deve ser usado como fonte de automação. _(PRDGlobal §9.3.1)_
 
 ### Anti-patterns obrigatórios (§9.11)
 
@@ -251,43 +251,43 @@ A seguinte tabela consolida os identificadores que **devem** ser persistidos nas
 
 ### 7.1 Clientes Sienge (Leitura)
 
-| Serviço | Endpoint Sienge | Método | Entrada | Saída | Erros |
-|---------|----------------|--------|---------|-------|-------|
-| `QuotationClient.listNegotiations` | `/purchase-quotations/all/negotiations` | GET | Filtros: `quotationNumber`, `supplierId`, `buyerId`, `startDate`, `endDate`, `authorized`, `status`, `consistency`, `limit`, `offset` | Lista paginada de cotações com fornecedores e negociações | 401, 429, 500 |
-| `CreditorClient.getById` | `/creditors/{creditorId}` | GET | `creditorId` | Dados cadastrais com `contacts[].email` | 401, 404, 429, 500 |
-| `CreditorClient.list` | `/creditors` | GET | Filtros: `cpf`, `cnpj`, `creditor`, `limit`, `offset` | Lista paginada de credores | 401, 429, 500 |
-| `OrderClient.list` | `/purchase-orders` | GET | Filtros: `startDate`, `endDate`, `status`, `authorized`, `supplierId`, `buildingId`, `buyerId`, `consistency`, `limit`, `offset` | Lista paginada de pedidos | 401, 429, 500 |
-| `OrderClient.getById` | `/purchase-orders/{id}` | GET | `purchaseOrderId` | Detalhe do pedido | 401, 404, 429, 500 |
-| `OrderClient.getItems` | `/purchase-orders/{id}/items` | GET | `purchaseOrderId` | Lista de itens do pedido | 401, 404, 429, 500 |
-| `OrderClient.getDeliverySchedules` | `/purchase-orders/{id}/items/{itemNumber}/delivery-schedules` | GET | `purchaseOrderId`, `itemNumber` | Lista paginada de entregas programadas | 401, 404, 429, 500 |
-| `InvoiceClient.list` | `/purchase-invoices` | GET | Filtros: `companyId`, `supplierId`, `documentId`, `series`, `number`, `startDate`, `endDate`, `limit`, `offset` | Lista paginada de notas fiscais | 401, 429, 500 |
-| `InvoiceClient.getById` | `/purchase-invoices/{sequentialNumber}` | GET | `sequentialNumber` | Detalhe da nota fiscal | 401, 404, 429, 500 |
-| `InvoiceClient.getItems` | `/purchase-invoices/{sequentialNumber}/items` | GET | `sequentialNumber` | Lista de itens da nota | 401, 404, 429, 500 |
-| `InvoiceClient.getDeliveriesAttended` | `/purchase-invoices/deliveries-attended` | GET | Filtros: `billId`, `sequentialNumber`, `purchaseOrderId`, `invoiceItemNumber`, `purchaseOrderItemNumber`, `limit`, `offset` | Lista de entregas atendidas | 401, 429, 500 |
-| `DeliveryRequirementClient.get` | `/purchase-requests/{id}/items/{itemNumber}/delivery-requirements` | GET | `purchaseRequestId`, `purchaseRequestItemNumber` | Requisitos de entrega | 401, 404, 429, 500 |
+| Serviço                               | Endpoint Sienge                                                    | Método | Entrada                                                                                                                               | Saída                                                     | Erros              |
+| ------------------------------------- | ------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| `QuotationClient.listNegotiations`    | `/purchase-quotations/all/negotiations`                            | GET    | Filtros: `quotationNumber`, `supplierId`, `buyerId`, `startDate`, `endDate`, `authorized`, `status`, `consistency`, `limit`, `offset` | Lista paginada de cotações com fornecedores e negociações | 401, 429, 500      |
+| `CreditorClient.getById`              | `/creditors/{creditorId}`                                          | GET    | `creditorId`                                                                                                                          | Dados cadastrais com `contacts[].email`                   | 401, 404, 429, 500 |
+| `CreditorClient.list`                 | `/creditors`                                                       | GET    | Filtros: `cpf`, `cnpj`, `creditor`, `limit`, `offset`                                                                                 | Lista paginada de credores                                | 401, 429, 500      |
+| `OrderClient.list`                    | `/purchase-orders`                                                 | GET    | Filtros: `startDate`, `endDate`, `status`, `authorized`, `supplierId`, `buildingId`, `buyerId`, `consistency`, `limit`, `offset`      | Lista paginada de pedidos                                 | 401, 429, 500      |
+| `OrderClient.getById`                 | `/purchase-orders/{id}`                                            | GET    | `purchaseOrderId`                                                                                                                     | Detalhe do pedido                                         | 401, 404, 429, 500 |
+| `OrderClient.getItems`                | `/purchase-orders/{id}/items`                                      | GET    | `purchaseOrderId`                                                                                                                     | Lista de itens do pedido                                  | 401, 404, 429, 500 |
+| `OrderClient.getDeliverySchedules`    | `/purchase-orders/{id}/items/{itemNumber}/delivery-schedules`      | GET    | `purchaseOrderId`, `itemNumber`                                                                                                       | Lista paginada de entregas programadas                    | 401, 404, 429, 500 |
+| `InvoiceClient.list`                  | `/purchase-invoices`                                               | GET    | Filtros: `companyId`, `supplierId`, `documentId`, `series`, `number`, `startDate`, `endDate`, `limit`, `offset`                       | Lista paginada de notas fiscais                           | 401, 429, 500      |
+| `InvoiceClient.getById`               | `/purchase-invoices/{sequentialNumber}`                            | GET    | `sequentialNumber`                                                                                                                    | Detalhe da nota fiscal                                    | 401, 404, 429, 500 |
+| `InvoiceClient.getItems`              | `/purchase-invoices/{sequentialNumber}/items`                      | GET    | `sequentialNumber`                                                                                                                    | Lista de itens da nota                                    | 401, 404, 429, 500 |
+| `InvoiceClient.getDeliveriesAttended` | `/purchase-invoices/deliveries-attended`                           | GET    | Filtros: `billId`, `sequentialNumber`, `purchaseOrderId`, `invoiceItemNumber`, `purchaseOrderItemNumber`, `limit`, `offset`           | Lista de entregas atendidas                               | 401, 429, 500      |
+| `DeliveryRequirementClient.get`       | `/purchase-requests/{id}/items/{itemNumber}/delivery-requirements` | GET    | `purchaseRequestId`, `purchaseRequestItemNumber`                                                                                      | Requisitos de entrega                                     | 401, 404, 429, 500 |
 
 ### 7.2 Clientes Sienge (Escrita)
 
-| Serviço | Endpoint Sienge | Método | Entrada | Saída | Erros | Perfis |
-|---------|----------------|--------|---------|-------|-------|--------|
-| `NegotiationClient.create` | `/purchase-quotations/{id}/suppliers/{supplierId}/negotiations` | POST | Body conforme §9.3.7 | Negociação criada | 400, 401, 404, 409, 429, 500 | Sistema (após aprovação `Compras`) |
-| `NegotiationClient.update` | `.../negotiations/{negotiationNumber}` | PUT | Body: `supplierAnswerDate`, `validity`, `seller`, `discount`, `freightType`, `freightTypeForGeneratedPurchaseOrder`, `freightPrice`, `valueOtherExpenses`, `applyIpiFreight`, `internalNotes`, `supplierNotes`, `paymentTerms` | Negociação atualizada | 400, 401, 404, 429, 500 | Sistema |
-| `NegotiationClient.updateItem` | `.../negotiations/{num}/items/{itemNum}` | PUT | Body conforme §9.3.7 (itens) | Item atualizado | 400, 401, 404, 429, 500 | Sistema |
-| `NegotiationClient.authorize` | `.../negotiations/latest/authorize` | PATCH | Nenhum body | Autorização confirmada | 400, 401, 404, 429, 500 | Sistema (somente após aprovação `Compras`) |
+| Serviço                        | Endpoint Sienge                                                 | Método | Entrada                                                                                                                                                                                                                        | Saída                  | Erros                        | Perfis                                     |
+| ------------------------------ | --------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ---------------------------- | ------------------------------------------ |
+| `NegotiationClient.create`     | `/purchase-quotations/{id}/suppliers/{supplierId}/negotiations` | POST   | Body conforme §9.3.7                                                                                                                                                                                                           | Negociação criada      | 400, 401, 404, 409, 429, 500 | Sistema (após aprovação `Compras`)         |
+| `NegotiationClient.update`     | `.../negotiations/{negotiationNumber}`                          | PUT    | Body: `supplierAnswerDate`, `validity`, `seller`, `discount`, `freightType`, `freightTypeForGeneratedPurchaseOrder`, `freightPrice`, `valueOtherExpenses`, `applyIpiFreight`, `internalNotes`, `supplierNotes`, `paymentTerms` | Negociação atualizada  | 400, 401, 404, 429, 500      | Sistema                                    |
+| `NegotiationClient.updateItem` | `.../negotiations/{num}/items/{itemNum}`                        | PUT    | Body conforme §9.3.7 (itens)                                                                                                                                                                                                   | Item atualizado        | 400, 401, 404, 429, 500      | Sistema                                    |
+| `NegotiationClient.authorize`  | `.../negotiations/latest/authorize`                             | PATCH  | Nenhum body                                                                                                                                                                                                                    | Autorização confirmada | 400, 401, 404, 429, 500      | Sistema (somente após aprovação `Compras`) |
 
 ### 7.3 Serviços internos
 
-| Serviço | Rota | Método | Entrada | Saída | Perfis |
-|---------|------|--------|---------|-------|--------|
-| `IntegrationService.syncQuotations` | Interno (worker) | — | Filtros opcionais | Resultado da sincronização | Sistema |
-| `IntegrationService.syncOrders` | Interno (worker) | — | Filtros opcionais | Resultado da sincronização | Sistema |
-| `IntegrationService.syncDeliveries` | Interno (worker) | — | `purchaseOrderId` | Resultado da sincronização | Sistema |
-| `IntegrationService.syncCreditor` | Interno (worker) | — | `creditorId` | Dados do fornecedor | Sistema |
-| `IntegrationService.writeNegotiation` | Interno (API) | — | Dados da resposta aprovada | Resultado da escrita | `Compras` (via aprovação) |
-| `IntegrationService.retryFailed` | Interno (worker) | — | Nenhuma | Eventos reprocessados | Sistema |
-| `WebhookReceiver.handle` | `/webhooks/sienge` | POST | Payload do webhook | `200 OK` | Externo (Sienge) |
-| `IntegrationStatus.list` | `/api/integration/events` | GET | Filtros: `status`, `event_type`, `date_range` | Lista paginada de eventos | `Compras`, `Administrador` |
-| `IntegrationStatus.retry` | `/api/integration/events/{id}/retry` | POST | `event_id` | Evento reagendado | `Compras` |
+| Serviço                               | Rota                                 | Método | Entrada                                       | Saída                      | Perfis                     |
+| ------------------------------------- | ------------------------------------ | ------ | --------------------------------------------- | -------------------------- | -------------------------- |
+| `IntegrationService.syncQuotations`   | Interno (worker)                     | —      | Filtros opcionais                             | Resultado da sincronização | Sistema                    |
+| `IntegrationService.syncOrders`       | Interno (worker)                     | —      | Filtros opcionais                             | Resultado da sincronização | Sistema                    |
+| `IntegrationService.syncDeliveries`   | Interno (worker)                     | —      | `purchaseOrderId`                             | Resultado da sincronização | Sistema                    |
+| `IntegrationService.syncCreditor`     | Interno (worker)                     | —      | `creditorId`                                  | Dados do fornecedor        | Sistema                    |
+| `IntegrationService.writeNegotiation` | Interno (API)                        | —      | Dados da resposta aprovada                    | Resultado da escrita       | `Compras` (via aprovação)  |
+| `IntegrationService.retryFailed`      | Interno (worker)                     | —      | Nenhuma                                       | Eventos reprocessados      | Sistema                    |
+| `WebhookReceiver.handle`              | `/webhooks/sienge`                   | POST   | Payload do webhook                            | `200 OK`                   | Externo (Sienge)           |
+| `IntegrationStatus.list`              | `/api/integration/events`            | GET    | Filtros: `status`, `event_type`, `date_range` | Lista paginada de eventos  | `Compras`, `Administrador` |
+| `IntegrationStatus.retry`             | `/api/integration/events/{id}/retry` | POST   | `event_id`                                    | Evento reagendado          | `Compras`                  |
 
 ## 8. Interface do usuário
 
@@ -308,72 +308,78 @@ Este módulo é primariamente backend/infraestrutura. As interfaces de monitoram
 ### 9.1 Endpoints Sienge utilizados
 
 **Leitura de cotação:**
-- `GET /purchase-quotations/all/negotiations` *(§9.3.1)*
+
+- `GET /purchase-quotations/all/negotiations` _(§9.3.1)_
 
 **Leitura cadastral do fornecedor:**
-- `GET /creditors/{creditorId}` *(§9.3.2)*
-- `GET /creditors` *(§9.3.2)*
+
+- `GET /creditors/{creditorId}` _(§9.3.2)_
+- `GET /creditors` _(§9.3.2)_
 
 **Leitura de pedidos:**
-- `GET /purchase-orders` *(§9.3.3)*
-- `GET /purchase-orders/{purchaseOrderId}` *(§9.3.3)*
-- `GET /purchase-orders/{purchaseOrderId}/items` *(§9.3.3)*
-- `GET /purchase-orders/{purchaseOrderId}/items/{itemNumber}/delivery-schedules` *(§9.3.4)*
+
+- `GET /purchase-orders` _(§9.3.3)_
+- `GET /purchase-orders/{purchaseOrderId}` _(§9.3.3)_
+- `GET /purchase-orders/{purchaseOrderId}/items` _(§9.3.3)_
+- `GET /purchase-orders/{purchaseOrderId}/items/{itemNumber}/delivery-schedules` _(§9.3.4)_
 
 **Leitura de notas e entrega:**
-- `GET /purchase-invoices` *(§9.3.5)*
-- `GET /purchase-invoices/{sequentialNumber}` *(§9.3.5)*
-- `GET /purchase-invoices/{sequentialNumber}/items` *(§9.3.5)*
-- `GET /purchase-invoices/deliveries-attended` *(§9.3.5)*
+
+- `GET /purchase-invoices` _(§9.3.5)_
+- `GET /purchase-invoices/{sequentialNumber}` _(§9.3.5)_
+- `GET /purchase-invoices/{sequentialNumber}/items` _(§9.3.5)_
+- `GET /purchase-invoices/deliveries-attended` _(§9.3.5)_
 
 **Leitura auxiliar:**
-- `GET /purchase-requests/{id}/items/{itemNumber}/delivery-requirements` *(§9.3.6)*
+
+- `GET /purchase-requests/{id}/items/{itemNumber}/delivery-requirements` _(§9.3.6)_
 
 **Escrita de cotação:**
-- `POST /purchase-quotations/{id}/suppliers/{supplierId}/negotiations` *(§9.3.7)*
-- `PUT /purchase-quotations/{id}/suppliers/{supplierId}/negotiations/{negotiationNumber}` *(§9.3.7)*
-- `PUT .../negotiations/{negotiationNumber}/items/{quotationItemNumber}` *(§9.3.7)*
-- `PATCH .../negotiations/latest/authorize` *(§9.3.7)*
+
+- `POST /purchase-quotations/{id}/suppliers/{supplierId}/negotiations` _(§9.3.7)_
+- `PUT /purchase-quotations/{id}/suppliers/{supplierId}/negotiations/{negotiationNumber}` _(§9.3.7)_
+- `PUT .../negotiations/{negotiationNumber}/items/{quotationItemNumber}` _(§9.3.7)_
+- `PATCH .../negotiations/latest/authorize` _(§9.3.7)_
 
 ### 9.2 Webhooks consumidos
 
-| Webhook | Uso | Ação |
-|---------|-----|------|
-| `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` | Vínculo principal pedido-cotação | Criar vínculo + reconsultar pedido |
-| `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED` | Status de autorização da negociação | Reconsultar negociação |
-| `PURCHASE_ORDER_AUTHORIZATION_CHANGED` | Mudança de autorização do pedido | Gatilho de reconsulta |
-| `PURCHASE_ORDER_ITEM_MODIFIED` | Modificação de item do pedido | Reconsultar itens |
-| `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED` | Previsão financeira atualizada | Gatilho de reconsulta |
+| Webhook                                                | Uso                                 | Ação                               |
+| ------------------------------------------------------ | ----------------------------------- | ---------------------------------- |
+| `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`            | Vínculo principal pedido-cotação    | Criar vínculo + reconsultar pedido |
+| `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED` | Status de autorização da negociação | Reconsultar negociação             |
+| `PURCHASE_ORDER_AUTHORIZATION_CHANGED`                 | Mudança de autorização do pedido    | Gatilho de reconsulta              |
+| `PURCHASE_ORDER_ITEM_MODIFIED`                         | Modificação de item do pedido       | Reconsultar itens                  |
+| `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED`            | Previsão financeira atualizada      | Gatilho de reconsulta              |
 
 ### 9.3 Regras de reconciliação
 
-- Webhook como regra principal; reconciliação por API como fallback *(§9.8)*.
-- A ausência permanente do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` é bloqueio de homologação *(§9.8)*.
-- Se reconciliação divergir do vínculo do webhook, manter vínculo e notificar `Compras` *(§9.8)*.
+- Webhook como regra principal; reconciliação por API como fallback _(§9.8)_.
+- A ausência permanente do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` é bloqueio de homologação _(§9.8)_.
+- Se reconciliação divergir do vínculo do webhook, manter vínculo e notificar `Compras` _(§9.8)_.
 
 ### 9.4 Tratamento de falhas
 
-- Falha genérica: retry automático após 24h *(§12.2)*.
-- Escrita de cotação: até 2 reenvios automáticos com intervalo de 24h *(§12.2)*.
-- Após esgotar retries: notificar `Compras` *(§12.2)*.
-- Reprocessamento manual por `Compras` sem limite na V1.0 *(§12.2)*.
+- Falha genérica: retry automático após 24h _(§12.2)_.
+- Escrita de cotação: até 2 reenvios automáticos com intervalo de 24h _(§12.2)_.
+- Após esgotar retries: notificar `Compras` _(§12.2)_.
+- Reprocessamento manual por `Compras` sem limite na V1.0 _(§12.2)_.
 
 ## 10. Auditoria e rastreabilidade
 
 Eventos auditáveis gerados por este módulo conforme §12.6:
 
-| Evento | Descrição |
-|--------|-----------|
-| `integration_success` | Integração com Sienge concluída com sucesso |
-| `integration_failure` | Falha de integração com o Sienge |
-| `integration_retry` | Reprocessamento automático ou manual de integração |
-| `webhook_received` | Webhook recebido do Sienge |
-| `webhook_processed` | Webhook processado com sucesso |
-| `webhook_failed` | Falha no processamento de webhook |
-| `negotiation_written` | Resposta de cotação enviada ao Sienge |
-| `negotiation_authorized` | Negociação autorizada no Sienge |
-| `supplier_invalid_map` | Fornecedor detectado como inválido no mapa de cotação |
-| `reconciliation_divergence` | Divergência detectada entre webhook e leitura API |
+| Evento                      | Descrição                                             |
+| --------------------------- | ----------------------------------------------------- |
+| `integration_success`       | Integração com Sienge concluída com sucesso           |
+| `integration_failure`       | Falha de integração com o Sienge                      |
+| `integration_retry`         | Reprocessamento automático ou manual de integração    |
+| `webhook_received`          | Webhook recebido do Sienge                            |
+| `webhook_processed`         | Webhook processado com sucesso                        |
+| `webhook_failed`            | Falha no processamento de webhook                     |
+| `negotiation_written`       | Resposta de cotação enviada ao Sienge                 |
+| `negotiation_authorized`    | Negociação autorizada no Sienge                       |
+| `supplier_invalid_map`      | Fornecedor detectado como inválido no mapa de cotação |
+| `reconciliation_divergence` | Divergência detectada entre webhook e leitura API     |
 
 Cada evento registra: data/hora, tipo, usuário/origem, entidade afetada, fornecedor (quando aplicável), resumo da ação.
 
@@ -430,11 +436,11 @@ Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo:
 
 ## 14. Riscos específicos do módulo
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|--------------|---------|-----------|
-| Divergência entre contrato público e comportamento real da API | Alta | Alto | Homologar com dados reais; implementar parsers tolerantes; registrar payloads completos para diagnóstico |
-| Webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` indisponível no ambiente do cliente | Média | Alto | Implementar reconciliação por API como fallback; tratar ausência como bloqueio de homologação |
-| Rate limit insuficiente para o volume operacional do cliente | Média | Médio | Implementar fila com controle de taxa; priorizar operações críticas; monitorar uso |
-| Inconsistência de tipagem em campos como `openQuantity` | Média | Baixo | Parser tolerante; validação em homologação; fallback para tipo string |
-| Falhas intermitentes da API do Sienge | Alta | Médio | Retry automático com backoff; fila de reprocessamento; monitoramento de health check |
-| Mudança no contrato da API do Sienge sem aviso | Baixa | Alto | Versionamento dos clientes; alertas de contrato quebrado; logs detalhados de payload |
+| Risco                                                                                   | Probabilidade | Impacto | Mitigação                                                                                                |
+| --------------------------------------------------------------------------------------- | ------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| Divergência entre contrato público e comportamento real da API                          | Alta          | Alto    | Homologar com dados reais; implementar parsers tolerantes; registrar payloads completos para diagnóstico |
+| Webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION` indisponível no ambiente do cliente | Média         | Alto    | Implementar reconciliação por API como fallback; tratar ausência como bloqueio de homologação            |
+| Rate limit insuficiente para o volume operacional do cliente                            | Média         | Médio   | Implementar fila com controle de taxa; priorizar operações críticas; monitorar uso                       |
+| Inconsistência de tipagem em campos como `openQuantity`                                 | Média         | Baixo   | Parser tolerante; validação em homologação; fallback para tipo string                                    |
+| Falhas intermitentes da API do Sienge                                                   | Alta          | Médio   | Retry automático com backoff; fila de reprocessamento; monitoramento de health check                     |
+| Mudança no contrato da API do Sienge sem aviso                                          | Baixa         | Alto    | Versionamento dos clientes; alertas de contrato quebrado; logs detalhados de payload                     |

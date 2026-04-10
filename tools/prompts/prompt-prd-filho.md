@@ -20,17 +20,17 @@ Se qualquer um desses arquivos não puder ser lido, interrompa e informe antes d
 
 Cada invocação deste prompt gera **um único PRD filho**. Informe o módulo desejado substituindo `{{MODULO}}` pelo nome do módulo:
 
-| # | Módulo | Seções do PRDGlobal | Dependências diretas |
-|---|--------|-------------------|---------------------|
-| 1 | Autenticação e Perfis | §3, §11 | Nenhuma (módulo fundacional) |
-| 2 | Fluxo de Cotação | §4 | 1 (Auth), 7 (Integração Sienge) |
-| 3 | Notificações de Cotação | §5 | 1 (Auth), 2 (Cotação) |
-| 4 | Follow-up Logístico | §6 | 1 (Auth), 5 (Entrega), 7 (Integração Sienge) |
-| 5 | Entrega, Divergência e Status de Pedido | §7 | 1 (Auth), 7 (Integração Sienge) |
-| 6 | Avaria e Ação Corretiva | §8 | 1 (Auth), 5 (Entrega) |
-| 7 | Integração com o Sienge | §9, §10 | Nenhuma (módulo fundacional de integração) |
-| 8 | Dashboard e Indicadores | §13 | 2 (Cotação), 4 (Follow-up), 5 (Entrega), 6 (Avaria) |
-| 9 | Backoffice, Auditoria e Operação | §12, §14 | Todos os anteriores |
+| #   | Módulo                                  | Seções do PRDGlobal | Dependências diretas                                |
+| --- | --------------------------------------- | ------------------- | --------------------------------------------------- |
+| 1   | Autenticação e Perfis                   | §3, §11             | Nenhuma (módulo fundacional)                        |
+| 2   | Fluxo de Cotação                        | §4                  | 1 (Auth), 7 (Integração Sienge)                     |
+| 3   | Notificações de Cotação                 | §5                  | 1 (Auth), 2 (Cotação)                               |
+| 4   | Follow-up Logístico                     | §6                  | 1 (Auth), 5 (Entrega), 7 (Integração Sienge)        |
+| 5   | Entrega, Divergência e Status de Pedido | §7                  | 1 (Auth), 7 (Integração Sienge)                     |
+| 6   | Avaria e Ação Corretiva                 | §8                  | 1 (Auth), 5 (Entrega)                               |
+| 7   | Integração com o Sienge                 | §9, §10             | Nenhuma (módulo fundacional de integração)          |
+| 8   | Dashboard e Indicadores                 | §13                 | 2 (Cotação), 4 (Follow-up), 5 (Entrega), 6 (Avaria) |
+| 9   | Backoffice, Auditoria e Operação        | §12, §14            | Todos os anteriores                                 |
 
 ---
 
@@ -90,12 +90,15 @@ Descrever em 2–3 parágrafos o que este módulo resolve, por que existe e qual
 ## 2. Escopo funcional
 
 ### 2.1 Incluso neste PRD
+
 Lista objetiva do que este PRD filho cobre.
 
 ### 2.2 Excluído deste PRD
+
 Lista objetiva do que NÃO está neste PRD, referenciando o módulo que cobre (se aplicável).
 
 ### 2.3 Fora de escopo da V1.0
+
 Itens que o PRDGlobal exclui explicitamente para este módulo na V1.0.
 
 ## 3. Perfis envolvidos
@@ -105,6 +108,7 @@ Tabela com os perfis que interagem com este módulo, listando permissões e rest
 ## 4. Entidades e modelagem
 
 Para cada entidade principal do módulo:
+
 - Nome da entidade
 - Campos mínimos (nome, tipo, obrigatoriedade, descrição)
 - Relacionamentos
@@ -116,11 +120,13 @@ Para cada entidade principal do módulo:
 Lista numerada das regras operacionais que este módulo implementa, com referência direta à seção do PRDGlobal.
 
 Formato:
-- **RN-XX:** [descrição da regra] *(PRDGlobal §X.Y)*
+
+- **RN-XX:** [descrição da regra] _(PRDGlobal §X.Y)_
 
 ## 6. Fluxos operacionais
 
 Para cada fluxo principal:
+
 - Descrição textual passo a passo
 - Diagrama de estados ou sequência (quando aplicável)
 - Exceções e tratamento de erro
@@ -128,6 +134,7 @@ Para cada fluxo principal:
 ## 7. Contratos de API / Serviços
 
 Para cada endpoint ou serviço interno:
+
 - Método e rota (ou nome do serviço)
 - Entrada (campos, tipos, validações)
 - Saída (campos, tipos)
@@ -137,6 +144,7 @@ Para cada endpoint ou serviço interno:
 ## 8. Interface do usuário
 
 Para cada tela ou componente:
+
 - Nome e propósito
 - Campos exibidos
 - Ações disponíveis por perfil
@@ -145,6 +153,7 @@ Para cada tela ou componente:
 ## 9. Integrações e dependências externas
 
 Se o módulo interage com o Sienge ou outros módulos:
+
 - Endpoints utilizados (referência ao PRDGlobal §9)
 - Webhooks consumidos
 - Regras de reconciliação
@@ -161,6 +170,7 @@ Itens da §17 do PRDGlobal que se aplicam a este módulo.
 ## 12. Critérios de aceite
 
 Lista verificável de condições que devem ser verdadeiras para considerar o módulo implementado:
+
 - [ ] Critério 1
 - [ ] Critério 2
 - [ ] ...

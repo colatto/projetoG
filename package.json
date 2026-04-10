@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "db:login": "pnpm dlx supabase login",
@@ -10,5 +13,10 @@
     "db:push": "pnpm dlx supabase db push",
     "db:pull": "pnpm dlx supabase db pull",
     "db:types": "pnpm dlx supabase gen types typescript --project-id lkfevrdhofxlmwjfhnru > packages/shared/src/database.types.ts"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1"
   }
 }

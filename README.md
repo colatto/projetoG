@@ -58,6 +58,12 @@ Base inicial do projeto de automacao de cotacao, follow-up logistico e integraca
 - **integracoes e dominio:** `packages/domain` e `packages/integration-sienge`;
 - **processamento assincrono:** Node.js + TypeScript standalone em `workers/`, filas e scheduling via pg-boss sobre PostgreSQL (ADR-0004).
 
+## Qualidade de codigo
+
+- **formatacao:** Prettier unificado na raiz do workspace;
+- **lint:** ESLint 9 com Flat Config por workspace, executado no contexto de cada pacote/app;
+- **pre-commit:** Husky + lint-staged na raiz para formatar arquivos staged e encaminhar o lint para o workspace correspondente.
+
 ## Proximos passos
 
 1. ~~Escolher o gerenciador do workspace~~ **pnpm** (ADR-0003).
@@ -72,9 +78,9 @@ Base inicial do projeto de automacao de cotacao, follow-up logistico e integraca
 
 ## Decisoes tomadas
 
-| # | Decisao | Escolha | ADR |
-|---|---|---|---|
-| 1 | Estrutura do repositorio | Monorepo com separacao explicita por camada | ADR-0001 |
-| 2 | Framework do backend | Fastify v5 (TypeScript, servidor standalone) | ADR-0002 |
-| 3 | Gerenciador de workspace | pnpm | ADR-0003 |
-| 4 | Runtime e framework de workers | Node.js + TypeScript standalone, pg-boss | ADR-0004 |
+| #   | Decisao                        | Escolha                                      | ADR      |
+| --- | ------------------------------ | -------------------------------------------- | -------- |
+| 1   | Estrutura do repositorio       | Monorepo com separacao explicita por camada  | ADR-0001 |
+| 2   | Framework do backend           | Fastify v5 (TypeScript, servidor standalone) | ADR-0002 |
+| 3   | Gerenciador de workspace       | pnpm                                         | ADR-0003 |
+| 4   | Runtime e framework de workers | Node.js + TypeScript standalone, pg-boss     | ADR-0004 |

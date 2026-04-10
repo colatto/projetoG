@@ -107,13 +107,15 @@ Antes de criar codigo novo, verificar se a mudanca impacta:
 ## Convencoes de codigo <!-- atualizado -->
 
 - Linguagem: TypeScript estrito em todos os modulos (`strict: true`).
+- Formatação: Prettier unificado na raiz do workspace, executado via Husky e lint-staged no pre-commit.
+- Linter: ESLint 9 com Flat Config por workspace, sempre executado no contexto do pacote/app correspondente; integrar com `eslint-config-prettier` quando aplicavel para evitar conflitos.
 - Nomenclatura de arquivos: kebab-case para arquivos e diretorios; PascalCase para componentes React e classes.
 - Nomenclatura de variaveis e funcoes: camelCase.
 - Nomenclatura de tipos e interfaces: PascalCase com prefixo `I` opcional para interfaces.
 - Imports: absolutos com alias de modulo quando o monorepo estiver configurado; relativos apenas dentro do mesmo modulo.
 - Idioma do codigo: ingles para identificadores, comentarios e mensagens tecnicas; portugues para mensagens de usuario na UI.
 - Commit: convencional (feat, fix, chore, docs, refactor, test).
-- Libs preferidas: [VERIFICAR] — confirmar na inicializacao do monorepo.
+- CI/CD: Pipeline ativa via GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Variaveis de ambiente esperadas <!-- atualizado -->
 
@@ -149,37 +151,38 @@ As variaveis abaixo sao esperadas com base na stack definida. Os valores exatos 
 - Nome: `dbGRF`
 - Project ID: `lkfevrdhofxlmwjfhnru`
 - Regiao: `sa-east-1` (South America — Sao Paulo)
-- Estado: ativo, banco PostgreSQL 17 vazio.
+- Estado: ativo, com o schema relacional e migrações base processadas.
 - Referencia completa: `docs/decisions/relatorio-reconhecimento.md`
 
 ## Contexto de testes <!-- atualizado -->
 
-- **Framework:** Vitest — para frontend (`apps/web`) e API (`apps/api`) via `fastify.inject()`.
+- **Framework:** Vitest — para frontend (`apps/web` com `@testing-library/react` e `jsdom`) e backend (`apps/api` via `fastify.inject()`) e workers.
 - Localizacao: arquivos `.test.ts` ou `.spec.ts` co-localizados com o codigo de producao, ou em subpastas `__tests__/`.
-- Padrao: testes unitarios para `packages/domain`; testes de integracao para `apps/api`; testes de componente para `apps/web`.
-- Cobertura minima: [VERIFICAR] — definir na inicializacao.
+- Padrao: testes unitarios para `packages/domain`; testes de integracao para `apps/api`; testes de componente/logica para `apps/web`.
+- Flags: Subpacotes vazios ignoram a falha usando a flag `--passWithNoTests`.
 - Comando: `pnpm -r run test`
 
 ## Comandos essenciais <!-- atualizado -->
 
 Os comandos abaixo assumem os pacotes `@projetog/` instalados via workspace (ADR-0003):
 
-| Acao | Comando |
-|---|---|
-| Instalar dependencias | `pnpm install` |
-| Iniciar frontend (dev) | `pnpm --filter @projetog/web dev` |
-| Iniciar API (dev) | `pnpm --filter @projetog/api dev` |
-| Iniciar workers (dev) | `pnpm --filter @projetog/workers dev` |
-| Build frontend | `pnpm --filter @projetog/web build` |
-| Build API | `pnpm --filter @projetog/api build` |
-| Build workers | `pnpm --filter @projetog/workers build` |
-| Testes (todos os modulos) | `pnpm -r run test` |
-| Lint (todos os modulos) | `pnpm -r run lint` |
-| Autenticar Supabase | `pnpm run db:login` |
-| Ligar Supabase | `pnpm run db:link` |
-| Migracoes (Supabase) | `pnpm run db:push` |
-| Deploy frontend | Vercel via CI/CD [VERIFICAR] |
+| Acao                      | Comando                                   |
+| ------------------------- | ----------------------------------------- |
+| Instalar dependencias     | `pnpm install`                            |
+| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`         |
+| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`         |
+| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`     |
+| Build frontend            | `pnpm --filter @projetog/web build`       |
+| Build API                 | `pnpm --filter @projetog/api build`       |
+| Build workers             | `pnpm --filter @projetog/workers build`   |
+| Testes (todos os modulos) | `pnpm -r run test`                        |
+| Lint (todos os modulos)   | `pnpm -r run lint`                        |
+| Format (todos os modulos) | `pnpm run format`                         |
+| Autenticar Supabase       | `pnpm run db:login`                       |
+| Ligar Supabase            | `pnpm run db:link`                        |
+| Migracoes (Supabase)      | `pnpm run db:push`                        |
+| Deploy frontend           | Vercel via CI/CD [VERIFICAR]              |
 | Adicionar dep a um modulo | `npx pnpm --filter <modulo> add <pacote>` |
-| Adicionar devDep global | `npx pnpm add -D <pacote> -w` |
+| Adicionar devDep global   | `npx pnpm add -D <pacote> -w`             |
 
 > As estruturas base dos diretórios já foram inicializadas. Consultar `docs/runbooks/setup.md` para as etapas faltantes.

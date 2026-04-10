@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "lint": "eslint ."
   },
@@ -20,10 +20,14 @@
     "pg-boss": "^9.0.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^20.11.30",
     "@types/pg": "^8.11.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
     "tsx": "^4.7.1",
     "typescript": "^5.4.3",
+    "typescript-eslint": "^8.58.1",
     "vitest": "^1.4.0"
   }
 }
