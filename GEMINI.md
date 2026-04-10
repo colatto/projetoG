@@ -40,14 +40,14 @@ Este repositorio ja teve o seu Workspace inicializado, mas os dominios continuam
 - O monorepo foi inicializado com `pnpm`.
 - Existe `package.json` raiz e manifestos em cada submódulo.
 - Existe `pnpm-workspace.yaml` criado e interligando os projetos.
-- O frontend (`apps/web`) possui o scaffold inicial do framework (Vite + React + TypeScript), porem sem implementacao de negocio.
+- O frontend (`apps/web`) possui o scaffold completo de React/Vite com roteamento, design system (Vanilla CSS) e o módulo de Autenticação/Backoffice implementado. Módulos de domínio operacionais (como cotações) ainda não estão construídos.
 - O backend (`apps/api`) possui o scaffold inicial do framework (Fastify v5 + Zod + Vitest), configurado como ECMAScript Module e pronto para orquestracao.
 - O modulo de processamento assincrono (`workers/`) possui o scaffold inicial (Node.js + pg-boss + TypeScript), com os handlers registrados, porem sem regras de negocio de polling/reconciliacao implementadas.
-- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional base e os gatilhos para a V1.0 foram criados via migração inicial e a infraestrutura de Autenticação/Auditoria foi estabilizada através de migrações sequenciais (Sprint A do PRD-01 concluída).
+- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional base e os gatilhos para a V1.0 foram criados via migração inicial e a infraestrutura de Autenticação/Auditoria foi estabilizada através de migrações sequenciais.
 - Os tipos do Supabase (database.types.ts) estão gerados no pacote `packages/shared`.
-- Foram iniciadas as rotas definitivas de Autenticação e RBAC no backend (em `apps/api`) e a criação das entidades de Domínio correspondentes (User, AuditLog). Entretanto, ainda não existem seeds ou componentes completos de frontend (`apps/web`).
-
-Consequencia pratica:
+- Foram implementadas as rotas definitivas de Autenticação e Gestão de Usuários (CRUD administrativo) e RBAC no backend (`apps/api`), bem como a criação das entidades correspondentes no Domínio. Com as Sprints A e B completas, a Fase 3 do PRD-01 (Backend) está concluída.
+- Foi implementado o pacote de Autenticação e Gestão de Usuários no frontend (`apps/web`). A **Sprint C** foi concluída com as interfaces, rotas em react-router, context API e wrappers Axios, utilizando Vanilla CSS integrado com a Identidade Visual do projeto (Fases 4 e 5). O ecossistema auth + contas administrativas está operante.
+  Consequencia pratica:
 
 - nao assumir que algo ja existe;
 - nao referenciar arquivos, comandos ou estruturas como se ja estivessem inicializados;

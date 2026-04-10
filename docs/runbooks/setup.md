@@ -42,7 +42,8 @@ Antes de iniciar o setup:
    - convencoes operacionais em `supabase/`.
 7. (CONCLUÍDO) Configurar lint, formatacao, testes e CI.
 8. (CONCLUÍDO) Modelar o banco relacional.
-9. (EM ANDAMENTO - Sprint A Concluída) Implementar autenticacao e RBAC.
+9. (CONCLUÍDO) Implementar autenticação, gestão CRUD de usuários e RBAC (Sprints A e B concluídas).
+   9.1 (CONCLUÍDO) Implementar Frontend Autenticação e Gestão React/Vite (Sprint C concluída).
 10. Configurar deploy principal do web na Vercel.
 11. Definir estrategia de deploy standalone para `apps/api` e `workers/`.
 12. Implementar integracao inicial com Sienge.

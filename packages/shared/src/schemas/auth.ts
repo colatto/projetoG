@@ -20,19 +20,3 @@ export const resetPasswordSchema = z.object({
 
 export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
 
-export const createUserSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  email: z.string().email('E-mail inválido'),
-  role: z.enum(['fornecedor', 'compras', 'administrador', 'visualizador_pedidos']),
-  supplier_id: z.number().int().positive().optional(),
-});
-
-export type CreateUserDto = z.infer<typeof createUserSchema>;
-
-export const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  status: z.enum(['pendente', 'ativo', 'bloqueado', 'removido']).optional(),
-});
-
-export type UpdateUserDto = z.infer<typeof updateUserSchema>;

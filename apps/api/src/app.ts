@@ -14,6 +14,7 @@ import healthRoute from './routes/health.js';
 import { supabasePlugin } from './plugins/supabase.js';
 import { authPlugin } from './plugins/auth.js';
 import { authRoutes } from './modules/auth/index.js';
+import { usersRoutes } from './modules/users/index.js';
 
 export function buildApp() {
   const app = Fastify({
@@ -62,6 +63,7 @@ export function buildApp() {
   // Routes
   app.register(healthRoute);
   app.register(authRoutes, { prefix: '/api/auth' });
+  app.register(usersRoutes, { prefix: '/api/users' });
 
   return app;
 }

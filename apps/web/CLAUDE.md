@@ -22,15 +22,19 @@ Implementar a SPA em React + TypeScript com Vite para:
 - em caso de duvida sobre branding, consultar `docs/identidade_visual.md`;
 - os PRDs de modulo que impactam este frontend estao em `docs/prd/` (prd-01 a prd-09). <!-- atualizado -->
 
-## Telas iniciais sugeridas
+## Telas construídas (Sprint C - Fase 4 e 5)
 
-- login;
-- primeiro acesso e redefinicao de senha;
+- login (`/login`);
+- primeiro acesso e redefinicao de senha (`/esqueci-senha`, `/reset-password`);
+- backoffice administrativo minimalista (`/admin/users`, `/admin/users/new`, `/admin/users/:id`).
+
+## Telas a construir
+
 - lista e detalhe de cotacoes;
 - lista e detalhe de pedidos;
 - aprovacao de cotacoes no backoffice;
 - monitoramento de integracoes;
-- dashboard operacional.
+- dashboard operacional (index).
 
 ## Contexto de testes <!-- atualizado -->
 

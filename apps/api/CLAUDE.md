@@ -4,17 +4,17 @@
 
 Implementar o backend dedicado em TypeScript para API interna, autenticacao, webhooks e orquestracao do sistema.
 
-## Responsabilidades
+## Responsabilidades (Status)
 
-- RBAC por perfil oficial;
-- autenticacao por e-mail e senha;
-- links seguros de primeiro acesso e redefinicao;
-- auditoria persistida;
+- RBAC por perfil oficial `(CONCLUÍDO)`;
+- autenticacao por e-mail e senha `(CONCLUÍDO)`;
+- links seguros de primeiro acesso e redefinicao `(CONCLUÍDO)`;
+- auditoria persistida `(CONCLUÍDO)`;
 - workflow de cotacao;
 - workflow de follow-up;
 - gestao de avarias;
 - reprocessamento de integracao;
-- coordenacao com Supabase para persistencia e autenticacao;
+- coordenacao com Supabase para persistencia e autenticacao `(CONCLUÍDO)`;
 - despacho de tarefas assincronas para workers e jobs fora do ciclo HTTP.
 
 ## Regras locais
