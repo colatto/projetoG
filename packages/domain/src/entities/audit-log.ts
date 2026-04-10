@@ -3,7 +3,7 @@ export interface AuditLogProps {
   eventType: string;
   actorId?: string;
   targetUserId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null | undefined>;
   createdAt?: Date;
 }
 
@@ -35,7 +35,7 @@ export class AuditLog {
   get targetUserId(): string | undefined {
     return this.props.targetUserId;
   }
-  get metadata(): Record<string, any> | undefined {
+  get metadata(): Record<string, string | number | boolean | null | undefined> | undefined {
     return this.props.metadata;
   }
   get createdAt(): Date | undefined {
