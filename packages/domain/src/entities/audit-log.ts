@@ -23,10 +23,22 @@ export class AuditLog {
     if (!props.eventType) throw new Error('AuditLog eventType is required');
   }
 
-  get id(): string { return this.props.id; }
-  get eventType(): string { return this.props.eventType; }
-  get actorId(): string | undefined { return this.props.actorId; }
-  get targetUserId(): string | undefined { return this.props.targetUserId; }
-  get metadata(): Record<string, any> | undefined { return this.props.metadata; }
-  get createdAt(): Date | undefined { return this.props.createdAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get eventType(): string {
+    return this.props.eventType;
+  }
+  get actorId(): string | undefined {
+    return this.props.actorId;
+  }
+  get targetUserId(): string | undefined {
+    return this.props.targetUserId;
+  }
+  get metadata(): Record<string, any> | undefined {
+    return this.props.metadata;
+  }
+  get createdAt(): Date | undefined {
+    return this.props.createdAt;
+  }
 }

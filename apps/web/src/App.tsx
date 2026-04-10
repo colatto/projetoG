@@ -20,7 +20,9 @@ import UserManage from './pages/admin/UserManage';
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
     <h1 style={{ fontSize: '32px' }}>Bem-vindo ao Portal GRF</h1>
-    <p style={{ color: 'var(--color-gray-500)', marginTop: '1rem' }}>Selecione uma opção no menu lateral.</p>
+    <p style={{ color: 'var(--color-gray-500)', marginTop: '1rem' }}>
+      Selecione uma opção no menu lateral.
+    </p>
   </div>
 );
 
@@ -36,16 +38,16 @@ function App() {
 
           {/* Rotas Protegidas Root / Compartilhadas */}
           <Route element={<ProtectedRoute />}>
-             <Route element={<AdminLayout />}>
-               <Route path="/" element={<PlaceholderDashboard />} />
+            <Route element={<AdminLayout />}>
+              <Route path="/" element={<PlaceholderDashboard />} />
 
-               {/* Apenas Administradores */}
-               <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR]} />}>
-                  <Route path="/admin/users" element={<UserList />} />
-                  <Route path="/admin/users/new" element={<UserCreate />} />
-                  <Route path="/admin/users/:id" element={<UserManage />} />
-               </Route>
-             </Route>
+              {/* Apenas Administradores */}
+              <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR]} />}>
+                <Route path="/admin/users" element={<UserList />} />
+                <Route path="/admin/users/new" element={<UserCreate />} />
+                <Route path="/admin/users/:id" element={<UserManage />} />
+              </Route>
+            </Route>
           </Route>
 
           {/* Catch All */}

@@ -18,13 +18,17 @@ export default function ResetPassword() {
     // Let's assume it routes here as ?token=XYZ or #access_token=XYZ
     const queryParams = new URLSearchParams(location.search);
     const hashParams = new URLSearchParams(location.hash.replace('#', '?'));
-    
+
     const extractedToken = queryParams.get('token') || hashParams.get('access_token') || '';
     setToken(extractedToken);
   }, [location]);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ResetPasswordDto>({
-    resolver: zodResolver(resetPasswordSchema)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordDto>({
+    resolver: zodResolver(resetPasswordSchema),
   });
 
   const onSubmit = async (data: ResetPasswordDto) => {
@@ -34,14 +38,22 @@ export default function ResetPassword() {
       const payload = { ...data, token: token || data.token };
 
       await api.post('/auth/reset-password', payload);
-      navigate('/login', { state: { message: 'Senha registrada com sucesso. Você já pode fazer login.' }});
+      navigate('/login', {
+        state: { message: 'Senha registrada com sucesso. Você já pode fazer login.' },
+      });
     } catch (error: any) {
-      setApiError(error.response?.data?.message || 'Link inválido ou expirado. Solicite um novo na tela de login.');
+      setApiError(
+        error.response?.data?.message ||
+          'Link inválido ou expirado. Solicite um novo na tela de login.',
+      );
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen w-full" style={{ background: 'var(--color-gray-50)' }}>
+    <div
+      className="flex justify-center items-center h-screen w-full"
+      style={{ background: 'var(--color-gray-50)' }}
+    >
       <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
         <div className="text-center mb-6">
           <h2>Nova Senha</h2>
@@ -51,7 +63,15 @@ export default function ResetPassword() {
         </div>
 
         {apiError && (
-          <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'var(--color-error)', color: 'white', fontSize: '0.875rem', textAlign: 'center' }}>
+          <div
+            className="mb-4 p-3 rounded"
+            style={{
+              backgroundColor: 'var(--color-error)',
+              color: 'white',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+            }}
+          >
             {apiError}
           </div>
         )}
@@ -59,18 +79,18 @@ export default function ResetPassword() {
         {/* If token couldn't be extracted, we let the user manually input it just in case */}
         <form onSubmit={handleSubmit(onSubmit)}>
           {!token && (
-             <Input 
-              label="Token de Segurança" 
-              type="text" 
+            <Input
+              label="Token de Segurança"
+              type="text"
               placeholder="Cole seu código ou token aqui"
               {...register('token')}
               error={errors.token?.message}
             />
           )}
 
-          <Input 
-            label="Digite a nova senha" 
-            type="password" 
+          <Input
+            label="Digite a nova senha"
+            type="password"
             placeholder="Mínimo 8 caracteres"
             {...register('new_password')}
             error={errors.new_password?.message}

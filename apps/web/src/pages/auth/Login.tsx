@@ -13,8 +13,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginDto>({
-    resolver: zodResolver(loginSchema)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginDto>({
+    resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginDto) => {
@@ -32,16 +36,45 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen w-full" style={{ background: 'var(--color-gray-50)' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem 2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)' }}>
+    <div
+      className="flex justify-center items-center h-screen w-full"
+      style={{ background: 'var(--color-gray-50)' }}
+    >
+      <div
+        className="card"
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          padding: '2.5rem 2rem',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+        }}
+      >
         <div className="text-center mb-6">
-          <img src={logoGrf} alt="GRF Incorporadora" style={{ height: '65px', margin: '0 auto', marginBottom: '1.5rem', display: 'block' }} />
-          <h2 style={{ color: 'var(--color-primary)', fontSize: '1.25rem', marginBottom: '0.25rem' }}>Acesso ao portal</h2>
-          <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Insira suas credenciais corporativas</p>
+          <img
+            src={logoGrf}
+            alt="GRF Incorporadora"
+            style={{ height: '65px', margin: '0 auto', marginBottom: '1.5rem', display: 'block' }}
+          />
+          <h2
+            style={{ color: 'var(--color-primary)', fontSize: '1.25rem', marginBottom: '0.25rem' }}
+          >
+            Acesso ao portal
+          </h2>
+          <p className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>
+            Insira suas credenciais corporativas
+          </p>
         </div>
 
         {apiError && (
-          <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'var(--color-error)', color: 'white', fontSize: '0.875rem', textAlign: 'center' }}>
+          <div
+            className="mb-4 p-3 rounded"
+            style={{
+              backgroundColor: 'var(--color-error)',
+              color: 'white',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+            }}
+          >
             {apiError}
           </div>
         )}
@@ -63,12 +96,28 @@ export default function Login() {
             error={errors.password?.message}
           />
 
-          <Button type="submit" className="w-full" isLoading={isSubmitting} style={{ backgroundColor: 'var(--color-primary-dark)', padding: '0.625rem', fontSize: '0.875rem' }}>
+          <Button
+            type="submit"
+            className="w-full"
+            isLoading={isSubmitting}
+            style={{
+              backgroundColor: 'var(--color-primary-dark)',
+              padding: '0.625rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Entrar
           </Button>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-            <Link to="/esqueci-senha" style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', textDecoration: 'none' }}>
+            <Link
+              to="/esqueci-senha"
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-gray-500)',
+                textDecoration: 'none',
+              }}
+            >
               Esqueci minha senha
             </Link>
           </div>

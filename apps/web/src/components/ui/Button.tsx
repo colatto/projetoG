@@ -23,17 +23,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'btn-secondary': variant === 'secondary',
             'btn-outline': variant === 'outline',
           },
-          className
+          className,
         )}
         {...props}
       >
-        {isLoading ? (
-          <span className="opacity-75 mr-2">Carregando...</span>
-        ) : null}
+        {isLoading ? <span className="opacity-75 mr-2">Carregando...</span> : null}
         {children}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = 'Button';

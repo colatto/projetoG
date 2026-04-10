@@ -19,4 +19,3 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
-

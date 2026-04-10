@@ -6,10 +6,7 @@ import { UserRole } from '@projetog/domain';
 export class AuthController {
   constructor(private auditService: AuditService) {}
 
-  public async login(
-    request: FastifyRequest<{ Body: LoginDto }>,
-    reply: FastifyReply
-  ) {
+  public async login(request: FastifyRequest<{ Body: LoginDto }>, reply: FastifyReply) {
     const { email, password } = request.body;
     const { supabase } = request.server;
 
@@ -38,19 +35,21 @@ export class AuthController {
     }
 
     if (profileErrorData.status !== 'ativo') {
-      return reply.code(403).send({ error: 'Forbidden', message: 'Acesso bloqueado, pendente ou removido' });
+      return reply
+        .code(403)
+        .send({ error: 'Forbidden', message: 'Acesso bloqueado, pendente ou removido' });
     }
 
     // Retorna um JWT nosso assinado pelo fastify, OU podemos retornar o do Supabase.
-    // O PRD diz que o Backend é orquestrador mas usa JWT verification. 
+    // O PRD diz que o Backend é orquestrador mas usa JWT verification.
     // Como o cliente fará chamadas à API, podemos usar o JWT do fastify contendo os claims necessários
-    const token = request.server.jwt.sign({ 
+    const token = request.server.jwt.sign({
       sub: data.user.id,
       email: data.user.email,
       role: profileErrorData.role as UserRole,
       status: profileErrorData.status,
       name: profileErrorData.name,
-      supplierId: profileErrorData.supplier_id
+      supplierId: profileErrorData.supplier_id,
     });
 
     await this.auditService.log({
@@ -66,11 +65,11 @@ export class AuthController {
         name: profileErrorData.name,
         role: profileErrorData.role,
         supplier_id: profileErrorData.supplier_id,
-        status: profileErrorData.status
+        status: profileErrorData.status,
       },
       session: {
         access_token: token,
-      }
+      },
     });
   }
 
@@ -78,7 +77,7 @@ export class AuthController {
     // Para simplificação de arquitetura da V1, faremos o logout revogando do Supabase
     // Opcional se estiver usando JWT do Fastify (frontend limpa do localStorage)
     const { supabase } = request.server;
-    
+
     // Tentamos fazer signOut no Supabase com o token de authorization do Request (caso enviado)
     // Na API estamos mandando auth global
     await this.auditService.log({
@@ -91,7 +90,7 @@ export class AuthController {
 
   public async forgotPassword(
     request: FastifyRequest<{ Body: ForgotPasswordDto }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ) {
     const { email } = request.body;
     const { supabase } = request.server;
@@ -114,7 +113,7 @@ export class AuthController {
 
   public async resetPassword(
     request: FastifyRequest<{ Body: ResetPasswordDto }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ) {
     const { token, new_password } = request.body;
     const { supabase } = request.server;
@@ -124,14 +123,18 @@ export class AuthController {
     // OBS: Em SSR puro essa rota pode não rodar sem ter a sessão válida do callback code.
     // Usaremos a API Admin para trocar a senha assumindo que o token não precise de verificação mágica (ou usamos o flow padrão client-side)
     // Para mitigar de forma rápida se estamos recebendo só token e password, assumiremos uso nativo ou faremos proxy:
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash: token, type: 'recovery', email: '' });
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: token,
+      type: 'recovery',
+      email: '',
+    });
 
     if (error || !data.user) {
       return reply.code(400).send({ error: 'Bad Request', message: 'Token inválido ou expirado' });
     }
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(data.user.id, {
-      password: new_password
+      password: new_password,
     });
 
     if (updateError) {
@@ -140,7 +143,7 @@ export class AuthController {
 
     await this.auditService.log({
       eventType: 'password.reset_completed',
-      targetUserId: data.user.id
+      targetUserId: data.user.id,
     });
 
     return reply.send({ success: true });
@@ -153,7 +156,7 @@ export class AuthController {
         email: request.user.email,
         role: request.user.role,
         status: request.user.status,
-      }
+      },
     });
   }
 }

@@ -6,7 +6,9 @@ import { UserRole, UserStatus } from '@projetog/domain';
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-    verifyRole: (allowedRoles: UserRole[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    verifyRole: (
+      allowedRoles: UserRole[],
+    ) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
@@ -39,7 +41,7 @@ export const authPlugin = fp<AuthPluginOptions>(async (fastify, opts) => {
   fastify.decorate('authenticate', async function (request: FastifyRequest, reply: FastifyReply) {
     try {
       await request.jwtVerify();
-      
+
       // Validação de status ativo
       const userStatus = request.user.status || request.user.app_metadata?.status;
       if (userStatus && userStatus !== UserStatus.ATIVO) {
@@ -54,10 +56,12 @@ export const authPlugin = fp<AuthPluginOptions>(async (fastify, opts) => {
     return async function (request: FastifyRequest, reply: FastifyReply) {
       try {
         await request.jwtVerify();
-        const role = request.user.role || request.user.app_metadata?.role as UserRole;
-        
+        const role = request.user.role || (request.user.app_metadata?.role as UserRole);
+
         if (!role || !allowedRoles.includes(role)) {
-          reply.code(403).send({ error: 'Forbidden', message: 'Você não tem permissão para esta operação' });
+          reply
+            .code(403)
+            .send({ error: 'Forbidden', message: 'Você não tem permissão para esta operação' });
         }
       } catch (err) {
         reply.send(err);

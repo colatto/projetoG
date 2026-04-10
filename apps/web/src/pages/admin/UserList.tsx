@@ -21,7 +21,7 @@ export default function UserList() {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (roleFilter) params.append('role', roleFilter);
-      
+
       const response = await api.get(`/users?${params.toString()}`);
       setUsers(response.data.data);
     } catch (e) {
@@ -37,11 +37,16 @@ export default function UserList() {
 
   const renderBadge = (status: UserStatus) => {
     switch (status) {
-      case UserStatus.ATIVO: return <span className="badge badge-success">Ativo</span>;
-      case UserStatus.PENDENTE: return <span className="badge badge-warning">Pendente</span>;
-      case UserStatus.BLOQUEADO: return <span className="badge badge-error">Bloqueado</span>;
-      case UserStatus.REMOVIDO: return <span className="badge badge-gray">Removido</span>;
-      default: return null;
+      case UserStatus.ATIVO:
+        return <span className="badge badge-success">Ativo</span>;
+      case UserStatus.PENDENTE:
+        return <span className="badge badge-warning">Pendente</span>;
+      case UserStatus.BLOQUEADO:
+        return <span className="badge badge-error">Bloqueado</span>;
+      case UserStatus.REMOVIDO:
+        return <span className="badge badge-gray">Removido</span>;
+      default:
+        return null;
     }
   };
 
@@ -50,7 +55,9 @@ export default function UserList() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 style={{ fontSize: '24px', margin: 0 }}>Usuários</h1>
-          <p className="text-muted" style={{ fontSize: '14px' }}>Gerencie acessos internos e de fornecedores.</p>
+          <p className="text-muted" style={{ fontSize: '14px' }}>
+            Gerencie acessos internos e de fornecedores.
+          </p>
         </div>
         <Link to="/admin/users/new">
           <Button variant="primary" className="gap-2">
@@ -59,31 +66,43 @@ export default function UserList() {
         </Link>
       </div>
 
-      <div className="card mb-6" style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+      <div
+        className="card mb-6"
+        style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}
+      >
         <div style={{ flex: 1 }}>
-           <label className="form-label" style={{ marginBottom: 4 }}>Busca</label>
-           <div style={{ position: 'relative' }}>
-             <Search size={18} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--color-gray-400)' }} />
-             <input 
-               type="text" 
-               className="form-input" 
-               placeholder="Buscar por nome ou e-mail..." 
-               style={{ paddingLeft: '2.25rem' }}
-               value={search}
-               onChange={(e) => setSearch(e.target.value)}
-             />
-           </div>
+          <label className="form-label" style={{ marginBottom: 4 }}>
+            Busca
+          </label>
+          <div style={{ position: 'relative' }}>
+            <Search
+              size={18}
+              style={{ position: 'absolute', left: 10, top: 10, color: 'var(--color-gray-400)' }}
+            />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Buscar por nome ou e-mail..."
+              style={{ paddingLeft: '2.25rem' }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
         <div style={{ width: '200px' }}>
-          <label className="form-label" style={{ marginBottom: 4 }}>Perfil</label>
-          <select 
+          <label className="form-label" style={{ marginBottom: 4 }}>
+            Perfil
+          </label>
+          <select
             className="form-input"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
             <option value="">Todos os perfis</option>
-            {Object.values(UserRole).map(role => (
-              <option key={role} value={role}>{role}</option>
+            {Object.values(UserRole).map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
             ))}
           </select>
         </div>
@@ -91,7 +110,9 @@ export default function UserList() {
 
       <div className="card" style={{ padding: 0 }}>
         {isLoading ? (
-          <div className="text-center" style={{ padding: '3rem' }}>Carregando...</div>
+          <div className="text-center" style={{ padding: '3rem' }}>
+            Carregando...
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -108,24 +129,37 @@ export default function UserList() {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-gray-500)' }}>
+                    <td
+                      colSpan={6}
+                      style={{
+                        textAlign: 'center',
+                        padding: '2rem',
+                        color: 'var(--color-gray-500)',
+                      }}
+                    >
                       Nenhum usuário encontrado.
                     </td>
                   </tr>
-                ) : users.map((u: any) => (
-                  <tr key={u.id}>
-                    <td style={{ fontWeight: 500 }}>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
-                    <td>{renderBadge(u.status)}</td>
-                    <td>{format(new Date(u.created_at), "dd/MM/yyyy", { locale: ptBR })}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to={`/admin/users/${u.id}`} className="btn btn-outline" style={{ padding: '0.25rem 0.75rem' }}>
-                        Gerenciar
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                ) : (
+                  users.map((u: any) => (
+                    <tr key={u.id}>
+                      <td style={{ fontWeight: 500 }}>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                      <td>{renderBadge(u.status)}</td>
+                      <td>{format(new Date(u.created_at), 'dd/MM/yyyy', { locale: ptBR })}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link
+                          to={`/admin/users/${u.id}`}
+                          className="btn btn-outline"
+                          style={{ padding: '0.25rem 0.75rem' }}
+                        >
+                          Gerenciar
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

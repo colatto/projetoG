@@ -13,11 +13,17 @@ export default function UserCreate() {
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const { register, handleSubmit, watch, control, formState: { errors, isSubmitting } } = useForm<CreateUserDto>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateUserDto>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
-      role: UserRole.FORNECEDOR
-    }
+      role: UserRole.FORNECEDOR,
+    },
   });
 
   const selectedRole = watch('role');
@@ -26,9 +32,13 @@ export default function UserCreate() {
     try {
       setApiError(null);
       await api.post('/users', data);
-      navigate('/admin/users', { state: { message: 'Usuário criado com sucesso. O e-mail de acesso foi enviado.' }});
+      navigate('/admin/users', {
+        state: { message: 'Usuário criado com sucesso. O e-mail de acesso foi enviado.' },
+      });
     } catch (error: any) {
-      setApiError(error.response?.data?.message || 'Falha ao provisionar usuário. Verifique os dados.');
+      setApiError(
+        error.response?.data?.message || 'Falha ao provisionar usuário. Verifique os dados.',
+      );
     }
   };
 
@@ -40,13 +50,18 @@ export default function UserCreate() {
         </Link>
         <div>
           <h1 style={{ fontSize: '24px', margin: 0 }}>Novo Acesso</h1>
-          <p className="text-muted" style={{ fontSize: '14px' }}>Criar conta e enviar magic link de primeiro acesso.</p>
+          <p className="text-muted" style={{ fontSize: '14px' }}>
+            Criar conta e enviar magic link de primeiro acesso.
+          </p>
         </div>
       </div>
 
       <div className="card">
         {apiError && (
-          <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'var(--color-error)', color: 'white', fontSize: '0.875rem' }}>
+          <div
+            className="mb-4 p-3 rounded"
+            style={{ backgroundColor: 'var(--color-error)', color: 'white', fontSize: '0.875rem' }}
+          >
             {apiError}
           </div>
         )}
@@ -55,51 +70,95 @@ export default function UserCreate() {
           <div className="form-group mb-6">
             <label className="form-label mb-2">Perfil do Acesso</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              {Object.values(UserRole).map(role => (
-                <label key={role} style={{ 
-                  border: `1px solid ${selectedRole === role ? 'var(--color-primary)' : 'var(--color-gray-200)'}`,
-                  background: selectedRole === role ? 'rgba(70,94,190,0.05)' : 'white',
-                  padding: '1rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem'
-                }}>
-                  <input type="radio" value={role} {...register('role')} style={{ width: 16, height: 16 }} />
-                  <span style={{ textTransform: 'capitalize', fontWeight: selectedRole === role ? 600 : 400 }}>{role}</span>
+              {Object.values(UserRole).map((role) => (
+                <label
+                  key={role}
+                  style={{
+                    border: `1px solid ${selectedRole === role ? 'var(--color-primary)' : 'var(--color-gray-200)'}`,
+                    background: selectedRole === role ? 'rgba(70,94,190,0.05)' : 'white',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value={role}
+                    {...register('role')}
+                    style={{ width: 16, height: 16 }}
+                  />
+                  <span
+                    style={{
+                      textTransform: 'capitalize',
+                      fontWeight: selectedRole === role ? 600 : 400,
+                    }}
+                  >
+                    {role}
+                  </span>
                 </label>
               ))}
             </div>
             {errors.role && <p className="form-error mt-2">{errors.role.message}</p>}
           </div>
 
-          <Input 
-            label="Nome Completo" 
+          <Input
+            label="Nome Completo"
             placeholder="Ex: João da Silva"
             {...register('name')}
             error={errors.name?.message}
           />
-          
-          <Input 
-            label="E-mail" 
-            type="email" 
+
+          <Input
+            label="E-mail"
+            type="email"
             placeholder="Ex: usuario@dominio.com.br"
             {...register('email')}
             error={errors.email?.message}
           />
 
           {selectedRole === UserRole.FORNECEDOR && (
-            <div className="mb-4 p-4 rounded" style={{ backgroundColor: 'var(--color-gray-50)', border: '1px dashed var(--color-gray-300)' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-gray-700)', marginBottom: '0.5rem' }}>Vinculação Operacional</div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--color-gray-500)', marginBottom: '1rem' }}>
-                Fornecedores precisam ser mapeados ao código Sienge para acessar o backoffice e faturamentos.
+            <div
+              className="mb-4 p-4 rounded"
+              style={{
+                backgroundColor: 'var(--color-gray-50)',
+                border: '1px dashed var(--color-gray-300)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--color-gray-700)',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                Vinculação Operacional
+              </div>
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--color-gray-500)',
+                  marginBottom: '1rem',
+                }}
+              >
+                Fornecedores precisam ser mapeados ao código Sienge para acessar o backoffice e
+                faturamentos.
               </p>
-              
+
               <Controller
                 name="supplier_id"
                 control={control}
                 render={({ field }) => (
-                  <Input 
-                    label="Código de Fornecedor (supplierId)" 
-                    type="number" 
+                  <Input
+                    label="Código de Fornecedor (supplierId)"
+                    type="number"
                     placeholder="ID no Sienge"
-                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                    onChange={(e) =>
+                      field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)
+                    }
                     value={field.value || ''}
                     error={errors.supplier_id?.message}
                   />
@@ -109,8 +168,12 @@ export default function UserCreate() {
           )}
 
           <div className="mt-8 flex justify-end gap-2">
-            <Link to="/admin/users" className="btn btn-outline">Cancelar</Link>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>Criar e Enviar Convite</Button>
+            <Link to="/admin/users" className="btn btn-outline">
+              Cancelar
+            </Link>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
+              Criar e Enviar Convite
+            </Button>
           </div>
         </form>
       </div>

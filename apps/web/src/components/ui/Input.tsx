@@ -21,16 +21,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          id={inputId}
-          ref={ref}
-          className={cn('form-input', className)}
-          {...props}
-        />
+        <input id={inputId} ref={ref} className={cn('form-input', className)} {...props} />
         {error && <p className="form-error">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = 'Input';
