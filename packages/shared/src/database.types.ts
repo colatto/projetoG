@@ -211,30 +211,63 @@ export type Database = {
       integration_events: {
         Row: {
           created_at: string | null;
+          direction: string;
+          endpoint: string;
           error_message: string | null;
           event_type: string;
+          http_method: string;
+          http_status: number | null;
           id: string;
-          payload: Json | null;
-          processed_at: string | null;
+          idempotency_key: string | null;
+          max_retries: number;
+          next_retry_at: string | null;
+          related_entity_id: string | null;
+          related_entity_type: string | null;
+          request_payload: Json | null;
+          response_payload: Json | null;
+          retry_count: number;
           status: string;
+          updated_at: string | null;
         };
         Insert: {
           created_at?: string | null;
+          direction: string;
+          endpoint: string;
           error_message?: string | null;
           event_type: string;
+          http_method: string;
+          http_status?: number | null;
           id?: string;
-          payload?: Json | null;
-          processed_at?: string | null;
+          idempotency_key?: string | null;
+          max_retries?: number;
+          next_retry_at?: string | null;
+          related_entity_id?: string | null;
+          related_entity_type?: string | null;
+          request_payload?: Json | null;
+          response_payload?: Json | null;
+          retry_count?: number;
           status?: string;
+          updated_at?: string | null;
         };
         Update: {
           created_at?: string | null;
+          direction?: string;
+          endpoint?: string;
           error_message?: string | null;
           event_type?: string;
+          http_method?: string;
+          http_status?: number | null;
           id?: string;
-          payload?: Json | null;
-          processed_at?: string | null;
+          idempotency_key?: string | null;
+          max_retries?: number;
+          next_retry_at?: string | null;
+          related_entity_id?: string | null;
+          related_entity_type?: string | null;
+          request_payload?: Json | null;
+          response_payload?: Json | null;
+          retry_count?: number;
           status?: string;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -602,6 +635,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      sienge_credentials: {
+        Row: {
+          api_password: string;
+          api_user: string;
+          bulk_rate_limit: number;
+          created_at: string | null;
+          id: string;
+          is_active: boolean;
+          rest_rate_limit: number;
+          subdomain: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          api_password: string;
+          api_user: string;
+          bulk_rate_limit?: number;
+          created_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          rest_rate_limit?: number;
+          subdomain: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          api_password?: string;
+          api_user?: string;
+          bulk_rate_limit?: number;
+          created_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          rest_rate_limit?: number;
+          subdomain?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      sienge_sync_cursor: {
+        Row: {
+          error_message: string | null;
+          id: string;
+          last_offset: number;
+          last_synced_at: string;
+          resource_type: string;
+          sync_status: string;
+        };
+        Insert: {
+          error_message?: string | null;
+          id?: string;
+          last_offset?: number;
+          last_synced_at?: string;
+          resource_type: string;
+          sync_status?: string;
+        };
+        Update: {
+          error_message?: string | null;
+          id?: string;
+          last_offset?: number;
+          last_synced_at?: string;
+          resource_type?: string;
+          sync_status?: string;
+        };
+        Relationships: [];
+      };
       supplier_contacts: {
         Row: {
           created_at: string | null;
@@ -766,6 +862,36 @@ export type Database = {
           name?: string;
           trade_name?: string | null;
           updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      webhook_events: {
+        Row: {
+          created_at: string | null;
+          error_message: string | null;
+          id: string;
+          payload: Json;
+          processed_at: string | null;
+          status: string;
+          webhook_type: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          error_message?: string | null;
+          id?: string;
+          payload: Json;
+          processed_at?: string | null;
+          status?: string;
+          webhook_type: string;
+        };
+        Update: {
+          created_at?: string | null;
+          error_message?: string | null;
+          id?: string;
+          payload?: Json;
+          processed_at?: string | null;
+          status?: string;
+          webhook_type?: string;
         };
         Relationships: [];
       };
