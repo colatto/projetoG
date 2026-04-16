@@ -61,6 +61,9 @@ importers:
       fastify-type-provider-zod:
         specifier: ^4.0.2
         version: 4.0.2(fastify@5.8.4)(zod@3.25.76)
+      pg-boss:
+        specifier: ^9.0.3
+        version: 9.0.3
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -269,6 +272,9 @@ importers:
       '@projetog/integration-sienge':
         specifier: workspace:*
         version: link:../packages/integration-sienge
+      '@projetog/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
       '@supabase/supabase-js':
         specifier: ^2.39.0
         version: 2.102.1

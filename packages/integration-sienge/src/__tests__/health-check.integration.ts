@@ -35,7 +35,9 @@ async function runHealthCheck(): Promise<void> {
   console.log('\n📋 Environment Variables:');
   console.log(`   SIENGE_BASE_URL:   ${envVars.SIENGE_BASE_URL ?? '❌ MISSING'}`);
   console.log(`   SIENGE_API_KEY:    ${envVars.SIENGE_API_KEY ?? '❌ MISSING'}`);
-  console.log(`   SIENGE_API_SECRET: ${envVars.SIENGE_API_SECRET ? '***REDACTED***' : '❌ MISSING'}`);
+  console.log(
+    `   SIENGE_API_SECRET: ${envVars.SIENGE_API_SECRET ? '***REDACTED***' : '❌ MISSING'}`,
+  );
 
   if (!envVars.SIENGE_BASE_URL || !envVars.SIENGE_API_KEY || !envVars.SIENGE_API_SECRET) {
     console.error('\n❌ Missing required environment variables. Aborting.');
@@ -59,7 +61,7 @@ async function runHealthCheck(): Promise<void> {
     const result = await client.get<Record<string, unknown>>(
       '/creditors',
       { correlationId: 'health-check', source: 'unknown' },
-      { params: { limit: 1 } }
+      { params: { limit: 1 } },
     );
     console.log('   ✅ Connection successful!');
     console.log(`   Response keys: ${Object.keys(result).join(', ')}`);
@@ -76,9 +78,13 @@ async function runHealthCheck(): Promise<void> {
       // Check if contacts[] with email is available (PRDGlobal §9.5 validation)
       if ('contacts' in firstRecord && Array.isArray(firstRecord.contacts)) {
         const contacts = firstRecord.contacts as Array<Record<string, unknown>>;
-        const emailContact = contacts.find(c => c.email && typeof c.email === 'string' && (c.email as string).trim() !== '');
+        const emailContact = contacts.find(
+          (c) => c.email && typeof c.email === 'string' && (c.email as string).trim() !== '',
+        );
         console.log(`   contacts[] available: ✅ (${contacts.length} contacts)`);
-        console.log(`   First email found: ${emailContact ? '✅ ' + emailContact.email : '⚠️ No email in contacts'}`);
+        console.log(
+          `   First email found: ${emailContact ? '✅ ' + emailContact.email : '⚠️ No email in contacts'}`,
+        );
       }
     }
   } catch (error: unknown) {
@@ -102,7 +108,7 @@ async function runHealthCheck(): Promise<void> {
     const result = await client.get<Record<string, unknown>>(
       '/purchase-quotations/all/negotiations',
       { correlationId: 'health-check-quotations', source: 'unknown' },
-      { params: { limit: 1 } }
+      { params: { limit: 1 } },
     );
     console.log('   ✅ Quotations endpoint accessible!');
 
@@ -120,7 +126,9 @@ async function runHealthCheck(): Promise<void> {
     }
   } catch (error: unknown) {
     const err = error as { response?: { status?: number }; message: string };
-    console.error(`   ⚠️ Quotations endpoint failed: ${err.response?.status ?? 'No response'} — ${err.message}`);
+    console.error(
+      `   ⚠️ Quotations endpoint failed: ${err.response?.status ?? 'No response'} — ${err.message}`,
+    );
     console.error('   (This may be expected if no quotations exist yet)');
   }
 

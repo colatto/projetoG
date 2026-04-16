@@ -221,7 +221,7 @@ export class UsersController {
       eventType: 'user.edited',
       actorId: adminId,
       targetUserId: id,
-      metadata: { fields_changed: Object.keys(updates) },
+      metadata: { fields_changed: Object.keys(updates).join(', ') },
     });
 
     return reply.code(200).send({ data: updatedProfile });

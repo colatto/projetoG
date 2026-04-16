@@ -164,6 +164,44 @@ export type Database = {
           },
         ];
       };
+      delivery_schedules: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          item_number: number;
+          purchase_order_id: number;
+          scheduled_date: string;
+          scheduled_quantity: number | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          item_number: number;
+          purchase_order_id: number;
+          scheduled_date: string;
+          scheduled_quantity?: number | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          item_number?: number;
+          purchase_order_id?: number;
+          scheduled_date?: string;
+          scheduled_quantity?: number | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'delivery_schedules_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_orders';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       follow_up_trackers: {
         Row: {
           base_date: string;
@@ -303,6 +341,48 @@ export type Database = {
           },
         ];
       };
+      invoice_order_links: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          invoice_item_number: number;
+          purchase_order_id: number;
+          purchase_order_item_number: number;
+          sequential_number: number;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          invoice_item_number: number;
+          purchase_order_id: number;
+          purchase_order_item_number: number;
+          sequential_number: number;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          invoice_item_number?: number;
+          purchase_order_id?: number;
+          purchase_order_item_number?: number;
+          sequential_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'invoice_order_links_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoice_order_links_sequential_number_fkey';
+            columns: ['sequential_number'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_invoices';
+            referencedColumns: ['sequential_number'];
+          },
+        ];
+      };
       notifications: {
         Row: {
           cc_email: string | null;
@@ -340,6 +420,42 @@ export type Database = {
             columns: ['follow_up_tracker_id'];
             isOneToOne: false;
             referencedRelation: 'follow_up_trackers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      order_quotation_links: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          purchase_order_id: number;
+          purchase_quotation_id: number;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          purchase_order_id: number;
+          purchase_quotation_id: number;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          purchase_order_id?: number;
+          purchase_quotation_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'order_quotation_links_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'order_quotation_links_purchase_quotation_id_fkey';
+            columns: ['purchase_quotation_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_quotations';
             referencedColumns: ['id'];
           },
         ];
@@ -791,6 +907,7 @@ export type Database = {
           sienge_negotiation_id: number | null;
           sienge_negotiation_number: number | null;
           status: string;
+          supplier_email: string | null;
           supplier_id: number;
           updated_at: string | null;
         };
@@ -803,6 +920,7 @@ export type Database = {
           sienge_negotiation_id?: number | null;
           sienge_negotiation_number?: number | null;
           status?: string;
+          supplier_email?: string | null;
           supplier_id: number;
           updated_at?: string | null;
         };
@@ -815,6 +933,7 @@ export type Database = {
           sienge_negotiation_id?: number | null;
           sienge_negotiation_number?: number | null;
           status?: string;
+          supplier_email?: string | null;
           supplier_id?: number;
           updated_at?: string | null;
         };

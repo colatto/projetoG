@@ -13,10 +13,18 @@ import {
 import healthRoute from './routes/health.js';
 import { supabasePlugin } from './plugins/supabase.js';
 import { authPlugin } from './plugins/auth.js';
+import { pgBossPlugin } from './plugins/pg-boss.js';
 import { authRoutes } from './modules/auth/index.js';
 import { usersRoutes } from './modules/users/index.js';
+import { webhookRoutes } from './modules/webhooks/index.js';
+import { integrationRoutes } from './modules/integration/index.js';
+import type { JobPublisher } from './plugins/pg-boss.js';
 
-export function buildApp() {
+interface BuildAppOptions {
+  boss?: JobPublisher | null;
+}
+
+export function buildApp(options: BuildAppOptions = {}) {
   const app = Fastify({
     logger: true, // Substituir depois com integração Pino para logging da auditoria
   });
@@ -60,10 +68,23 @@ export function buildApp() {
     jwtSecret: process.env.JWT_SECRET || 'secret-placeholder',
   });
 
+  if (options.boss !== undefined) {
+    app.decorate('boss', options.boss);
+  } else if (process.env.DATABASE_URL) {
+    app.register(pgBossPlugin, {
+      connectionString: process.env.DATABASE_URL,
+    });
+  } else {
+    app.decorate('boss', null);
+    app.log.warn('DATABASE_URL not configured; pg-boss publisher disabled in API');
+  }
+
   // Routes
   app.register(healthRoute);
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(usersRoutes, { prefix: '/api/users' });
+  app.register(webhookRoutes, { prefix: '/webhooks' });
+  app.register(integrationRoutes, { prefix: '/api/integration' });
 
   return app;
 }

@@ -115,17 +115,21 @@ Registra cada operação de integração para rastreabilidade.
 
 Registra webhooks recebidos do Sienge.
 
-| Campo           | Tipo         | Obrigatório | Descrição                                       |
-| --------------- | ------------ | ----------- | ----------------------------------------------- |
-| `id`            | UUID         | Sim         | PK                                              |
-| `webhook_type`  | VARCHAR(100) | Sim         | Tipo do webhook recebido                        |
-| `payload`       | JSONB        | Sim         | Payload completo recebido                       |
-| `status`        | VARCHAR(20)  | Sim         | `received`, `processing`, `processed`, `failed` |
-| `processed_at`  | TIMESTAMPTZ  | Não         | Data de processamento                           |
-| `error_message` | TEXT         | Não         | Erro, se houver                                 |
-| `created_at`    | TIMESTAMPTZ  | Sim         | Data de recebimento                             |
+| Campo                | Tipo         | Obrigatório | Descrição                                           |
+| -------------------- | ------------ | ----------- | --------------------------------------------------- |
+| `id`                 | UUID         | Sim         | PK                                                  |
+| `webhook_type`       | VARCHAR(100) | Sim         | Tipo do webhook recebido                            |
+| `payload`            | JSONB        | Sim         | Payload completo recebido                           |
+| `sienge_delivery_id` | VARCHAR(255) | Não         | Valor de `x-sienge-id` para idempotência da entrega |
+| `sienge_hook_id`     | VARCHAR(255) | Não         | Valor de `x-sienge-hook-id`                         |
+| `sienge_event`       | VARCHAR(255) | Não         | Valor de `x-sienge-event`                           |
+| `sienge_tenant`      | VARCHAR(255) | Não         | Valor de `x-sienge-tenant`                          |
+| `status`             | VARCHAR(20)  | Sim         | `received`, `processing`, `processed`, `failed`     |
+| `processed_at`       | TIMESTAMPTZ  | Não         | Data de processamento                               |
+| `error_message`      | TEXT         | Não         | Erro, se houver                                     |
+| `created_at`         | TIMESTAMPTZ  | Sim         | Data de recebimento                                 |
 
-- **Índices:** `idx_webhook_events_type` em `webhook_type`; `idx_webhook_events_status` em `status`.
+- **Índices:** `idx_webhook_events_type` em `webhook_type`; `idx_webhook_events_status` em `status`; `idx_webhook_events_delivery_id` em `sienge_delivery_id` (UNIQUE quando não nulo).
 
 ### 4.4 `sienge_sync_cursor`
 
@@ -175,6 +179,9 @@ A seguinte tabela consolida os identificadores que **devem** ser persistidos nas
 - **RN-13:** Em falha de integração, o sistema tenta novo reprocessamento automático após 24 horas. Para escrita de cotação, são 2 reenvios automáticos com intervalo de 24 horas. Se persistir, `Compras` é notificado. _(PRDGlobal §12.2)_
 - **RN-14:** Integrações devem ter idempotência, retry e rastreabilidade. _(PRDGlobal §15.2)_
 - **RN-15:** O endpoint `GET /purchase-quotations/comparison-map/pdf` não deve ser usado como fonte de automação. _(PRDGlobal §9.3.1)_
+- **RN-16:** O receptor de webhook deve validar os headers oficiais `x-sienge-id` e `x-sienge-event`. O header `x-webhook-secret` pode ser usado apenas como proteção opcional e compatível com ambientes legados; ele não substitui o contrato oficial documentado pelo Sienge. Este segredo (`SIENGE_WEBHOOK_SECRET`) deve ser mantido estritamente como variável de ambiente (segredo de infra da API/Web), não integrando o registro dinâmico na tabela `sienge_credentials`. Se um dia precisar sair do `.env`, deverá fazê-lo numa configuração primariamente isolada para webhooks inbound. _(Sienge general-hooks)_
+- **RN-17:** A idempotência de recebimento do webhook deve usar `x-sienge-id`. Se o mesmo identificador de entrega chegar novamente, o sistema responde `200` e não reenfileira o processamento. _(Sienge general-hooks)_
+- **RN-18:** O tempo de resposta do receptor deve permanecer abaixo de `2,5s`, com processamento assíncrono, para evitar retries desnecessários do Sienge. _(Sienge general-hooks)_
 
 ### Anti-patterns obrigatórios (§9.11)
 
@@ -230,14 +237,19 @@ A seguinte tabela consolida os identificadores que **devem** ser persistidos nas
 
 ### 6.5 Recebimento de webhooks
 
-1. O endpoint receptor valida a autenticidade do webhook.
-2. Persiste o payload em `webhook_events` com status `received`.
-3. Processa de forma assíncrona:
+1. O endpoint receptor valida os headers oficiais `x-sienge-id` e `x-sienge-event`.
+2. Se existir `x-webhook-secret`, valida contra `SIENGE_WEBHOOK_SECRET`; se o secret não vier, o fluxo segue normalmente.
+3. Se o `x-sienge-event` divergir do `body.type`, rejeita a entrega com `400`.
+4. Se `x-sienge-id` já existir em `webhook_events`, responde `200` com ACK de duplicidade e não persiste novamente.
+5. Persiste o payload em `webhook_events` com status `received`, incluindo `sienge_delivery_id`, `sienge_hook_id`, `sienge_event` e `sienge_tenant`.
+6. Processa de forma assíncrona:
    - `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`: cria vínculo pedido-cotação e dispara leitura detalhada do pedido.
    - `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED`: reconsulta status da negociação.
    - `PURCHASE_ORDER_ITEM_MODIFIED`: reconsulta itens do pedido.
    - `PURCHASE_ORDER_AUTHORIZATION_CHANGED` / `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED`: usa como gatilho de reconsulta apenas.
-4. Atualiza status para `processed` ou `failed`.
+   - `CONTRACT_AUTHORIZED`, `CONTRACT_UNAUTHORIZED`, `MEASUREMENT_AUTHORIZED`, `MEASUREMENT_UNAUTHORIZED`, `CLEARING_FINISHED`, `CLEARING_DELETED`: aceita, registra e finaliza com ACK seguro; pipeline de reconciliação específico permanece pendente de implementação.
+7. Atualiza status para `processed` ou `failed`.
+8. O processamento deve responder rapidamente ao Sienge e deixar toda reconsulta REST para o worker assíncrono.
 
 ### 6.6 Reprocessamento de falhas
 
@@ -277,17 +289,24 @@ A seguinte tabela consolida os identificadores que **devem** ser persistidos nas
 
 ### 7.3 Serviços internos
 
-| Serviço                               | Rota                                 | Método | Entrada                                       | Saída                      | Perfis                     |
-| ------------------------------------- | ------------------------------------ | ------ | --------------------------------------------- | -------------------------- | -------------------------- |
-| `IntegrationService.syncQuotations`   | Interno (worker)                     | —      | Filtros opcionais                             | Resultado da sincronização | Sistema                    |
-| `IntegrationService.syncOrders`       | Interno (worker)                     | —      | Filtros opcionais                             | Resultado da sincronização | Sistema                    |
-| `IntegrationService.syncDeliveries`   | Interno (worker)                     | —      | `purchaseOrderId`                             | Resultado da sincronização | Sistema                    |
-| `IntegrationService.syncCreditor`     | Interno (worker)                     | —      | `creditorId`                                  | Dados do fornecedor        | Sistema                    |
-| `IntegrationService.writeNegotiation` | Interno (API)                        | —      | Dados da resposta aprovada                    | Resultado da escrita       | `Compras` (via aprovação)  |
-| `IntegrationService.retryFailed`      | Interno (worker)                     | —      | Nenhuma                                       | Eventos reprocessados      | Sistema                    |
-| `WebhookReceiver.handle`              | `/webhooks/sienge`                   | POST   | Payload do webhook                            | `200 OK`                   | Externo (Sienge)           |
-| `IntegrationStatus.list`              | `/api/integration/events`            | GET    | Filtros: `status`, `event_type`, `date_range` | Lista paginada de eventos  | `Compras`, `Administrador` |
-| `IntegrationStatus.retry`             | `/api/integration/events/{id}/retry` | POST   | `event_id`                                    | Evento reagendado          | `Compras`                  |
+| Serviço                               | Rota                                 | Método | Entrada                                                                                                                              | Saída                                                 | Perfis                     |
+| ------------------------------------- | ------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | -------------------------- |
+| `IntegrationService.syncQuotations`   | Interno (worker)                     | —      | Filtros opcionais                                                                                                                    | Resultado da sincronização                            | Sistema                    |
+| `IntegrationService.syncOrders`       | Interno (worker)                     | —      | Filtros opcionais                                                                                                                    | Resultado da sincronização                            | Sistema                    |
+| `IntegrationService.syncDeliveries`   | Interno (worker)                     | —      | `purchaseOrderId`                                                                                                                    | Resultado da sincronização                            | Sistema                    |
+| `IntegrationService.syncCreditor`     | Interno (worker)                     | —      | `creditorId`                                                                                                                         | Dados do fornecedor                                   | Sistema                    |
+| `IntegrationService.writeNegotiation` | Interno (API)                        | —      | Dados da resposta aprovada                                                                                                           | Resultado da escrita                                  | `Compras` (via aprovação)  |
+| `IntegrationService.retryFailed`      | Interno (worker)                     | —      | Nenhuma                                                                                                                              | Eventos reprocessados                                 | Sistema                    |
+| `WebhookReceiver.handle`              | `/webhooks/sienge`                   | POST   | Body `{ type, data }` + headers `x-sienge-id`, `x-sienge-event`; opcionais `x-sienge-hook-id`, `x-sienge-tenant`, `x-webhook-secret` | `200 {status: received}` ou `200 {status: duplicate}` | Externo (Sienge)           |
+| `IntegrationStatus.list`              | `/api/integration/events`            | GET    | Filtros: `status`, `event_type`, `date_range`                                                                                        | Lista paginada de eventos                             | `Compras`, `Administrador` |
+| `IntegrationStatus.retry`             | `/api/integration/events/{id}/retry` | POST   | `event_id`                                                                                                                           | Evento reagendado                                     | `Compras`                  |
+
+**Respostas esperadas do receptor de webhook**
+
+- `200`: entrega recebida ou duplicada com ACK seguro
+- `400`: ausência de `x-sienge-id` / `x-sienge-event` ou divergência entre header e body
+- `401`: `x-webhook-secret` informado, porém inválido
+- `500`: falha ao validar duplicidade ou persistir o evento antes do ACK
 
 ## 8. Interface do usuário
 
@@ -343,13 +362,29 @@ Este módulo é primariamente backend/infraestrutura. As interfaces de monitoram
 
 ### 9.2 Webhooks consumidos
 
-| Webhook                                                | Uso                                 | Ação                               |
-| ------------------------------------------------------ | ----------------------------------- | ---------------------------------- |
-| `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`            | Vínculo principal pedido-cotação    | Criar vínculo + reconsultar pedido |
-| `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED` | Status de autorização da negociação | Reconsultar negociação             |
-| `PURCHASE_ORDER_AUTHORIZATION_CHANGED`                 | Mudança de autorização do pedido    | Gatilho de reconsulta              |
-| `PURCHASE_ORDER_ITEM_MODIFIED`                         | Modificação de item do pedido       | Reconsultar itens                  |
-| `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED`            | Previsão financeira atualizada      | Gatilho de reconsulta              |
+**Contrato de entrega**
+
+- Método: `POST`
+- Timeout esperado pelo Sienge: `2,5s`
+- Headers obrigatórios: `x-sienge-id`, `x-sienge-event`
+- Headers opcionais relevantes: `x-sienge-hook-id`, `x-sienge-tenant`
+- Header opcional interno: `x-webhook-secret`
+- User-Agent esperado: `sienge-hooks`
+- Retry do Sienge em falha/timeout: `10`, `30`, `60`, `180` e `300` minutos após a tentativa anterior
+
+| Webhook                                                | Contrato mínimo documentado                                        | Uso                                 | Ação atual no sistema              |
+| ------------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------- | ---------------------------------- |
+| `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`            | `purchaseOrderId`, `purchaseQuotationId?`, `purchaseQuotations[]?` | Vínculo principal pedido-cotação    | Criar vínculo + reconsultar pedido |
+| `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED` | `purchaseQuotationId`                                              | Status de autorização da negociação | Reconsultar negociação             |
+| `PURCHASE_ORDER_AUTHORIZATION_CHANGED`                 | `purchaseOrderId`                                                  | Mudança de autorização do pedido    | Gatilho de reconsulta              |
+| `PURCHASE_ORDER_ITEM_MODIFIED`                         | `purchaseOrderId`                                                  | Modificação de item do pedido       | Reconsultar itens                  |
+| `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED`            | `purchaseOrderId`                                                  | Previsão financeira atualizada      | Gatilho de reconsulta              |
+| `CONTRACT_AUTHORIZED`                                  | `documentId`, `contractNumber`, `consistent`                       | Contratos do suprimentos            | Registrar e ACK seguro             |
+| `CONTRACT_UNAUTHORIZED`                                | `documentId`, `contractNumber`, `consistent`, `disapproved`        | Contratos do suprimentos            | Registrar e ACK seguro             |
+| `MEASUREMENT_AUTHORIZED`                               | `documentId`, `contractNumber`, `measurementNumber`, `buildingId`  | Medição de contratos                | Registrar e ACK seguro             |
+| `MEASUREMENT_UNAUTHORIZED`                             | `documentId`, `contractNumber`, `measurementNumber`, `buildingId`  | Medição de contratos                | Registrar e ACK seguro             |
+| `CLEARING_FINISHED`                                    | `documentId`, `contractNumber`, `buildingId`, `measurementNumber`  | Quitação/clearing                   | Registrar e ACK seguro             |
+| `CLEARING_DELETED`                                     | `documentId`, `contractNumber`, `buildingId`, `measurementNumber`  | Quitação/clearing                   | Registrar e ACK seguro             |
 
 ### 9.3 Regras de reconciliação
 
@@ -381,7 +416,7 @@ Eventos auditáveis gerados por este módulo conforme §12.6:
 | `supplier_invalid_map`      | Fornecedor detectado como inválido no mapa de cotação |
 | `reconciliation_divergence` | Divergência detectada entre webhook e leitura API     |
 
-Cada evento registra: data/hora, tipo, usuário/origem, entidade afetada, fornecedor (quando aplicável), resumo da ação.
+Cada evento registra: data/hora, tipo, usuário/origem, entidade afetada, fornecedor (quando aplicável), resumo da ação. Para webhooks, registrar também `x-sienge-id`, `x-sienge-event`, `x-sienge-hook-id` e `x-sienge-tenant` quando presentes.
 
 ## 11. Validações pendentes de homologação
 
@@ -409,7 +444,11 @@ Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo:
 - [ ] O sistema importa entregas programadas via `GET .../delivery-schedules` e respeita a grafia `sheduledDate`/`sheduledQuantity`.
 - [ ] O sistema importa entregas atendidas via `GET /purchase-invoices/deliveries-attended` e persiste os campos mínimos definidos em §9.3.5.
 - [ ] O sistema recebe e processa webhooks do Sienge, usando-os como gatilho de reconsulta.
+- [ ] O receptor exige `x-sienge-id` e `x-sienge-event`, e rejeita divergência entre header e body.
+- [ ] O sistema usa `x-sienge-id` como chave de idempotência de entrega.
+- [ ] Entregas duplicadas recebem ACK `200` sem reenfileirar processamento.
 - [ ] Após webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`, o sistema cria o vínculo pedido-cotação e reconsulta a API.
+- [ ] Os metadados `x-sienge-id`, `x-sienge-event`, `x-sienge-hook-id` e `x-sienge-tenant` são persistidos em `webhook_events` quando enviados pelo Sienge.
 - [ ] O sistema escreve resposta de cotação no Sienge somente após aprovação de `Compras`.
 - [ ] O sistema verifica se o fornecedor existe no mapa de cotação antes de escrever.
 - [ ] O sistema exibe `Fornecedor inválido no mapa de cotação` em vermelho quando aplicável.

@@ -11,3 +11,5 @@ coverage/
 *.log
 supabase/.temp/
 .supabase/
+.cursor/
+.vscode/

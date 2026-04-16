@@ -64,24 +64,24 @@ _(Referência: PRDGlobal §3)_
 
 Armazena cada entrega identificada a partir do Sienge.
 
-| Campo                        | Tipo          | Obrigatório | Descrição                                                                |
-| ---------------------------- | ------------- | ----------- | ------------------------------------------------------------------------ |
-| `id`                         | UUID          | Sim         | Identificador único interno.                                             |
-| `purchase_order_id`          | INTEGER       | Sim         | ID do pedido de compra no Sienge (`purchaseOrderId`).                    |
-| `purchase_order_item_number` | INTEGER       | Sim         | Número do item do pedido (`purchaseOrderItemNumber`).                    |
-| `delivery_item_number`       | INTEGER       | Sim         | Número do item de entrega do pedido (`deliveryItemPurchaseOrderNumber`). |
-| `attended_number`            | INTEGER       | Sim         | Número do atendimento (`purchaseOrderItemAttendedNumber`).               |
-| `sequential_number`          | INTEGER       | Sim         | Número sequencial da nota fiscal (`sequentialNumber`).                   |
-| `invoice_item_number`        | INTEGER       | Sim         | Número do item na nota fiscal (`invoiceItemNumber`).                     |
-| `delivery_date`              | DATE          | Sim         | Data da entrega efetiva (`deliveryDate`).                                |
-| `quantity_delivered`         | DECIMAL(15,4) | Sim         | Quantidade entregue (`quantityDelivery`).                                |
-| `validation_status`          | ENUM          | Sim         | Status da validação: `pending`, `ok`, `divergence`. Default: `pending`.  |
-| `validated_by`               | UUID          | Não         | ID do usuário que validou.                                               |
-| `validated_at`               | TIMESTAMPTZ   | Não         | Data/hora da validação.                                                  |
-| `validation_notes`           | TEXT          | Não         | Observações da validação por `Compras`.                                  |
-| `sienge_synced_at`           | TIMESTAMPTZ   | Sim         | Data/hora da sincronização com o Sienge.                                 |
-| `created_at`                 | TIMESTAMPTZ   | Sim         | Data de criação do registro.                                             |
-| `updated_at`                 | TIMESTAMPTZ   | Sim         | Data da última atualização.                                              |
+| Campo                        | Tipo          | Obrigatório | Descrição                                                                                          |
+| ---------------------------- | ------------- | ----------- | -------------------------------------------------------------------------------------------------- |
+| `id`                         | UUID          | Sim         | Identificador único interno.                                                                       |
+| `purchase_order_id`          | INTEGER       | Sim         | ID do pedido de compra no Sienge (`purchaseOrderId`).                                              |
+| `purchase_order_item_number` | INTEGER       | Sim         | Número do item do pedido (`purchaseOrderItemNumber`).                                              |
+| `delivery_item_number`       | INTEGER       | Sim         | Número do item de entrega do pedido (`deliveryItemPurchaseOrderNumber`).                           |
+| `attended_number`            | INTEGER       | Sim         | Número do atendimento (`purchaseOrderItemAttendedNumber`).                                         |
+| `sequential_number`          | INTEGER       | Sim         | Número sequencial da nota fiscal (`sequentialNumber`).                                             |
+| `invoice_item_number`        | INTEGER       | Sim         | Número do item na nota fiscal (`invoiceItemNumber`).                                               |
+| `delivery_date`              | DATE          | Sim         | Data da entrega efetiva (`deliveryDate`).                                                          |
+| `quantity_delivered`         | DECIMAL(15,4) | Sim         | Quantidade entregue (`quantityDelivery`).                                                          |
+| `validation_status`          | ENUM          | Sim         | Status da validação: `AGUARDANDO_VALIDACAO`, `OK`, `DIVERGENCIA`. Default: `AGUARDANDO_VALIDACAO`. |
+| `validated_by`               | UUID          | Não         | ID do usuário que validou.                                                                         |
+| `validated_at`               | TIMESTAMPTZ   | Não         | Data/hora da validação.                                                                            |
+| `validation_notes`           | TEXT          | Não         | Observações da validação por `Compras`.                                                            |
+| `sienge_synced_at`           | TIMESTAMPTZ   | Sim         | Data/hora da sincronização com o Sienge.                                                           |
+| `created_at`                 | TIMESTAMPTZ   | Sim         | Data de criação do registro.                                                                       |
+| `updated_at`                 | TIMESTAMPTZ   | Sim         | Data da última atualização.                                                                        |
 
 **Relacionamentos:**
 
@@ -97,8 +97,8 @@ Armazena cada entrega identificada a partir do Sienge.
 
 **Regras de integridade:**
 
-- `validation_status` aceita apenas `pending`, `ok`, `divergence`.
-- `validated_by` e `validated_at` devem ser preenchidos simultaneamente quando `validation_status` != `pending`.
+- `validation_status` aceita apenas `AGUARDANDO_VALIDACAO`, `OK`, `DIVERGENCIA`.
+- `validated_by` e `validated_at` devem ser preenchidos simultaneamente quando `validation_status` != `AGUARDANDO_VALIDACAO`.
 - Não deve existir registro duplicado para a mesma combinação de `purchase_order_id` + `purchase_order_item_number` + `delivery_item_number` + `attended_number` + `sequential_number` + `invoice_item_number` (constraint UNIQUE).
 
 ### 4.2 `order_status_history` — Histórico de status do pedido

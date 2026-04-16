@@ -35,7 +35,13 @@ function buildTestApp() {
 // Helper: generate a valid JWT for authenticated requests
 async function getAuthToken(
   app: ReturnType<typeof buildApp>,
-  overrides?: Partial<{ sub: string; email: string; name: string; role: UserRole; status: UserStatus }>,
+  overrides?: Partial<{
+    sub: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    status: UserStatus;
+  }>,
 ) {
   const payload = {
     sub: overrides?.sub ?? '00000000-0000-0000-0000-000000000001',

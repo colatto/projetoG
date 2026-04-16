@@ -1,10 +1,13 @@
-import { Job } from 'pg-boss';
+import PgBoss from 'pg-boss';
 
-export async function processFollowUp(job: Job) {
-  console.log(`[Job: ${job.name}] Executing Follow-up logic. ID: ${job.id}`);
+/**
+ * Follow-up logistics handler stub.
+ * Will be implemented as part of PRD-04.
+ */
+export async function processFollowUp(job: PgBoss.Job): Promise<void> {
+  console.log(`[follow-up] Executing follow-up logic. Job ID: ${job.id}`);
 
-  // TO-DO: Implementar regra de cobrança/follow-up logístico
-  // Exemplo:
-  // 1. Buscar entregas pendentes
-  // 2. Disparar notificações para os fornecedores
+  // TO-DO (PRD-04): Implement logistics follow-up rule
+  // 1. Query pending deliveries with overdue dates
+  // 2. Dispatch notifications to suppliers
 }

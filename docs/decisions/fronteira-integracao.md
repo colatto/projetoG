@@ -101,11 +101,14 @@ O objetivo é garantir que nenhuma operação fique sem dono, nenhuma seja dupli
 | Operação                                                         | Camada                                       | Justificativa                                  |
 | ---------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
 | Receber webhook (`POST /webhooks/sienge`)                        | **`apps/api`**                               | Endpoint HTTP para recebimento externo         |
-| Persistir payload em `webhook_events` (status `received`)        | `apps/api` → `supabase`                      | Persistência imediata para auditoria           |
+| Validar `x-sienge-id` / `x-sienge-event` e secret opcional       | `apps/api`                                   | Aderência ao contrato oficial do Sienge        |
+| Deduplicar entrega por `x-sienge-id`                             | `apps/api` → `supabase`                      | Idempotência antes de publicar job             |
+| Persistir payload + metadados em `webhook_events`                | `apps/api` → `supabase`                      | Auditoria com `sienge_delivery_id` e headers   |
 | Enfileirar processamento assíncrono                              | `apps/api` → **`workers/`**                  | API apenas recebe e persiste; worker processa  |
 | Processar `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`            | `workers/`                                   | Criar vínculo pedido-cotação + reconsultar API |
 | Processar `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED` | `workers/`                                   | Reconsultar status da negociação               |
 | Processar `PURCHASE_ORDER_ITEM_MODIFIED`                         | `workers/`                                   | Reconsultar itens do pedido                    |
+| Aceitar eventos oficiais sem pipeline específico                 | `workers/`                                   | ACK seguro para contratos/medições/clearing    |
 | Reconciliação webhook + API REST                                 | `workers/` via `packages/integration-sienge` | RN-08, RN-09 do PRD-07                         |
 | Atualizar `webhook_events` para `processed` / `failed`           | `workers/` → `supabase`                      |                                                |
 
@@ -151,15 +154,15 @@ O objetivo é garantir que nenhuma operação fique sem dono, nenhuma seja dupli
 
 ### 3.11 Supabase — Persistência e Controle
 
-| Operação                                       | Camada         | Tipo               |
-| ---------------------------------------------- | -------------- | ------------------ |
-| RLS por perfil em todas as tabelas de negócio  | **`supabase`** | Policy             |
-| Trigger de auditoria em ações críticas         | `supabase`     | Function + Trigger |
-| Schema `pgboss` para filas do worker           | `supabase`     | Schema auto-criado |
-| Constraints de integridade referencial         | `supabase`     | FK, UNIQUE, CHECK  |
-| `sienge_sync_cursor` — estado de sincronização | `supabase`     | Tabela             |
-| `webhook_events` — log de webhooks             | `supabase`     | Tabela             |
-| `integration_events` — log de integração       | `supabase`     | Tabela             |
+| Operação                                                    | Camada         | Tipo               |
+| ----------------------------------------------------------- | -------------- | ------------------ |
+| RLS por perfil em todas as tabelas de negócio               | **`supabase`** | Policy             |
+| Trigger de auditoria em ações críticas                      | `supabase`     | Function + Trigger |
+| Schema `pgboss` para filas do worker                        | `supabase`     | Schema auto-criado |
+| Constraints de integridade referencial                      | `supabase`     | FK, UNIQUE, CHECK  |
+| `sienge_sync_cursor` — estado de sincronização              | `supabase`     | Tabela             |
+| `webhook_events` — log de webhooks + metadados `x-sienge-*` | `supabase`     | Tabela             |
+| `integration_events` — log de integração                    | `supabase`     | Tabela             |
 
 ---
 

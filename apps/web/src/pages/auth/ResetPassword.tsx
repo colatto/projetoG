@@ -77,8 +77,7 @@ export default function ResetPassword() {
           width: '100%',
           maxWidth: '400px',
           padding: '2.5rem 2rem',
-          boxShadow:
-            '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
         }}
       >
         <div className="text-center mb-6">

@@ -50,6 +50,8 @@ Definir as regras de **mascaramento**, **formatação** e **retenção** de logs
 | `purchaseQuotationId`                  | ✅ Permitido                                   |
 | `negotiationId`, `purchaseOrderId`     | ✅ Permitido                                   |
 | `idempotency_key`                      | ✅ Permitido (UUID, sem PII)                   |
+| `x-sienge-id`, `x-sienge-hook-id`      | ✅ Permitido (identificadores técnicos)        |
+| `x-sienge-event`, `x-sienge-tenant`    | ✅ Permitido (metadados operacionais)          |
 | Valores de cotação (preço, quantidade) | ✅ Permitido em logs internos                  |
 | Status de integração                   | ✅ Permitido                                   |
 
@@ -222,7 +224,7 @@ Conforme PRDGlobal §11.5:
 
 - **Logs de aplicação:** Gerenciados pela plataforma de deploy (Vercel para API, runtime do worker). Sem infra adicional de log aggregation na V1.0.
 - **`integration_events`:** Tabela no Supabase. Implementar rotina de arquivamento quando operacional (pós-V1.0).
-- **`webhook_events`:** Idem.
+- **`webhook_events`:** Idem. Podem armazenar `sienge_delivery_id`, `sienge_hook_id`, `sienge_event` e `sienge_tenant`, desde que o `payload` continue passando por sanitização.
 - **`pgboss.archive`:** pg-boss já possui cleanup automático via `archiveCompletedAfterSeconds` (default: 12h) e `deleteAfterDays`.
 
 ### 5.2 Configuração recomendada do pg-boss para retenção

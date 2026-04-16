@@ -1,10 +1,16 @@
-import { Job } from 'pg-boss';
+/**
+ * @deprecated This generic stub has been replaced by specialized sync jobs:
+ * - sync-quotations.ts (sienge:sync-quotations)
+ * - sync-orders.ts (sienge:sync-orders)
+ * - sync-deliveries.ts (sienge:sync-deliveries)
+ *
+ * This file is kept for backward compatibility with any references.
+ * The handler is no longer registered in handlers/index.ts.
+ */
+import PgBoss from 'pg-boss';
 
-export async function processSiengePolling(job: Job) {
-  console.log(`[Job: ${job.name}] Executing Sienge Polling. ID: ${job.id}`);
-
-  // TO-DO: Implementar polling de APIs do Sienge
-  // Exemplo:
-  // 1. Chamar sienge GET /cotacoes ou /pedidos
-  // 2. Sincronizar dados locais
+export async function processSiengePolling(job: PgBoss.Job): Promise<void> {
+  console.warn(
+    `[sienge:polling] DEPRECATED: Generic polling stub invoked. Use specialized sync jobs instead. Job ID: ${job.id}`,
+  );
 }
