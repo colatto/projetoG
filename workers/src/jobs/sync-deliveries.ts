@@ -45,8 +45,20 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     .single();
 
   if (cursor?.sync_status === SyncStatus.RUNNING) {
-    console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
-    return;
+    const updatedAt = new Date(cursor.updated_at ?? 0);
+    const now = new Date();
+    const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
+
+    if (diffMins > 60) {
+      console.warn(`[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`);
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({ sync_status: SyncStatus.ERROR, error_message: 'Timeout lock' })
+        .eq('resource_type', SyncResourceType.DELIVERIES);
+    } else {
+      console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
+      return;
+    }
   }
 
   await supabase
@@ -55,20 +67,49 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     .eq('resource_type', SyncResourceType.DELIVERIES);
 
   try {
-    // ── Step 2: Fetch all deliveries attended from Sienge ────────
-    const deliveries = await invoiceClient.getDeliveriesAttended({}, context);
-    console.log(
-      `[${JOB_NAME}] Fetched ${deliveries.length} delivery records. CorrelationId: ${correlationId}`,
-    );
+    let currentOffset = cursor?.last_offset || 0;
+    let startDateFilter: string | undefined;
 
-    let processedCount = 0;
-    let errorCount = 0;
+    if (cursor?.requires_full_sync) {
+      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
+      currentOffset = 0;
+    } else if (cursor?.last_synced_at) {
+      const lastSynced = new Date(cursor.last_synced_at);
+      if (lastSynced.getTime() > 0) {
+        const startDate = new Date(lastSynced.getTime() - 60 * 60 * 1000);
+        startDateFilter = startDate.toISOString().split('T')[0];
+      }
+    }
 
-    // Track unique invoices to avoid redundant API calls
+    const pageLimit = 100;
+    let hasMore = true;
+    let totalProcessed = 0;
+    let totalErrors = 0;
+    let totalInvoices = 0;
+
     const processedInvoices = new Set<number>();
 
-    // ── Step 3: Process each delivery record ────────────────────
-    for (const delivery of deliveries) {
+    // ── Step 2: Process pages incrementally ────────────────────────
+    while (hasMore) {
+      const page = await invoiceClient.getDeliveriesAttendedPaged(
+        {
+          limit: pageLimit,
+          offset: currentOffset,
+          ...(startDateFilter ? { startDate: startDateFilter } : {}), // Some Sienge endpoints use startDate for delivery updates
+        },
+        context,
+      );
+
+      const deliveries = page.results || [];
+      console.log(
+        `[${JOB_NAME}] Fetched ${deliveries.length} delivery records (offset ${currentOffset}). CorrelationId: ${correlationId}`,
+      );
+
+      let processedCount = 0;
+      let errorCount = 0;
+
+      // ── Step 3: Process each delivery record ────────────────────
+      for (const delivery of deliveries) {
       try {
         // Upsert the delivery record
         const localDelivery = mapDeliveryAttendedToLocal(delivery);
@@ -129,8 +170,10 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
         }
 
         processedCount++;
+        totalProcessed++;
       } catch (delError: unknown) {
         errorCount++;
+        totalErrors++;
         const err = delError as { message?: string };
         console.error(
           `[${JOB_NAME}] Failed to process delivery for order ${delivery.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
@@ -155,6 +198,19 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
       );
     }
 
+      const totalCount = page.resultSetMetadata?.count ?? 0;
+      currentOffset += pageLimit;
+      hasMore = currentOffset < totalCount;
+
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({
+          last_offset: currentOffset,
+          error_message: null,
+        })
+        .eq('resource_type', SyncResourceType.DELIVERIES);
+    }
+
     // ── Step 4: Register integration event ──────────────────────
     await supabase.from('integration_events').insert({
       event_type: IntegrationEventType.SYNC_DELIVERIES,
@@ -164,10 +220,11 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
       http_status: 200,
       status: 'success',
       request_payload: sanitizeForLog({
-        total: deliveries.length,
+        startDateFilter: startDateFilter ?? null,
+        finalOffset: currentOffset,
         invoices: processedInvoices.size,
-      }),
-      response_payload: sanitizeForLog({ processed: processedCount, errors: errorCount }),
+      }) as any,
+      response_payload: sanitizeForLog({ processed: totalProcessed, errors: totalErrors }) as any,
       related_entity_type: IntegrationEntityType.INVOICE,
       retry_count: 0,
       max_retries: 5,
@@ -179,13 +236,14 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
       .update({
         sync_status: SyncStatus.IDLE,
         last_synced_at: new Date().toISOString(),
-        last_offset: deliveries.length,
+        last_offset: 0,
+        requires_full_sync: false,
         error_message: null,
       })
       .eq('resource_type', SyncResourceType.DELIVERIES);
 
     console.log(
-      `[${JOB_NAME}] Completed. Processed: ${processedCount}, Invoices: ${processedInvoices.size}, Errors: ${errorCount}. CorrelationId: ${correlationId}`,
+      `[${JOB_NAME}] Completed. Processed: ${totalProcessed}, Invoices: ${processedInvoices.size}, Errors: ${totalErrors}. CorrelationId: ${correlationId}`,
     );
   } catch (error: unknown) {
     const err = error as { message?: string };

@@ -67,14 +67,16 @@ Base inicial do projeto de automacao de cotacao, follow-up logistico e integraca
 ## Proximos passos
 
 1. ~~Escolher o gerenciador do workspace~~ **pnpm** (ADR-0003).
-2. Inicializar o monorepo com `pnpm init` + `pnpm-workspace.yaml` + `package.json` por modulo.
-3. Inicializar `apps/web` com Vite e preparar deploy na Vercel.
+2. ~~Inicializar o monorepo com `pnpm init` + `pnpm-workspace.yaml` + `package.json` por modulo.~~
+3. ~~Inicializar `apps/web` com Vite e preparar deploy na Vercel.~~
 4. ~~Definir o framework do backend em `apps/api`~~ **Fastify v5** (ADR-0002).
-5. Inicializar `apps/api` com Fastify e definir estrategia de deploy standalone.
-6. Provisionar autenticacao no Supabase (`dbGRF`).
+5. ~~Inicializar `apps/api` com Fastify e definir estrategia de deploy standalone.~~
+6. ~~Provisionar autenticacao no Supabase (`dbGRF`).~~
 7. ~~Definir a estrategia de jobs e workers~~ **Node.js + pg-boss** (ADR-0004).
-8. Modelar entidades e fluxos em `packages/domain`.
-9. Implementar a primeira fatia vertical: autenticacao, cotacao e leitura inicial do Sienge.
+8. ~~Modelar entidades e fluxos em `packages/domain`.~~
+9. ~~Implementar a primeira fatia vertical: autenticacao, cotacao e leitura inicial do Sienge.~~
+10. ~~Implementar webhook e endpoints do Sienge (Fase 1 do PRD de Integração).~~
+11. Documentar pendências e iniciar fase de Homologação Externa do Sienge.
 
 ## Decisoes tomadas
 

@@ -793,24 +793,30 @@ export type Database = {
           id: string;
           last_offset: number;
           last_synced_at: string;
+          requires_full_sync: boolean;
           resource_type: string;
           sync_status: string;
+          updated_at: string;
         };
         Insert: {
           error_message?: string | null;
           id?: string;
           last_offset?: number;
           last_synced_at?: string;
+          requires_full_sync?: boolean;
           resource_type: string;
           sync_status?: string;
+          updated_at?: string;
         };
         Update: {
           error_message?: string | null;
           id?: string;
           last_offset?: number;
           last_synced_at?: string;
+          requires_full_sync?: boolean;
           resource_type?: string;
           sync_status?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SyncResourceType } from '@projetog/domain';
+
 const listNegotiationsMock = vi.fn();
 const getCreditorByIdMock = vi.fn();
 const mapQuotationToLocalMock = vi.fn();
 const mapSupplierNegotiationsToLocalMock = vi.fn();
 const mapNegotiationItemsToLocalMock = vi.fn();
 const extractCreditorEmailMock = vi.fn();
+const mapCreditorToSupplierMock = vi.fn();
+const mapCreditorContactsMock = vi.fn();
 
 const cursorSingleMock = vi.fn();
 const cursorUpdateEqMock = vi.fn();
@@ -16,6 +20,14 @@ const supplierNegotiationsUpsertMock = vi.fn();
 const purchaseQuotationItemsUpsertMock = vi.fn();
 const supplierNegotiationItemsUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
+
+const suppliersUpsertMock = vi.fn();
+const supplierContactsUpsertMock = vi.fn();
+const supplierContactsUpdateMock = vi.fn();
+const supplierContactsInsertMock = vi.fn();
+const supplierContactsSelectMock = vi.fn();
+const supplierContactsEqMock = vi.fn();
+const supplierContactsMaybeSingleMock = vi.fn();
 
 const supabaseMock = {
   from: vi.fn((table: string) => {
@@ -34,6 +46,24 @@ const supabaseMock = {
       case 'purchase_quotations':
         return {
           upsert: purchaseQuotationsUpsertMock,
+        };
+      case 'suppliers':
+        return {
+          upsert: suppliersUpsertMock,
+        };
+      case 'supplier_contacts':
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: supplierContactsMaybeSingleMock,
+              })),
+            })),
+          })),
+          update: vi.fn(() => ({
+            eq: supplierContactsUpdateMock,
+          })),
+          insert: supplierContactsInsertMock,
         };
       case 'supplier_negotiations':
         return {
@@ -67,7 +97,7 @@ vi.mock('../sienge.js', () => ({
 
 vi.mock('@projetog/integration-sienge', () => ({
   QuotationClient: vi.fn().mockImplementation(() => ({
-    listNegotiations: listNegotiationsMock,
+    listNegotiationsPaged: listNegotiationsMock,
   })),
   CreditorClient: vi.fn().mockImplementation(() => ({
     getById: getCreditorByIdMock,
@@ -76,6 +106,8 @@ vi.mock('@projetog/integration-sienge', () => ({
   mapSupplierNegotiationsToLocal: mapSupplierNegotiationsToLocalMock,
   mapNegotiationItemsToLocal: mapNegotiationItemsToLocalMock,
   extractCreditorEmail: extractCreditorEmailMock,
+  mapCreditorToSupplier: mapCreditorToSupplierMock,
+  mapCreditorContacts: mapCreditorContactsMock,
 }));
 
 const { processSyncQuotations } = await import('./sync-quotations.js');
@@ -103,32 +135,40 @@ describe('processSyncQuotations', () => {
       select: supplierNegotiationsSelectMock,
     });
 
+    supplierContactsMaybeSingleMock.mockResolvedValue({ data: null, error: null });
+    supplierContactsInsertMock.mockResolvedValue({ error: null });
+    supplierContactsUpdateMock.mockResolvedValue({ error: null });
+    suppliersUpsertMock.mockResolvedValue({ error: null });
+
     purchaseQuotationItemsUpsertMock.mockResolvedValue({ error: null });
     supplierNegotiationItemsUpsertMock.mockResolvedValue({ error: null });
     integrationEventsInsertMock.mockResolvedValue({ error: null });
 
-    listNegotiationsMock.mockResolvedValue([
-      {
-        purchaseQuotationId: 101,
-        suppliers: [
-          {
-            supplierId: 202,
-            creditorId: 303,
-            negotiations: [
-              {
-                negotiationId: 404,
-                negotiationNumber: 505,
-                items: [
-                  {
-                    purchaseQuotationItemId: 606,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ]);
+    listNegotiationsMock.mockResolvedValue({
+      results: [
+        {
+          purchaseQuotationId: 101,
+          suppliers: [
+            {
+              supplierId: 202,
+              creditorId: 303,
+              negotiations: [
+                {
+                  negotiationId: 404,
+                  negotiationNumber: 505,
+                  items: [
+                    {
+                      purchaseQuotationItemId: 606,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      resultSetMetadata: { count: 1 },
+    });
 
     mapQuotationToLocalMock.mockReturnValue({
       id: 101,
@@ -164,6 +204,23 @@ describe('processSyncQuotations', () => {
       email: 'supplier@example.com',
       hasValidEmail: true,
     });
+
+    mapCreditorToSupplierMock.mockReturnValue({
+      id: 202,
+      creditorId: 303,
+      name: 'Supplier A',
+      tradeName: 'Supplier A LTDA',
+      accessStatus: 'ACTIVE',
+    });
+
+    mapCreditorContactsMock.mockReturnValue([
+      {
+        supplierId: 202,
+        name: 'Contact',
+        email: 'supplier@example.com',
+        isPrimary: true,
+      },
+    ]);
   });
 
   it('persists quotation item stubs and keeps negotiated values on supplier negotiation items', async () => {
@@ -193,5 +250,26 @@ describe('processSyncQuotations', () => {
         purchaseQuotationItemId: 606,
       },
     ]);
+  });
+
+  it('handles partial failures gracefully (e.g. failing to fetch creditor)', async () => {
+    getCreditorByIdMock.mockRejectedValue(new Error('Creditor API Error'));
+
+    await processSyncQuotations({ id: 'job-2' } as never);
+
+    // Upsert of the quotation itself should still happen
+    expect(purchaseQuotationsUpsertMock).toHaveBeenCalled();
+    // It should have caught the error and not thrown to the top level
+  });
+
+  it('handles total failure gracefully', async () => {
+    listNegotiationsMock.mockRejectedValue(new Error('Total API failure'));
+
+    await expect(processSyncQuotations({ id: 'job-3' } as never)).rejects.toThrow('Total API failure');
+
+    expect(purchaseQuotationsUpsertMock).not.toHaveBeenCalled();
+
+    // Assert cursor is set to error
+    expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.QUOTATIONS);
   });
 });

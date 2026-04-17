@@ -43,8 +43,20 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     .single();
 
   if (cursor?.sync_status === SyncStatus.RUNNING) {
-    console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
-    return;
+    const updatedAt = new Date(cursor.updated_at ?? 0);
+    const now = new Date();
+    const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
+
+    if (diffMins > 60) {
+      console.warn(`[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`);
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({ sync_status: SyncStatus.ERROR, error_message: 'Timeout lock' })
+        .eq('resource_type', SyncResourceType.ORDERS);
+    } else {
+      console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
+      return;
+    }
   }
 
   await supabase
@@ -53,15 +65,46 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     .eq('resource_type', SyncResourceType.ORDERS);
 
   try {
-    // ── Step 2: Fetch all purchase orders from Sienge ────────────
-    const orders = await orderClient.list({}, context);
-    console.log(`[${JOB_NAME}] Fetched ${orders.length} orders. CorrelationId: ${correlationId}`);
+    let currentOffset = cursor?.last_offset || 0;
+    let startDateFilter: string | undefined;
 
-    let processedCount = 0;
-    let errorCount = 0;
+    if (cursor?.requires_full_sync) {
+      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
+      currentOffset = 0;
+    } else if (cursor?.last_synced_at) {
+      const lastSynced = new Date(cursor.last_synced_at);
+      if (lastSynced.getTime() > 0) {
+        const startDate = new Date(lastSynced.getTime() - 60 * 60 * 1000);
+        startDateFilter = startDate.toISOString().split('T')[0];
+      }
+    }
 
-    // ── Step 3: Process each order ──────────────────────────────
-    for (const order of orders) {
+    const pageLimit = 50;
+    let hasMore = true;
+    let totalProcessed = 0;
+    let totalErrors = 0;
+
+    // ── Step 2: Process pages incrementally ────────────────────────
+    while (hasMore) {
+      const page = await orderClient.listPaged(
+        {
+          limit: pageLimit,
+          offset: currentOffset,
+          ...(startDateFilter ? { startDate: startDateFilter } : {}),
+        },
+        context,
+      );
+
+      const orders = page.results || [];
+      console.log(
+        `[${JOB_NAME}] Fetched ${orders.length} orders (offset ${currentOffset}). CorrelationId: ${correlationId}`,
+      );
+
+      let processedCount = 0;
+      let errorCount = 0;
+
+      // ── Step 3: Process each order in page ───────────────────────
+      for (const order of orders) {
       try {
         const localOrder = mapOrderToLocal(order);
 
@@ -153,13 +196,30 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
         }
 
         processedCount++;
+        totalProcessed++;
       } catch (orderError: unknown) {
         errorCount++;
+        totalErrors++;
         const err = orderError as { message?: string };
         console.error(
           `[${JOB_NAME}] Failed to process order ${order.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
         );
       }
+    }
+
+      // Check if we need to fetch more
+      const totalCount = page.resultSetMetadata?.count ?? 0;
+      currentOffset += pageLimit;
+      hasMore = currentOffset < totalCount;
+
+      // Checkpoint: save offset per page
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({
+          last_offset: currentOffset,
+          error_message: null,
+        })
+        .eq('resource_type', SyncResourceType.ORDERS);
     }
 
     // ── Step 4: Register integration event ──────────────────────
@@ -170,26 +230,27 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
       http_method: 'GET',
       http_status: 200,
       status: 'success',
-      request_payload: sanitizeForLog({ total: orders.length }),
-      response_payload: sanitizeForLog({ processed: processedCount, errors: errorCount }),
+      request_payload: sanitizeForLog({ startDateFilter: startDateFilter ?? null, finalOffset: currentOffset }) as any,
+      response_payload: sanitizeForLog({ processed: totalProcessed, errors: totalErrors }) as any,
       related_entity_type: IntegrationEntityType.ORDER,
       retry_count: 0,
       max_retries: 5,
     });
 
-    // ── Step 5: Update sync cursor ──────────────────────────────
+    // ── Step 5: Update sync cursor (Done with window) ───────────
     await supabase
       .from('sienge_sync_cursor')
       .update({
         sync_status: SyncStatus.IDLE,
         last_synced_at: new Date().toISOString(),
-        last_offset: orders.length,
+        last_offset: 0,
+        requires_full_sync: false,
         error_message: null,
       })
       .eq('resource_type', SyncResourceType.ORDERS);
 
     console.log(
-      `[${JOB_NAME}] Completed. Processed: ${processedCount}, Errors: ${errorCount}. CorrelationId: ${correlationId}`,
+      `[${JOB_NAME}] Completed. Processed: ${totalProcessed}, Errors: ${totalErrors}. CorrelationId: ${correlationId}`,
     );
   } catch (error: unknown) {
     const err = error as { message?: string };

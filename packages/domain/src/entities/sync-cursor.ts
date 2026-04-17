@@ -5,8 +5,10 @@ export interface SyncCursorProps {
   resourceType: SyncResourceType;
   lastOffset?: number;
   lastSyncedAt?: Date;
+  requiresFullSync?: boolean;
   syncStatus?: SyncStatus;
   errorMessage?: string;
+  updatedAt?: Date;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface SyncCursorProps {
  * PRD-07 §4.4
  */
 export class SyncCursor {
-  private props: Required<Pick<SyncCursorProps, 'resourceType' | 'lastOffset' | 'syncStatus'>> &
+  private props: Required<Pick<SyncCursorProps, 'resourceType' | 'lastOffset' | 'syncStatus' | 'requiresFullSync'>> &
     SyncCursorProps;
 
   constructor(props: SyncCursorProps) {
@@ -27,6 +29,7 @@ export class SyncCursor {
       lastOffset: props.lastOffset ?? 0,
       syncStatus: props.syncStatus ?? SyncStatus.IDLE,
       lastSyncedAt: props.lastSyncedAt ?? new Date(0),
+      requiresFullSync: props.requiresFullSync ?? false,
     };
   }
 
@@ -48,11 +51,17 @@ export class SyncCursor {
   get lastSyncedAt(): Date | undefined {
     return this.props.lastSyncedAt;
   }
+  get requiresFullSync(): boolean {
+    return this.props.requiresFullSync;
+  }
   get syncStatus(): SyncStatus {
     return this.props.syncStatus;
   }
   get errorMessage(): string | undefined {
     return this.props.errorMessage;
+  }
+  get updatedAt(): Date | undefined {
+    return this.props.updatedAt;
   }
 
   // ── State Transitions ─────────────────────────────────────────
@@ -103,6 +112,7 @@ export class SyncCursor {
     this.props.syncStatus = SyncStatus.IDLE;
     this.props.lastSyncedAt = new Date(0);
     this.props.errorMessage = undefined;
+    this.props.requiresFullSync = false;
   }
 
   // ── Query Helpers ─────────────────────────────────────────────
@@ -124,6 +134,7 @@ export class SyncCursor {
       resource_type: this.props.resourceType,
       last_offset: this.props.lastOffset,
       last_synced_at: this.props.lastSyncedAt?.toISOString(),
+      requires_full_sync: this.props.requiresFullSync,
       sync_status: this.props.syncStatus,
       error_message: this.props.errorMessage ?? null,
     };

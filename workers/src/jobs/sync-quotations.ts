@@ -46,8 +46,20 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
     .single();
 
   if (cursor?.sync_status === SyncStatus.RUNNING) {
-    console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
-    return;
+    const updatedAt = new Date(cursor.updated_at ?? 0);
+    const now = new Date();
+    const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
+
+    if (diffMins > 60) {
+      console.warn(`[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`);
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({ sync_status: SyncStatus.ERROR, error_message: 'Timeout lock' })
+        .eq('resource_type', SyncResourceType.QUOTATIONS);
+    } else {
+      console.warn(`[${JOB_NAME}] Sync already running. Skipping. CorrelationId: ${correlationId}`);
+      return;
+    }
   }
 
   await supabase
@@ -56,17 +68,46 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
     .eq('resource_type', SyncResourceType.QUOTATIONS);
 
   try {
-    // ── Step 2: Fetch all quotation negotiations from Sienge ───
-    const negotiations = await quotationClient.listNegotiations({}, context);
-    console.log(
-      `[${JOB_NAME}] Fetched ${negotiations.length} negotiations. CorrelationId: ${correlationId}`,
-    );
+    let currentOffset = cursor?.last_offset || 0;
+    let startDateFilter: string | undefined;
 
-    let processedCount = 0;
-    let errorCount = 0;
+    if (cursor?.requires_full_sync) {
+      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
+      currentOffset = 0;
+    } else if (cursor?.last_synced_at) {
+      const lastSynced = new Date(cursor.last_synced_at);
+      if (lastSynced.getTime() > 0) {
+        const startDate = new Date(lastSynced.getTime() - 60 * 60 * 1000);
+        startDateFilter = startDate.toISOString().split('T')[0];
+      }
+    }
 
-    // ── Step 3: Process each negotiation ────────────────────────
-    for (const negotiation of negotiations) {
+    const pageLimit = 50;
+    let hasMore = true;
+    let totalProcessed = 0;
+    let totalErrors = 0;
+
+    // ── Step 2: Process pages incrementally ────────────────────────
+    while (hasMore) {
+      const page = await quotationClient.listNegotiationsPaged(
+        {
+          limit: pageLimit,
+          offset: currentOffset,
+          ...(startDateFilter ? { startDate: startDateFilter } : {}),
+        },
+        context,
+      );
+
+      const negotiations = page.results || [];
+      console.log(
+        `[${JOB_NAME}] Fetched ${negotiations.length} negotiations (offset ${currentOffset}). CorrelationId: ${correlationId}`,
+      );
+
+      let processedCount = 0;
+      let errorCount = 0;
+
+      // ── Step 3: Process each negotiation ────────────────────────
+      for (const negotiation of negotiations) {
       try {
         const localQuotation = mapQuotationToLocal(negotiation);
 
@@ -219,13 +260,28 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
         }
 
         processedCount++;
+        totalProcessed++;
       } catch (negError: unknown) {
         errorCount++;
+        totalErrors++;
         const err = negError as { message?: string };
         console.error(
           `[${JOB_NAME}] Failed to process quotation ${negotiation.purchaseQuotationId}: ${err.message}. CorrelationId: ${correlationId}`,
         );
       }
+    }
+
+      const totalCount = page.resultSetMetadata?.count ?? 0;
+      currentOffset += pageLimit;
+      hasMore = currentOffset < totalCount;
+
+      await supabase
+        .from('sienge_sync_cursor')
+        .update({
+          last_offset: currentOffset,
+          error_message: null,
+        })
+        .eq('resource_type', SyncResourceType.QUOTATIONS);
     }
 
     // ── Step 4: Register integration event ──────────────────────
@@ -235,9 +291,12 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
       endpoint: '/purchase-quotations/all/negotiations',
       http_method: 'GET',
       http_status: 200,
-      status: errorCount === 0 ? 'success' : 'failure',
-      request_payload: sanitizeForLog({ total: negotiations.length }),
-      response_payload: sanitizeForLog({ processed: processedCount, errors: errorCount }),
+      status: totalErrors === 0 ? 'success' : 'failure',
+      request_payload: sanitizeForLog({
+        startDateFilter: startDateFilter ?? null,
+        finalOffset: currentOffset,
+      }) as any,
+      response_payload: sanitizeForLog({ processed: totalProcessed, errors: totalErrors }) as any,
       related_entity_type: IntegrationEntityType.QUOTATION,
       retry_count: 0,
       max_retries: 5,
@@ -249,13 +308,14 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
       .update({
         sync_status: SyncStatus.IDLE,
         last_synced_at: new Date().toISOString(),
-        last_offset: negotiations.length,
+        last_offset: 0,
+        requires_full_sync: false,
         error_message: null,
       })
       .eq('resource_type', SyncResourceType.QUOTATIONS);
 
     console.log(
-      `[${JOB_NAME}] Completed. Processed: ${processedCount}, Errors: ${errorCount}. CorrelationId: ${correlationId}`,
+      `[${JOB_NAME}] Completed. Processed: ${totalProcessed}, Errors: ${totalErrors}. CorrelationId: ${correlationId}`,
     );
   } catch (error: unknown) {
     const err = error as { message?: string };

@@ -47,8 +47,9 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
     const { results } = await quotationClient.listNegotiationsPaged({ supplierId: payload.supplierId }, context);
 
     const quotationList = results.find((q) => q.purchaseQuotationId === payload.purchaseQuotationId);
+    const supplierData = quotationList?.suppliers?.find((s) => s.supplierId === payload.supplierId);
 
-    if (!quotationList) {
+    if (!quotationList || !supplierData) {
       // PRD-07 §9.9 (RN-10): Fornecedor inválido no mapa de cotação.
       await supabase.from('integration_events').update({
         status: IntegrationEventStatus.FAILURE,
@@ -64,11 +65,6 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
 
       console.warn(`[${JOB_NAME}] Supplier ${payload.supplierId} invalid in quotation ${payload.purchaseQuotationId}.`);
       return; 
-    }
-
-    const supplierData = quotationList.suppliers?.find((s) => s.supplierId === payload.supplierId);
-    if (!supplierData) {
-      throw new Error(`Supplier ${payload.supplierId} not found inside the API quotation suppliers map.`);
     }
 
     let negotiationNumber: number | null = null;

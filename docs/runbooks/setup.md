@@ -55,10 +55,30 @@ Usar `.env.example` como referencia obrigatoria durante o bootstrap.
 Minimo esperado por modulo:
 
 - `apps/web`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`;
-- `apps/api`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SIENGE_BASE_URL`, `SIENGE_API_KEY`, `JWT_SECRET`, `PORT`, `NODE_ENV`;
+- `apps/api`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SIENGE_BASE_URL`, `SIENGE_API_KEY`, `JWT_SECRET`, `PORT`, `NODE_ENV`, `SIENGE_WEBHOOK_SECRET` (segredo para validação de webhooks - deve residir unicamente no ambiente/nuvem);
 - `workers/`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SIENGE_BASE_URL`, `SIENGE_API_KEY` e a string de conexao PostgreSQL usada pelo runtime de jobs.
 
-Preferir `.env` fragmentado por modulo (`apps/web/.env`, `apps/api/.env`, `workers/.env`) para evitar exposicao acidental de segredos do backend ao processo do frontend.
+## Rotacao de Credenciais e Segredos (API Sienge)
+
+A integração baseia-se em `sienge_credentials`. Estas credenciais ficam criptografadas em repouso no banco. Para rotacionar:
+
+1. O perfil **Administrador** deve atualizar as credenciais via interface de Backoffice.
+2. O sistema persistirá os novos dados (`api_user`, `api_password`) de forma segura.
+3. Não há necessidade de restart da aplicação, as próximas chamadas aos clientes Sienge utilizarão a nova credencial ativa.
+4. Para a variável de ambiente `SIENGE_WEBHOOK_SECRET`, atualize a secret na Vercel/Infraestrutura e reinicie a aplicação (`apps/api`).
+
+## Endpoints Expostos e Portas
+
+- **API de Integração (Webhooks)**: O endpoint `POST /webhooks/sienge` é exposto publicamente para o Sienge.
+- **Performance e Timeout**: É exigido um tempo máximo de resposta de `2,5s` para os webhooks do Sienge. A API deve apenas persistir o payload e fazer `ACK` assíncrono para os workers processarem.
+- **Firewall/WAF**: Recomenda-se permitir apenas os IPs conhecidos do Sienge (se fornecidos) para a rota `/webhooks/sienge`.
+
+## Jobs e Cronjobs (Workers)
+
+A arquitetura de sincronização assíncrona com o Sienge baseia-se em schedulers gerenciados pelo `pg-boss` no módulo `workers/`:
+
+- **Sincronizações de Leitura (Inbound)**: Schedulers (ex: `sienge:polling`) são ativados periodicamente para buscar atualizações em background de credores, pedidos, cotações e notas fiscais.
+- **Retentativas de Falhas (Retry)**: O job dedicado `integration:retry` é responsável por buscar e processar as retentativas de falha de integração. Este cronjob garante que as falhas operacionais temporárias nas requisições outbound sejam reprocessadas respeitando os intervalos estritos de 24 horas definidos na RN-13.
 
 ## Validacoes antes de codificar integracoes
 
