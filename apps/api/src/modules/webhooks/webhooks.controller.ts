@@ -95,7 +95,7 @@ export class WebhookController {
 
     const webhookEventRecord = new WebhookEvent({
       webhookType: type,
-      payload: data,
+      payload: body,
       siengeDeliveryId,
       siengeHookId,
       siengeEvent,
@@ -108,7 +108,7 @@ export class WebhookController {
         siengeDeliveryId,
         siengeHookId,
         siengeTenant,
-        payload: sanitizeForLog(data),
+        payload: sanitizeForLog(body),
       },
       'Webhook received from Sienge',
     );
@@ -126,7 +126,7 @@ export class WebhookController {
         status: webhookEventRecord.status as string,
         processed_at: webhookEventRecord.processed_at as string | null,
         error_message: webhookEventRecord.error_message as string | null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       .select('id')
       .single();
@@ -149,8 +149,7 @@ export class WebhookController {
       http_status: 200,
       status: 'success',
       request_payload: sanitizeForLog({
-        type,
-        data,
+        ...body,
         siengeDeliveryId,
         siengeHookId,
         siengeTenant,

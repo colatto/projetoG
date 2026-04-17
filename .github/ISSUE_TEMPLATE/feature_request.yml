@@ -1,0 +1,32 @@
+name: Feature request
+description: Registrar melhoria funcional ou técnica
+title: '[Feature] '
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Qual problema de negócio ou engenharia esta mudança resolve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Descreva a solução desejada.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Defina comportamento esperado, testes e evidências.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Riscos e dependências
+      description: Liste impactos em segurança, performance, rollout e documentação.

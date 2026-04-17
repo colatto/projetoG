@@ -6,6 +6,8 @@
     "prepare": "husky",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "security:secrets": "node scripts/check-no-secrets.mjs",
+    "security:audit": "pnpm audit",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "db:login": "pnpm dlx supabase login",
@@ -18,5 +20,12 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "@fastify/static": "9.1.1",
+      "fast-jwt": "6.2.1",
+      "follow-redirects": "1.16.0"
+    }
   }
 }

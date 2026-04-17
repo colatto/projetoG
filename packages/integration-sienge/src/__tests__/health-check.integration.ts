@@ -102,13 +102,21 @@ async function runHealthCheck(): Promise<void> {
     process.exit(1);
   }
 
-  // Step 4: Test a quotation-related endpoint - GET /purchase-quotations/all/negotiations?limit=1
-  console.log('\n🌐 Testing quotations: GET /purchase-quotations/all/negotiations?limit=1');
+  // Step 4: Test a quotation-related endpoint with an explicit date window
+  const today = new Date();
+  const sixMonthsAgo = new Date(today);
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const startDate = sixMonthsAgo.toISOString().split('T')[0];
+  const endDate = today.toISOString().split('T')[0];
+
+  console.log(
+    `\n🌐 Testing quotations: GET /purchase-quotations/all/negotiations?startDate=${startDate}&endDate=${endDate}&limit=1`,
+  );
   try {
     const result = await client.get<Record<string, unknown>>(
       '/purchase-quotations/all/negotiations',
       { correlationId: 'health-check-quotations', source: 'unknown' },
-      { params: { limit: 1 } },
+      { params: { startDate, endDate, limit: 1 } },
     );
     console.log('   ✅ Quotations endpoint accessible!');
 

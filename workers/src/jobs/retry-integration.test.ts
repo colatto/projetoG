@@ -51,7 +51,7 @@ describe('processRetryIntegration', () => {
     expect(bossMocks.send).toHaveBeenCalledWith(
       'sienge:outbound-negotiation',
       { foo: 'bar', integrationEventId: 'event-1', actorId: 'system-retry' },
-      { retryLimit: 0, expireInHours: 1 }
+      { retryLimit: 0, expireInHours: 1 },
     );
 
     // Assert status update
@@ -101,7 +101,7 @@ describe('processRetryIntegration', () => {
     await processRetryIntegration({ id: 'job-4' } as never);
 
     expect(bossMocks.send).toHaveBeenCalledTimes(2);
-    
+
     // Only the successful one should be updated
     expect(getTableMocks('integration_events').updateEq).toHaveBeenCalledTimes(1);
     expect(getTableMocks('integration_events').updateEq).toHaveBeenCalledWith('id', 'event-4');

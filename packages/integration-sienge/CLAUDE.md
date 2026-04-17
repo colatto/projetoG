@@ -1,23 +1,20 @@
-# Contexto da Integracao Sienge
+# Contexto da Integração Sienge
 
 ## Objetivo
 
-Concentrar os adaptadores e fluxos de integracao com o Sienge.
+Concentrar o cliente técnico do ERP e os adaptadores reutilizáveis por API e workers.
 
-## Escopo inicial
+## Conteúdo real hoje
 
-- leitura de cotacoes;
-- leitura cadastral de fornecedores;
-- leitura de pedidos;
-- leitura de entregas e notas fiscais;
-- escrita controlada da resposta de cotacao;
-- tratamento de webhooks como gatilho de sincronizacao.
+- `SiengeClient` com retry, rate limit e paginação
+- clientes de `quotation`, `order`, `invoice`, `creditor`, `delivery-requirement` e `negotiation`
+- mapeadores de credor, cotação, pedido, invoice e negociação
+- criptografia/descriptografia para credenciais Sienge
+- testes unitários e testes de integração live
 
 ## Regras locais
 
-- webhook dispara sincronizacao, mas nao substitui leitura detalhada por API;
-- respostas de cotacao so podem ser escritas apos aprovacao de `Compras`;
-- cada chamada deve registrar contexto tecnico para auditoria e suporte;
-- falhas devem permitir retry e reprocessamento controlado;
-- os adaptadores devem poder ser consumidos por `apps/api` e pela camada de workers sem duplicar logica;
-- infraestrutura base HTTP já inicializada e centralizada na classe `SiengeClient` (com limites de retry e mascaramento de logs estritos).
+- escrita outbound só acontece após aprovação de `Compras`
+- POSTs não dependem de retry HTTP automático
+- logs devem mascarar credenciais e dados sensíveis
+- contratos não homologados devem permanecer explicitamente marcados em documentação e testes live

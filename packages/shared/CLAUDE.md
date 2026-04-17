@@ -2,17 +2,14 @@
 
 ## Objetivo
 
-Manter artefatos reutilizaveis entre frontend, API dedicada e jobs.
+Manter contratos leves e reutilizáveis entre frontend, API e workers.
 
-## Conteudo esperado
+## Conteúdo real hoje
 
-- tipos compartilhados;
-- enums publicos;
-- schemas;
-- contratos de API interna;
-- utilitarios de data, moeda e formatacao;
-- constantes de status e perfil.
+- `database.types.ts` gerado a partir do Supabase
+- schemas Zod de auth, usuários e integração
+- utilitário `sanitizeForLog`
 
 ## Regra local
 
-Nao colocar regra de negocio complexa aqui. O foco e reutilizacao segura.
+Não adicionar regra de negócio complexa aqui. Este pacote é para DTOs, schemas, tipos e utilidades compartilhadas.

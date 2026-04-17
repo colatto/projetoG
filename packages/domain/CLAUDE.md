@@ -1,27 +1,15 @@
-# Contexto do Dominio
+# Contexto do Domínio
 
 ## Objetivo
 
-Centralizar o nucleo de negocio independente de framework.
+Centralizar tipos e entidades nucleares independentes de framework.
 
-## Subdominios esperados
+## Conteúdo real hoje
 
-- autenticacao e acesso;
-- cotacao;
-- resposta de cotacao;
-- pedido e follow-up;
-- entrega;
-- avaria;
-- notificacao;
-- auditoria;
-- integracao.
+- enums de usuário, webhook, integração e sync
+- entidades `User`, `AuditLog`, `IntegrationEvent`, `WebhookEvent`, `SyncCursor`
+- tipo `OutboundNegotiationPayload`
 
-## Regra de ouro
+## Observação importante
 
-Se uma regra do PRD define comportamento operacional, ela deve nascer aqui ou ser claramente orquestrada por esta camada.
-
-## Referencias <!-- atualizado -->
-
-- Entidades centrais e identificadores minimos persistidos: ver secao `## Entidades centrais` e `## Identificadores minimos persistidos` no `CLAUDE.md` raiz.
-- Fonte de verdade de produto: `PRDGlobal.md`.
-- PRDs de modulo por subdominio: `docs/prd/` (prd-01 a prd-09).
+O pacote ainda não concentra toda a regra operacional do produto. Parte da orquestração de negócio continua distribuída entre `apps/api` e `workers`. Toda nova regra reutilizável deve preferencialmente migrar para cá.

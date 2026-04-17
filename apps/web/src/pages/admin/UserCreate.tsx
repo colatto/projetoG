@@ -35,9 +35,10 @@ export default function UserCreate() {
       navigate('/admin/users', {
         state: { message: 'Usuário criado com sucesso. O e-mail de acesso foi enviado.' },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       setApiError(
-        error.response?.data?.message || 'Falha ao provisionar usuário. Verifique os dados.',
+        err.response?.data?.message || 'Falha ao provisionar usuário. Verifique os dados.',
       );
     }
   };

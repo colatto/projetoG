@@ -717,11 +717,16 @@ export type Database = {
           buyer_id: string | null;
           consistency: string | null;
           created_at: string | null;
+          end_at: string | null;
           end_date: string | null;
           id: number;
           local_status: string;
+          public_id: string | null;
           quotation_date: string | null;
+          raw_payload: Json | null;
           response_date: string | null;
+          sent_at: string | null;
+          sent_by: string | null;
           sienge_status: string | null;
           updated_at: string | null;
         };
@@ -729,11 +734,16 @@ export type Database = {
           buyer_id?: string | null;
           consistency?: string | null;
           created_at?: string | null;
+          end_at?: string | null;
           end_date?: string | null;
           id: number;
           local_status?: string;
+          public_id?: string | null;
           quotation_date?: string | null;
+          raw_payload?: Json | null;
           response_date?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
           sienge_status?: string | null;
           updated_at?: string | null;
         };
@@ -741,15 +751,243 @@ export type Database = {
           buyer_id?: string | null;
           consistency?: string | null;
           created_at?: string | null;
+          end_at?: string | null;
           end_date?: string | null;
           id?: number;
           local_status?: string;
+          public_id?: string | null;
           quotation_date?: string | null;
+          raw_payload?: Json | null;
           response_date?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
           sienge_status?: string | null;
           updated_at?: string | null;
         };
         Relationships: [];
+      };
+      quotation_response_item_deliveries: {
+        Row: {
+          created_at: string | null;
+          delivery_date: string;
+          delivery_number: number;
+          delivery_quantity: number;
+          id: string;
+          quotation_response_item_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          delivery_date: string;
+          delivery_number: number;
+          delivery_quantity: number;
+          id?: string;
+          quotation_response_item_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          delivery_date?: string;
+          delivery_number?: number;
+          delivery_quantity?: number;
+          id?: string;
+          quotation_response_item_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'quotation_response_item_deliveries_quotation_response_item_id_fkey';
+            columns: ['quotation_response_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'quotation_response_items';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      quotation_response_items: {
+        Row: {
+          created_at: string | null;
+          discount: number | null;
+          discount_percentage: number | null;
+          freight_unit_price: number | null;
+          icms_tax_percentage: number | null;
+          id: string;
+          increase_percentage: number | null;
+          internal_notes: string | null;
+          ipi_tax_percentage: number | null;
+          iss_tax_percentage: number | null;
+          negotiated_quantity: number;
+          purchase_quotation_item_id: number;
+          quotation_item_number: number;
+          quotation_response_id: string;
+          quoted_quantity: number;
+          selected_option: boolean | null;
+          supplier_notes: string | null;
+          trademark_id: number | null;
+          detail_id: number | null;
+          unit_price: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          discount?: number | null;
+          discount_percentage?: number | null;
+          freight_unit_price?: number | null;
+          icms_tax_percentage?: number | null;
+          id?: string;
+          increase_percentage?: number | null;
+          internal_notes?: string | null;
+          ipi_tax_percentage?: number | null;
+          iss_tax_percentage?: number | null;
+          negotiated_quantity: number;
+          purchase_quotation_item_id: number;
+          quotation_item_number: number;
+          quotation_response_id: string;
+          quoted_quantity: number;
+          selected_option?: boolean | null;
+          supplier_notes?: string | null;
+          trademark_id?: number | null;
+          detail_id?: number | null;
+          unit_price: number;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          discount?: number | null;
+          discount_percentage?: number | null;
+          freight_unit_price?: number | null;
+          icms_tax_percentage?: number | null;
+          id?: string;
+          increase_percentage?: number | null;
+          internal_notes?: string | null;
+          ipi_tax_percentage?: number | null;
+          iss_tax_percentage?: number | null;
+          negotiated_quantity?: number;
+          purchase_quotation_item_id?: number;
+          quotation_item_number?: number;
+          quotation_response_id?: string;
+          quoted_quantity?: number;
+          selected_option?: boolean | null;
+          supplier_notes?: string | null;
+          trademark_id?: number | null;
+          detail_id?: number | null;
+          unit_price?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'quotation_response_items_quotation_response_id_fkey';
+            columns: ['quotation_response_id'];
+            isOneToOne: false;
+            referencedRelation: 'quotation_responses';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'quotation_response_items_purchase_quotation_item_id_fkey';
+            columns: ['purchase_quotation_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_quotation_items';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      quotation_responses: {
+        Row: {
+          apply_ipi_freight: boolean | null;
+          created_at: string;
+          discount: number | null;
+          freight_price: number | null;
+          freight_type: string | null;
+          freight_type_for_order: string | null;
+          id: string;
+          integration_attempts: number;
+          integration_status: string;
+          internal_notes: string | null;
+          last_integration_at: string | null;
+          last_integration_error: string | null;
+          other_expenses: number | null;
+          payment_terms: string | null;
+          review_notes: string | null;
+          review_status: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          seller: string | null;
+          sienge_negotiation_number: number | null;
+          submitted_at: string;
+          submitted_by: string | null;
+          supplier_answer_date: string;
+          supplier_negotiation_id: string;
+          supplier_notes: string | null;
+          updated_at: string;
+          validity: string | null;
+          version: number;
+        };
+        Insert: {
+          apply_ipi_freight?: boolean | null;
+          created_at?: string;
+          discount?: number | null;
+          freight_price?: number | null;
+          freight_type?: string | null;
+          freight_type_for_order?: string | null;
+          id?: string;
+          integration_attempts?: number;
+          integration_status?: string;
+          internal_notes?: string | null;
+          last_integration_at?: string | null;
+          last_integration_error?: string | null;
+          other_expenses?: number | null;
+          payment_terms?: string | null;
+          review_notes?: string | null;
+          review_status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          seller?: string | null;
+          sienge_negotiation_number?: number | null;
+          submitted_at?: string;
+          submitted_by?: string | null;
+          supplier_answer_date: string;
+          supplier_negotiation_id: string;
+          supplier_notes?: string | null;
+          updated_at?: string;
+          validity?: string | null;
+          version: number;
+        };
+        Update: {
+          apply_ipi_freight?: boolean | null;
+          created_at?: string;
+          discount?: number | null;
+          freight_price?: number | null;
+          freight_type?: string | null;
+          freight_type_for_order?: string | null;
+          id?: string;
+          integration_attempts?: number;
+          integration_status?: string;
+          internal_notes?: string | null;
+          last_integration_at?: string | null;
+          last_integration_error?: string | null;
+          other_expenses?: number | null;
+          payment_terms?: string | null;
+          review_notes?: string | null;
+          review_status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          seller?: string | null;
+          sienge_negotiation_number?: number | null;
+          submitted_at?: string;
+          submitted_by?: string | null;
+          supplier_answer_date?: string;
+          supplier_negotiation_id?: string;
+          supplier_notes?: string | null;
+          updated_at?: string;
+          validity?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'quotation_responses_supplier_negotiation_id_fkey';
+            columns: ['supplier_negotiation_id'];
+            isOneToOne: false;
+            referencedRelation: 'supplier_negotiations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       sienge_credentials: {
         Row: {
@@ -905,11 +1143,14 @@ export type Database = {
       };
       supplier_negotiations: {
         Row: {
+          closed_order_id: number | null;
           created_at: string | null;
           delivery_date: string | null;
           id: string;
+          latest_response_id: string | null;
           purchase_quotation_id: number;
           read_at: string | null;
+          sent_at: string | null;
           sienge_negotiation_id: number | null;
           sienge_negotiation_number: number | null;
           status: string;
@@ -918,11 +1159,14 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
+          closed_order_id?: number | null;
           created_at?: string | null;
           delivery_date?: string | null;
           id?: string;
+          latest_response_id?: string | null;
           purchase_quotation_id: number;
           read_at?: string | null;
+          sent_at?: string | null;
           sienge_negotiation_id?: number | null;
           sienge_negotiation_number?: number | null;
           status?: string;
@@ -931,11 +1175,14 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
+          closed_order_id?: number | null;
           created_at?: string | null;
           delivery_date?: string | null;
           id?: string;
+          latest_response_id?: string | null;
           purchase_quotation_id?: number;
           read_at?: string | null;
+          sent_at?: string | null;
           sienge_negotiation_id?: number | null;
           sienge_negotiation_number?: number | null;
           status?: string;

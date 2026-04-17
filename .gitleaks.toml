@@ -1,0 +1,11 @@
+title = "projetoG gitleaks baseline"
+
+[allowlist]
+description = "Arquivos de exemplo e fixtures permitidos"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)workers/\.env\.example$''',
+  '''(^|/)apps/api/\.env\.example$''',
+  '''(^|/)docs/''',
+  '''(^|/)packages/.*/__tests__/''',
+]

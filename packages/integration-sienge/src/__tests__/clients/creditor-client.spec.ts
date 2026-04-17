@@ -88,18 +88,15 @@ describe('CreditorClient', () => {
           { email: 'other@example.com' },
         ],
       } as unknown as SiengeCreditor;
-      
+
       expect(creditorClient.extractPrimaryEmail(creditor)).toBe('test@example.com');
     });
 
     it('should return null if no valid email in contacts', () => {
       const creditor = {
-        contacts: [
-          { email: '  ' },
-          { email: null as any },
-        ],
+        contacts: [{ email: '  ' }, { email: null as any }],
       } as unknown as SiengeCreditor;
-      
+
       expect(creditorClient.extractPrimaryEmail(creditor)).toBeNull();
     });
   });

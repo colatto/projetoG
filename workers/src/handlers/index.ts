@@ -7,6 +7,7 @@ import { processSiengeReconcile } from '../jobs/sienge-reconcile.js';
 import { processRetryIntegration } from '../jobs/retry-integration.js';
 import { processWebhook } from '../jobs/process-webhook.js';
 import { processOutboundNegotiation } from '../jobs/outbound-negotiation.js';
+import { processQuotationExpireCheck } from '../jobs/quotation-expire-check.js';
 
 /**
  * Job retry/expiration configuration per fronteira-integracao.md §9.3, Camada 2.
@@ -42,6 +43,12 @@ const SEND_OPTIONS = {
     retryBackoff: true,
     expireInHours: 1,
   },
+  quotationExpireCheck: {
+    retryLimit: 2,
+    retryDelay: 120,
+    retryBackoff: true,
+    expireInHours: 4,
+  },
 } as const;
 
 /**
@@ -68,13 +75,18 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
 
   // Outbound negotiation — writing approved quotation to Sienge
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  await boss.work<any>('sienge:outbound-negotiation', async (job) => processOutboundNegotiation(job));
+  await boss.work<any>('sienge:outbound-negotiation', async (job) =>
+    processOutboundNegotiation(job),
+  );
 
   // Retry — business-layer retry cron (stub, Sprint 7)
   await boss.work<object>('integration:retry', async (job) => processRetryIntegration(job));
 
   // Follow-up — logistics follow-up (stub, PRD-04)
   await boss.work<object>('follow-up', async (job) => processFollowUp(job));
+
+  // Quotation expire check — PRD-02 §6.6
+  await boss.work<object>('quotation:expire-check', async (job) => processQuotationExpireCheck(job));
 
   // ── Schedule cron jobs ────────────────────────────────────────
   // Uses singletonKey to prevent duplicate runs when cron fires before
@@ -114,6 +126,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     '0 11 * * *', // Daily at 08:00 BRT (11:00 UTC)
     {},
     { singletonKey: 'follow-up:singleton', ...SEND_OPTIONS.followUp },
+  );
+
+  await boss.schedule(
+    'quotation:expire-check',
+    '15 11 * * *', // Daily at 08:15 BRT (11:15 UTC)
+    {},
+    { singletonKey: 'quotation:expire-check:singleton', ...SEND_OPTIONS.quotationExpireCheck },
   );
 
   console.log('[handlers] All job handlers registered and cron schedules configured.');

@@ -48,7 +48,9 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
 
     if (diffMins > 60) {
-      console.warn(`[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`);
+      console.warn(
+        `[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`,
+      );
       await supabase
         .from('sienge_sync_cursor')
         .update({ sync_status: SyncStatus.ERROR, error_message: 'Timeout lock' })
@@ -100,112 +102,107 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
         `[${JOB_NAME}] Fetched ${orders.length} orders (offset ${currentOffset}). CorrelationId: ${correlationId}`,
       );
 
-      let processedCount = 0;
-      let errorCount = 0;
-
       // ── Step 3: Process each order in page ───────────────────────
       for (const order of orders) {
-      try {
-        const localOrder = mapOrderToLocal(order);
-
-        // Upsert order
-        await supabase.from('purchase_orders').upsert(
-          {
-            id: localOrder.id,
-            formatted_purchase_order_id: localOrder.formattedPurchaseOrderId,
-            supplier_id: localOrder.supplierId,
-            buyer_id: localOrder.buyerId,
-            building_id: localOrder.buildingId,
-            sienge_status: localOrder.siengeStatus,
-            local_status: localOrder.localStatus,
-            authorized: localOrder.authorized,
-            disapproved: localOrder.disapproved,
-            delivery_late: localOrder.deliveryLate,
-            consistent: localOrder.consistent,
-            date: localOrder.date,
-          },
-          { onConflict: 'id' },
-        );
-
-        // Fetch and upsert order items
         try {
-          const items = await orderClient.getItems(order.purchaseOrderId, context);
-          const localItems = mapOrderItemsToLocal(order.purchaseOrderId, items);
+          const localOrder = mapOrderToLocal(order);
 
-          for (const item of localItems) {
-            await supabase.from('purchase_order_items').upsert(
-              {
-                purchase_order_id: item.purchaseOrderId,
-                item_number: item.itemNumber,
-                quantity: item.quantity,
-                unit_price: item.unitPrice,
-                purchase_quotation_id: item.purchaseQuotationId,
-                purchase_quotation_item_id: item.purchaseQuotationItemId,
-              },
-              { onConflict: 'purchase_order_id,item_number' },
-            );
+          // Upsert order
+          await supabase.from('purchase_orders').upsert(
+            {
+              id: localOrder.id,
+              formatted_purchase_order_id: localOrder.formattedPurchaseOrderId,
+              supplier_id: localOrder.supplierId,
+              buyer_id: localOrder.buyerId,
+              building_id: localOrder.buildingId,
+              sienge_status: localOrder.siengeStatus,
+              local_status: localOrder.localStatus,
+              authorized: localOrder.authorized,
+              disapproved: localOrder.disapproved,
+              delivery_late: localOrder.deliveryLate,
+              consistent: localOrder.consistent,
+              date: localOrder.date,
+            },
+            { onConflict: 'id' },
+          );
 
-            // Fetch delivery schedules for each item (RN-11: respects Sienge typo)
-            try {
-              const schedules = await orderClient.getDeliverySchedules(
-                order.purchaseOrderId,
-                item.itemNumber,
-                context,
+          // Fetch and upsert order items
+          try {
+            const items = await orderClient.getItems(order.purchaseOrderId, context);
+            const localItems = mapOrderItemsToLocal(order.purchaseOrderId, items);
+
+            for (const item of localItems) {
+              await supabase.from('purchase_order_items').upsert(
+                {
+                  purchase_order_id: item.purchaseOrderId,
+                  item_number: item.itemNumber,
+                  quantity: item.quantity,
+                  unit_price: item.unitPrice,
+                  purchase_quotation_id: item.purchaseQuotationId,
+                  purchase_quotation_item_id: item.purchaseQuotationItemId,
+                },
+                { onConflict: 'purchase_order_id,item_number' },
               );
-              const localSchedules = mapDeliverySchedulesToLocal(
-                order.purchaseOrderId,
-                item.itemNumber,
-                schedules,
-              );
 
-              for (const schedule of localSchedules) {
-                await supabase.from('delivery_schedules').upsert(
-                  {
-                    purchase_order_id: schedule.purchaseOrderId,
-                    item_number: schedule.itemNumber,
-                    scheduled_date: schedule.scheduledDate,
-                    scheduled_quantity: schedule.scheduledQuantity,
-                  },
-                  { onConflict: 'purchase_order_id,item_number,scheduled_date' },
+              // Fetch delivery schedules for each item (RN-11: respects Sienge typo)
+              try {
+                const schedules = await orderClient.getDeliverySchedules(
+                  order.purchaseOrderId,
+                  item.itemNumber,
+                  context,
+                );
+                const localSchedules = mapDeliverySchedulesToLocal(
+                  order.purchaseOrderId,
+                  item.itemNumber,
+                  schedules,
+                );
+
+                for (const schedule of localSchedules) {
+                  await supabase.from('delivery_schedules').upsert(
+                    {
+                      purchase_order_id: schedule.purchaseOrderId,
+                      item_number: schedule.itemNumber,
+                      scheduled_date: schedule.scheduledDate,
+                      scheduled_quantity: schedule.scheduledQuantity,
+                    },
+                    { onConflict: 'purchase_order_id,item_number,scheduled_date' },
+                  );
+                }
+              } catch (schedError: unknown) {
+                const err = schedError as { message?: string };
+                console.warn(
+                  `[${JOB_NAME}] Failed to fetch schedules for order ${order.purchaseOrderId} item ${item.itemNumber}: ${err.message}`,
                 );
               }
-            } catch (schedError: unknown) {
-              const err = schedError as { message?: string };
-              console.warn(
-                `[${JOB_NAME}] Failed to fetch schedules for order ${order.purchaseOrderId} item ${item.itemNumber}: ${err.message}`,
-              );
             }
+          } catch (itemsError: unknown) {
+            const err = itemsError as { message?: string };
+            console.warn(
+              `[${JOB_NAME}] Failed to fetch items for order ${order.purchaseOrderId}: ${err.message}`,
+            );
           }
-        } catch (itemsError: unknown) {
-          const err = itemsError as { message?: string };
-          console.warn(
-            `[${JOB_NAME}] Failed to fetch items for order ${order.purchaseOrderId}: ${err.message}`,
+
+          // Extract order→quotation links (§9.6)
+          const links = extractOrderQuotationLinks(order);
+          for (const link of links) {
+            await supabase.from('order_quotation_links').upsert(
+              {
+                purchase_order_id: link.purchaseOrderId,
+                purchase_quotation_id: link.purchaseQuotationId,
+              },
+              { onConflict: 'purchase_order_id,purchase_quotation_id' },
+            );
+          }
+
+          totalProcessed++;
+        } catch (orderError: unknown) {
+          totalErrors++;
+          const err = orderError as { message?: string };
+          console.error(
+            `[${JOB_NAME}] Failed to process order ${order.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
           );
         }
-
-        // Extract order→quotation links (§9.6)
-        const links = extractOrderQuotationLinks(order);
-        for (const link of links) {
-          await supabase.from('order_quotation_links').upsert(
-            {
-              purchase_order_id: link.purchaseOrderId,
-              purchase_quotation_id: link.purchaseQuotationId,
-            },
-            { onConflict: 'purchase_order_id,purchase_quotation_id' },
-          );
-        }
-
-        processedCount++;
-        totalProcessed++;
-      } catch (orderError: unknown) {
-        errorCount++;
-        totalErrors++;
-        const err = orderError as { message?: string };
-        console.error(
-          `[${JOB_NAME}] Failed to process order ${order.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
-        );
       }
-    }
 
       // Check if we need to fetch more
       const totalCount = page.resultSetMetadata?.count ?? 0;
@@ -230,8 +227,14 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
       http_method: 'GET',
       http_status: 200,
       status: 'success',
-      request_payload: sanitizeForLog({ startDateFilter: startDateFilter ?? null, finalOffset: currentOffset }) as any,
-      response_payload: sanitizeForLog({ processed: totalProcessed, errors: totalErrors }) as any,
+      request_payload: sanitizeForLog({
+        startDateFilter: startDateFilter ?? null,
+        finalOffset: currentOffset,
+      }) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog({
+        processed: totalProcessed,
+        errors: totalErrors,
+      }) as unknown as import('@projetog/shared').Json,
       related_entity_type: IntegrationEntityType.ORDER,
       retry_count: 0,
       max_retries: 5,

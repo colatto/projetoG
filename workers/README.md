@@ -1,45 +1,68 @@
-# Workers
+# `@projetog/workers`
 
-Este módulo é responsável por todo o processamento assíncrono e fora do ciclo HTTP da aplicação.
+Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 
-## Responsabilidades
+## Responsabilidades atuais
 
-- **Polling das APIs do Sienge**: verificação periódica de cotações, pedidos e entregas.
-- **Follow-up logístico**: régua de cobrança via scheduler diário.
-- **Retries e reprocessamentos**: recuperação de falhas de integração.
-- **Reconciliação por webhook**: engatilhar a leitura detalhada a partir de notificações do Sienge.
+- polling de cotações, pedidos e entregas no Sienge
+- processamento assíncrono de webhooks persistidos pela API
+- reconciliação de divergências
+- retry de eventos `retry_scheduled`
+- escrita outbound de negociação aprovada
+- follow-up diário ainda em stub
 
-## Stack
+## Jobs registrados
 
-- **Runtime**: Node.js standalone
-- **Linguagem**: TypeScript
-- **Framework de Filas**: `pg-boss` (usando o Supabase PostgreSQL `dbGRF`)
+- `sienge:sync-quotations`
+- `sienge:sync-orders`
+- `sienge:sync-deliveries`
+- `sienge:reconcile`
+- `sienge:process-webhook`
+- `sienge:outbound-negotiation`
+- `integration:retry`
+- `follow-up`
 
-## Rodando localmente
+## Schedules configurados
 
-Certifique-se de configurar o arquivo `.env` baseando-se no `.env.example` raiz, em especial o `DATABASE_URL` (Direct Connection, para que o pg-boss possa invocar e inicializar o schema corretamente).
+- `*/15 * * * *`: `sienge:sync-quotations`
+- `*/15 * * * *`: `sienge:sync-orders`
+- `*/15 * * * *`: `sienge:sync-deliveries`
+- `0 * * * *`: `integration:retry`
+- `0 11 * * *`: `follow-up`
+
+## Dependências principais
+
+- `pg-boss 9.0.3`
+- `pg 8.16.3`
+- `@supabase/supabase-js 2.39.0`
+- `tsx 4.7.1`
+- `vitest 1.6.1`
+
+## Ambiente
+
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+SIENGE_BASE_URL=
+SIENGE_API_KEY=
+SIENGE_API_SECRET=
+SIENGE_ENCRYPTION_KEY=
+NODE_ENV=development
+```
+
+## Comandos
 
 ```bash
 pnpm --filter @projetog/workers dev
+pnpm --filter @projetog/workers build
+pnpm --filter @projetog/workers test
+pnpm --filter @projetog/workers lint
 ```
 
-Este comando já inicializará os jobs e consumirá das filas cadastradas.
+## Observações operacionais
 
-## Estrutura
-
-- `src/index.ts`: Ponto de entrada (conecta o pg-boss e cadastra os handlers).
-- `src/boss.ts`: Fábrica do Singleton `pg-boss`.
-- `src/jobs/`: Implementação de cada rotina assíncrona isolada.
-- `src/handlers/index.ts`: Mapeamento das chaves de fila (queents) para os jobs na pasta `/jobs`.
-
-## Cronjobs e Processos Agendados (Integração Sienge)
-
-Os seguintes jobs assíncronos/agendados foram implementados na arquitetura e devem ser acompanhados:
-
-- `sienge:sync-quotations`: Consulta periodicamente negociações do Sienge.
-- `sienge:sync-orders`: Sincroniza periodicamente pedidos pendentes do Sienge.
-- `sienge:sync-deliveries`: Varre entregas/notas fiscais a partir de pedidos para reconciliação.
-- `sienge:sync-creditor`: Obtém dados cadastrais e extrai e-mail de fornecedores sob demanda/sincronização.
-- `sienge:process-webhook`: Enfileirado imediatamente pelo endpoint `/webhooks/sienge` da API, reconciliando payloads assincronamente.
-- `sienge:outbound-negotiation`: Enfileirado após uma aprovação em _Compras_, responsável por escrever no Sienge e engatilhar _retries_ automáticos se necessário (até 2 vezes em intervalos de 24h).
-- `integration:retry`: Um _scheduler_ periódico que varre a tabela `integration_events` buscando status `retry_scheduled` e repete as operações com base em `next_retry_at`. Este job precisa estar ativo para manter a resiliência do módulo.
+- `DATABASE_URL` é obrigatória
+- o worker lê credenciais ativas em `sienge_credentials` e usa fallback de env apenas em `development`
+- `follow-up.ts` ainda é stub e não implementa a régua completa do PRD-04
+- os testes passam, mas o lint ainda falha por resíduos de tipagem e variáveis não usadas

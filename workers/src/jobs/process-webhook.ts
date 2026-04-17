@@ -68,10 +68,11 @@ export async function processWebhook(job: PgBoss.Job): Promise<void> {
       http_method: 'POST',
       http_status: 200,
       status: 'success',
-      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as any,
-      response_payload: sanitizeForLog(result.summary) as any,
+      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog(result.summary) as unknown as import('@projetog/shared').Json,
       related_entity_type: result.entityType ?? resolveEntityType(webhookType),
-      related_entity_id: result.entityId ?? extractEntityIdFromPayload(webhookType, payload) ?? webhookEventId,
+      related_entity_id:
+        result.entityId ?? extractEntityIdFromPayload(webhookType, payload) ?? webhookEventId,
       retry_count: 0,
       max_retries: 0,
     });
@@ -102,7 +103,7 @@ export async function processWebhook(job: PgBoss.Job): Promise<void> {
       http_method: 'POST',
       status: 'failure',
       error_message: err.message ?? 'Unknown error',
-      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as any,
+      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as unknown as import('@projetog/shared').Json,
       related_entity_type: resolveEntityType(webhookType),
       related_entity_id: extractEntityIdFromPayload(webhookType, payload) ?? webhookEventId,
       retry_count: 0,
@@ -158,11 +159,38 @@ async function handleOrderGenerated(
   context: WorkerContext,
 ): Promise<ProcessResult> {
   const purchaseOrderId = requireNumber(payload, 'purchaseOrderId');
+  const purchaseQuotationId =
+    typeof payload.purchaseQuotationId === 'number' ? payload.purchaseQuotationId : null;
+  const supplierId = typeof payload.supplierId === 'number' ? payload.supplierId : null;
   const expectedQuotationIds = extractQuotationIds(payload);
 
   const result = await reconcileOrderFromApi(purchaseOrderId, supabase, siengeClient, context, {
     expectedQuotationIds,
   });
+
+  // PRD-02 §6.7: fechamento automático da cotação
+  if (purchaseQuotationId && supplierId) {
+    // Vencedor
+    await supabase
+      .from('supplier_negotiations')
+      .update({
+        status: 'FORNECEDOR_FECHADO',
+        closed_order_id: purchaseOrderId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('purchase_quotation_id', purchaseQuotationId)
+      .eq('supplier_id', supplierId);
+
+    // Demais fornecedores
+    await supabase
+      .from('supplier_negotiations')
+      .update({
+        status: 'ENCERRADA',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('purchase_quotation_id', purchaseQuotationId)
+      .neq('supplier_id', supplierId);
+  }
 
   return {
     entityType: IntegrationEntityType.ORDER,
@@ -172,6 +200,8 @@ async function handleOrderGenerated(
       ...result.summary,
       webhookType: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
       expectedQuotationIds,
+      purchaseQuotationId,
+      supplierId,
     },
   };
 }
@@ -413,8 +443,10 @@ async function registerReconciliationDivergence(
       entityId: result.entityId,
       source: 'webhook',
       correlationId,
-    }) as any,
-    response_payload: sanitizeForLog({ divergences: result.divergenceMessages }) as any,
+    }) as unknown as import('@projetog/shared').Json,
+    response_payload: sanitizeForLog({
+      divergences: result.divergenceMessages,
+    }) as unknown as import('@projetog/shared').Json,
     related_entity_type: result.entityType,
     related_entity_id: result.entityId,
     retry_count: 0,

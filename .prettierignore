@@ -1,8 +1,2 @@
-node_modules
-dist
-build
-.next
-.turbo
-coverage
-.supabase
-supabase/.temp
+apps/api/Dockerfile
+workers/Dockerfile

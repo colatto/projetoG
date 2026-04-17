@@ -1,43 +1,41 @@
-# Contexto do Modulo Web
+# Contexto do Módulo Web
 
 ## Objetivo
 
-Implementar a SPA em React + TypeScript com Vite para:
+Fornecer a SPA do portal/backoffice em React + Vite.
 
-- portal do fornecedor;
-- backoffice interno;
-- dashboards.
+## Escopo atual implementado
+
+- login
+- recuperação e redefinição de senha
+- rotas protegidas por autenticação
+- shell administrativo
+- gestão de usuários
+- monitoramento básico de integração
 
 ## Regras locais
 
-- nenhuma regra critica de negocio fica no cliente;
-- o cliente apenas apresenta estados e envia comandos ao backend;
-- o cliente consome autenticacao e dados atraves da API dedicada e dos servicos de identidade definidos para o projeto;
-- o isolamento por fornecedor deve refletir contratos ja filtrados pelo backend;
-- a aplicacao deve operar em portugues do Brasil e suportar desktop e mobile;
-- o deploy principal esperado e na Vercel.
-- o favicon oficial do modulo web esta em `public/faviconGRF.png`;
-- a logo oficial do modulo web esta em `src/assets/GRFlogo.png`;
-- quando o frontend for iniciado, a paleta de cores de referencia deve ser consultada em `docs/paleta_de_cores.md`;
-- em caso de duvida sobre branding, consultar `docs/identidade_visual.md`;
-- os PRDs de modulo que impactam este frontend estao em `docs/prd/` (prd-01 a prd-09). <!-- atualizado -->
+- nenhuma lógica crítica de negócio fica no cliente
+- o cliente fala apenas com `apps/api`
+- o frontend não integra diretamente com o Sienge
+- mensagens para usuário permanecem em português
 
-## Telas construídas (Sprint C - Fase 4 e 5)
+## Arquivos centrais
 
-- login (`/login`);
-- primeiro acesso e redefinicao de senha (`/esqueci-senha`, `/reset-password`);
-- backoffice administrativo minimalista (`/admin/users`, `/admin/users/new`, `/admin/users/:id`).
+- `src/App.tsx`
+- `src/contexts/AuthContext.tsx`
+- `src/lib/api.ts`
+- `src/pages/auth/*`
+- `src/pages/admin/*`
 
-## Telas a construir
+## Ambiente
 
-- lista e detalhe de cotacoes;
-- lista e detalhe de pedidos;
-- aprovacao de cotacoes no backoffice;
-- monitoramento de integracoes;
-- dashboard operacional (index).
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_BASE_URL`
 
-## Contexto de testes <!-- atualizado -->
+## Estado atual
 
-- **Framework**: Vitest + `@testing-library/react` + `jsdom` (integrado na etapa de testes do pipeline CI).
-- Padrao: testes de componente para fluxos criticos (login, cotacao, aprovacao).
-- Localizacao: `apps/web/src/**/*.test.tsx` ou subpastas `__tests__/`.
+- rotas de cotação, pedidos, follow-up, avaria e dashboard analítico ainda não estão implementadas
+- build e testes passam
+- o módulo já contém uma tela administrativa de integração em evolução

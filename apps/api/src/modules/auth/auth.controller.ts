@@ -76,7 +76,6 @@ export class AuthController {
   public async logout(request: FastifyRequest, reply: FastifyReply) {
     // Para simplificação de arquitetura da V1, faremos o logout revogando do Supabase
     // Opcional se estiver usando JWT do Fastify (frontend limpa do localStorage)
-    const { supabase } = request.server;
 
     // Tentamos fazer signOut no Supabase com o token de authorization do Request (caso enviado)
     // Na API estamos mandando auth global

@@ -1,4 +1,8 @@
-import { createSiengeClient, SiengeClient, decryptSiengeCredential } from '@projetog/integration-sienge';
+import {
+  createSiengeClient,
+  SiengeClient,
+  decryptSiengeCredential,
+} from '@projetog/integration-sienge';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface CachedClient {
@@ -36,7 +40,7 @@ export async function getSiengeClient(supabase: SupabaseClient): Promise<SiengeC
   if (creds) {
     const apiKey = decryptSiengeCredential(creds.api_user);
     const apiSecret = decryptSiengeCredential(creds.api_password);
-    
+
     // The PRD indicates subdomain structure is: https://<subdomain>.sienge.com.br/api/v1
     const baseUrl = `https://${creds.subdomain}.sienge.com.br/api/v1`;
 
@@ -49,12 +53,14 @@ export async function getSiengeClient(supabase: SupabaseClient): Promise<SiengeC
       {
         restPerMinute: creds.rest_rate_limit,
         bulkPerMinute: creds.bulk_rate_limit,
-      }
+      },
     );
   } else {
     // Fallback logic
     if (process.env.NODE_ENV === 'development') {
-      console.info('[getSiengeClient] No active credentials found in database. Using development fallback (process.env).');
+      console.info(
+        '[getSiengeClient] No active credentials found in database. Using development fallback (process.env).',
+      );
       client = createSiengeClient({
         SIENGE_BASE_URL: process.env.SIENGE_BASE_URL,
         SIENGE_API_KEY: process.env.SIENGE_API_KEY,

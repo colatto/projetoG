@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebhookType, WebhookStatus, IntegrationEventType } from '@projetog/domain';
+import { WebhookType, IntegrationEventType } from '@projetog/domain';
 
 const reconcileOrderFromApiMock = vi.fn();
 const reconcileQuotationFromApiMock = vi.fn();
@@ -74,16 +74,18 @@ describe('processWebhook', () => {
       supabaseMock,
       expect.any(Object),
       expect.any(Object),
-      { expectedQuotationIds: [200] }
+      { expectedQuotationIds: [200] },
     );
 
     // Verify success integration event
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(expect.objectContaining({
-      event_type: IntegrationEventType.WEBHOOK_PROCESSED,
-      status: 'success',
-      related_entity_type: 'order',
-      related_entity_id: '100',
-    }));
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: IntegrationEventType.WEBHOOK_PROCESSED,
+        status: 'success',
+        related_entity_type: 'order',
+        related_entity_id: '100',
+      }),
+    );
   });
 
   it('should handle unmapped webhook types gracefully', async () => {
@@ -99,12 +101,14 @@ describe('processWebhook', () => {
     await processWebhook(job as never);
 
     expect(webhookEventsUpdateMock).toHaveBeenCalledWith('id', 'wh-2');
-    
+
     // Should log success event but indicate skipped
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'success',
-      response_payload: expect.objectContaining({ skipped: true }),
-    }));
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'success',
+        response_payload: expect.objectContaining({ skipped: true }),
+      }),
+    );
   });
 
   it('should handle reconcile errors and log failure integration event', async () => {
@@ -122,10 +126,12 @@ describe('processWebhook', () => {
     await expect(processWebhook(job as never)).rejects.toThrow('Reconciliation failed');
 
     // Verify failed integration event
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(expect.objectContaining({
-      event_type: IntegrationEventType.WEBHOOK_FAILED,
-      status: 'failure',
-      error_message: 'Reconciliation failed',
-    }));
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: IntegrationEventType.WEBHOOK_FAILED,
+        status: 'failure',
+        error_message: 'Reconciliation failed',
+      }),
+    );
   });
 });

@@ -16,6 +16,11 @@ import AdminLayout from './pages/admin/AdminLayout';
 import UserList from './pages/admin/UserList';
 import UserCreate from './pages/admin/UserCreate';
 import UserManage from './pages/admin/UserManage';
+import IntegrationEvents from './pages/admin/IntegrationEvents';
+import QuotationList from './pages/admin/QuotationList';
+import QuotationDetail from './pages/admin/QuotationDetail';
+import SupplierQuotationList from './pages/supplier/SupplierQuotationList';
+import SupplierQuotationDetail from './pages/supplier/SupplierQuotationDetail';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -46,6 +51,22 @@ function App() {
                 <Route path="/admin/users" element={<UserList />} />
                 <Route path="/admin/users/new" element={<UserCreate />} />
                 <Route path="/admin/users/:id" element={<UserManage />} />
+              </Route>
+
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR, UserRole.COMPRAS]} />
+                }
+              >
+                <Route path="/admin/integration" element={<IntegrationEvents />} />
+                <Route path="/admin/quotations" element={<QuotationList />} />
+                <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
+              </Route>
+
+              {/* Portal do Fornecedor */}
+              <Route element={<ProtectedRoute allowedRoles={[UserRole.FORNECEDOR]} />}>
+                <Route path="/supplier/quotations" element={<SupplierQuotationList />} />
+                <Route path="/supplier/quotations/:id" element={<SupplierQuotationDetail />} />
               </Route>
             </Route>
           </Route>

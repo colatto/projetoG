@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
-export function createSupabaseMock(customTables: Record<string, any> = {}) {
-  const chainMocks = new Map<string, any>();
+export function createSupabaseMock(customTables: Record<string, unknown> = {}) {
+  const chainMocks = new Map<string, unknown>();
 
   const getOrCreateTableMocks = (table: string) => {
     if (customTables[table]) {
@@ -28,19 +28,15 @@ export function createSupabaseMock(customTables: Record<string, any> = {}) {
         insert: vi.fn(),
       };
 
-      const selectEqLteMock = vi.fn(() => mocks.select.eq.lte);
-      const selectEqSingleMock = vi.fn(() => mocks.select.eq.single);
       const selectEqMock = vi.fn(() => ({
         single: mocks.select.eq.single,
         lte: mocks.select.eq.lte,
       }));
-      const selectSingleMock = vi.fn(() => mocks.select.single);
       const selectMock = vi.fn(() => ({
         eq: selectEqMock,
         single: mocks.select.single,
       }));
 
-      const updateEqEqMock = vi.fn(() => mocks.update.eq.eq);
       const updateEqMock = vi.fn(() => ({
         eq: mocks.update.eq.eq,
       }));
@@ -58,7 +54,7 @@ export function createSupabaseMock(customTables: Record<string, any> = {}) {
         update: updateMock,
         delete: deleteMock,
         insert: mocks.insert,
-        
+
         // Exposed leafs for assertions/mocking:
         selectEq: selectEqMock,
         selectSingle: mocks.select.single,

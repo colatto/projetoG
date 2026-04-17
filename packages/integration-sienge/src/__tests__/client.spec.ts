@@ -53,7 +53,7 @@ describe('SiengeClient', () => {
 
     it('should create axios instance with correct base URL and auth headers', () => {
       new SiengeClient(validConfig);
-      
+
       const expectedAuth = `Basic ${Buffer.from('test_key:test_secret').toString('base64')}`;
 
       expect(axios.create).toHaveBeenCalledWith(
@@ -62,7 +62,7 @@ describe('SiengeClient', () => {
           headers: expect.objectContaining({
             Authorization: expectedAuth,
           }),
-        })
+        }),
       );
     });
 
@@ -89,7 +89,7 @@ describe('SiengeClient', () => {
       };
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       await expect(errorFn(errorObj)).rejects.toEqual(errorObj);
       expect(errorObj.config.headers.Authorization).toBe('***REDACTED***');
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -99,22 +99,27 @@ describe('SiengeClient', () => {
       new SiengeClient(validConfig);
 
       const retryConfig = (axiosRetry as unknown as Mock).mock.calls[0][1];
-      
+
       // Test retryCondition
-      const isNetworkOrIdempotentRequestErrorMock = isNetworkOrIdempotentRequestError as unknown as Mock;
+      const isNetworkOrIdempotentRequestErrorMock =
+        isNetworkOrIdempotentRequestError as unknown as Mock;
       isNetworkOrIdempotentRequestErrorMock.mockReturnValue(true);
-      
+
       expect(retryConfig.retryCondition({} as any)).toBe(true);
 
       // Test onRetry
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
-      retryConfig.onRetry(1, { message: 'err' } as any, {
-        method: 'GET',
-        url: '/test',
-        _correlationId: 'cor1',
-        _source: 'src1',
-      } as any);
+
+      retryConfig.onRetry(
+        1,
+        { message: 'err' } as any,
+        {
+          method: 'GET',
+          url: '/test',
+          _correlationId: 'cor1',
+          _source: 'src1',
+        } as any,
+      );
 
       expect(consoleWarnSpy).toHaveBeenCalled();
     });
@@ -137,7 +142,7 @@ describe('SiengeClient', () => {
           method: 'GET',
           url: '/test',
           _correlationId: '123',
-        })
+        }),
       );
       expect(result).toEqual({ success: true });
     });
@@ -152,7 +157,7 @@ describe('SiengeClient', () => {
           method: 'POST',
           url: '/test',
           data: { name: 'test' },
-        })
+        }),
       );
       expect(result).toEqual({ id: 1 });
     });
@@ -167,7 +172,7 @@ describe('SiengeClient', () => {
           method: 'PUT',
           url: '/test/1',
           data: { name: 'updated' },
-        })
+        }),
       );
       expect(result).toEqual({ id: 1 });
     });
@@ -182,7 +187,7 @@ describe('SiengeClient', () => {
           method: 'PATCH',
           url: '/test/1',
           data: { name: 'patched' },
-        })
+        }),
       );
       expect(result).toEqual({ id: 1 });
     });
@@ -196,7 +201,7 @@ describe('SiengeClient', () => {
         expect.objectContaining({
           method: 'DELETE',
           url: '/test/1',
-        })
+        }),
       );
       expect(result).toEqual({ success: true });
     });
@@ -210,7 +215,7 @@ describe('SiengeClient', () => {
         expect.objectContaining({
           method: 'GET',
           url: '/bulk',
-        })
+        }),
       );
       expect(result).toEqual({ bulk: true });
     });

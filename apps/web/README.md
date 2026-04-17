@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# `@projetog/web`
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA React + TypeScript + Vite do portal/backoffice.
 
-Currently, two official plugins are available:
+## Escopo atualmente implementado
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- login
+- recuperação e redefinição de senha
+- shell administrativo com sidebar e header
+- gestão de usuários
+- monitoramento básico de eventos de integração
 
-## React Compiler
+## Rotas atuais
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `/login`
+- `/esqueci-senha`
+- `/reset-password`
+- `/`
+- `/admin/users`
+- `/admin/users/new`
+- `/admin/users/:id`
+- `/admin/integration`
 
-## Expanding the ESLint configuration
+## Dependências principais
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `react 19.2.4`
+- `react-router-dom 7.14.0`
+- `react-hook-form 7.72.1`
+- `axios 1.15.0`
+- `date-fns 4.1.0`
+- `lucide-react 1.8.0`
+- `vite 8.0.7`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Ambiente
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Comandos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+pnpm --filter @projetog/web dev
+pnpm --filter @projetog/web build
+pnpm --filter @projetog/web test
+pnpm --filter @projetog/web lint
 ```
+
+## Observações
+
+- autenticação é mantida via token JWT próprio da API em `localStorage`
+- não há integração direta com Sienge no frontend
+- a maior parte do styling usa CSS global e inline styles; ainda não existe design system consolidado

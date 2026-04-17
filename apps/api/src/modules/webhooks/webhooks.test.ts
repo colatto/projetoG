@@ -99,6 +99,13 @@ describe('Webhook Routes', () => {
     expect(webhookInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         webhook_type: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
+        payload: {
+          type: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
+          data: {
+            purchaseOrderId: 321,
+            purchaseQuotationId: 654,
+          },
+        },
         sienge_delivery_id: 'delivery-001',
         sienge_event: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
         sienge_hook_id: 'hook-123',

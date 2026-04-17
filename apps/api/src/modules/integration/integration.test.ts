@@ -159,7 +159,10 @@ describe('Integration Routes', () => {
       data: {
         id: 'webhook-event-id',
         webhook_type: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
-        payload: { purchaseOrderId: 123, purchaseQuotationId: 456 },
+        payload: {
+          type: WebhookType.PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION,
+          data: { purchaseOrderId: 123, purchaseQuotationId: 456 },
+        },
       },
       error: null,
     });
@@ -230,6 +233,78 @@ describe('Integration Routes', () => {
       expect.objectContaining({
         event_type: 'integration.manual_retry',
         entity_type: 'integration_event',
+      }),
+    );
+  });
+
+  it('should enqueue an outbound negotiation with a valid integration event HTTP method', async () => {
+    const integrationInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'evt-write-123' },
+          error: null,
+        }),
+      }),
+    });
+    const auditInsert = vi.fn().mockResolvedValue({ error: null });
+    mockBossSend.mockResolvedValueOnce('job-id');
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'integration_events') {
+        return { insert: integrationInsert };
+      }
+
+      if (table === 'audit_logs') {
+        return { insert: auditInsert };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const app = buildTestApp();
+    await app.ready();
+    const token = await getAuthToken(app, UserRole.COMPRAS);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/integration/negotiations/write',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: {
+        purchaseQuotationId: 321,
+        supplierId: 654,
+        idempotencyKey: 'idem-123',
+        supplierAnswerDate: '2026-04-17',
+        validity: 15,
+        seller: 'Comprador Teste',
+        items: [
+          {
+            purchaseQuotationItemId: 77,
+            unitPrice: 99.9,
+            quantity: 10,
+            deliveryDate: '2026-04-20',
+          },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(integrationInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/purchase-quotations/321/suppliers/654/negotiations',
+        http_method: 'POST',
+      }),
+    );
+    expect(mockBossSend).toHaveBeenCalledWith(
+      'sienge:outbound-negotiation',
+      expect.objectContaining({
+        integrationEventId: 'evt-write-123',
+        purchaseQuotationId: 321,
+        supplierId: 654,
+      }),
+      expect.objectContaining({
+        retryLimit: 0,
       }),
     );
   });

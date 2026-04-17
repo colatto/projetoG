@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@fastify/static': 9.1.1
+  fast-jwt: 6.2.1
+  follow-redirects: 1.16.0
+
 importers:
   .:
     devDependencies:
@@ -26,8 +31,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.2
       '@fastify/jwt':
-        specifier: ^9.0.1
-        version: 9.1.0
+        specifier: ^10.0.0
+        version: 10.0.0
       '@fastify/sensible':
         specifier: ^6.0.1
         version: 6.0.4
@@ -53,17 +58,20 @@ importers:
         specifier: ^16.4.5
         version: 16.6.1
       fastify:
-        specifier: ^5.0.0
-        version: 5.8.4
+        specifier: ^5.8.5
+        version: 5.8.5
       fastify-plugin:
         specifier: ^5.0.1
         version: 5.1.0
       fastify-type-provider-zod:
         specifier: ^4.0.2
-        version: 4.0.2(fastify@5.8.4)(zod@3.25.76)
+        version: 4.0.2(fastify@5.8.5)(zod@3.25.76)
       pg-boss:
         specifier: ^9.0.3
         version: 9.0.3
+      prom-client:
+        specifier: ^15.1.3
+        version: 15.1.3
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -182,7 +190,7 @@ importers:
         version: 8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/domain:
     devDependencies:
@@ -200,7 +208,7 @@ importers:
         version: 8.58.1(eslint@9.39.4)(typescript@6.0.2)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/integration-sienge:
     dependencies:
@@ -240,7 +248,7 @@ importers:
         version: 8.58.1(eslint@9.39.4)(typescript@6.0.2)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/shared:
     dependencies:
@@ -265,7 +273,7 @@ importers:
         version: 8.58.1(eslint@9.39.4)(typescript@6.0.2)
       vitest:
         specifier: ^4.1.4
-        version: 4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
 
   workers:
     dependencies:
@@ -290,6 +298,9 @@ importers:
       pg-boss:
         specifier: ^9.0.3
         version: 9.0.3
+      prom-client:
+        specifier: ^15.1.3
+        version: 15.1.3
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.4
@@ -1114,10 +1125,10 @@ packages:
         integrity: sha512-tO1QMkOfNeCt9l4sG/FiWErH4QMm+RjHzbMTrgew1DYOQ2vb/6M1G2iNABBrD7Xq6dUk+HLzWW8u+rmmhQHifA==,
       }
 
-  '@fastify/jwt@9.1.0':
+  '@fastify/jwt@10.0.0':
     resolution:
       {
-        integrity: sha512-CiGHCnS5cPMdb004c70sUWhQTfzrJHAeTywt7nVw6dAiI0z1o4WRvU94xfijhkaId4bIxTCOjFgn4sU+Gvk43w==,
+        integrity: sha512-2Qka3NiyNNcsfejMUvyzot1T4UYIzzcbkFGDdVyrl344fRZ/WkD6VFXOoXhxe2Pzf3LpJNkoSxUM4Ru4DVgkYA==,
       }
 
   '@fastify/merge-json-schemas@0.2.1':
@@ -1144,10 +1155,10 @@ packages:
         integrity: sha512-1vxcCUlPMew6WroK8fq+LVOwbsLtX+lmuRuqpcp6eYqu6vmkLwbKTdBWAZwbeaSgCfW4tzUpTIHLLvTiQQ1BwQ==,
       }
 
-  '@fastify/static@9.1.0':
+  '@fastify/static@9.1.1':
     resolution:
       {
-        integrity: sha512-EPRNQYqEYEYTK8yyGbcM0iHpyJaupb94bey5O6iCQfLTADr02kaZU+qeHSdd9H9TiMwTBVkrMa59V8CMbn3avQ==,
+        integrity: sha512-LHxFea3qdwe0Pbbkh/yux7/k6nFNLGTNcbLKVYgmRDB6LdDE/8TFSO7qWZ0IzM/nF6iwR8W03oFlwe4v79R1Ow==,
       }
 
   '@fastify/swagger-ui@5.2.5':
@@ -1251,6 +1262,13 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@opentelemetry/api@1.9.1':
+    resolution:
+      {
+        integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==,
+      }
+    engines: { node: '>=8.0.0' }
 
   '@oxc-project/types@0.123.0':
     resolution:
@@ -2265,6 +2283,12 @@ packages:
         integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==,
       }
 
+  bintrees@1.0.2:
+    resolution:
+      {
+        integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==,
+      }
+
   bn.js@4.12.3:
     resolution:
       {
@@ -2878,10 +2902,10 @@ packages:
         integrity: sha512-oRCntNDY/329HJPlmdNLIdogNtt6Vyjb1WuT01Soss3slIdyUp8kAcDU3saQTOquEK8KFVfwIIF7FebxUAu+yA==,
       }
 
-  fast-jwt@5.0.6:
+  fast-jwt@6.2.1:
     resolution:
       {
-        integrity: sha512-LPE7OCGUl11q3ZgW681cEU2d0d2JZ37hhJAmetCgNyW8waVaJVZXhyFF6U2so1Iim58Yc7pfxJe2P7MNetQH2g==,
+        integrity: sha512-tmXFiZpaFGm18TjhWE5bIQ6OoJGFifAQzW3g2H+HhHfmpvsjSswXt8i8RpI2u4EgyBugXiOTXvBMHXrs2hOg+w==,
       }
     engines: { node: '>=20' }
 
@@ -2925,10 +2949,10 @@ packages:
       fastify: ^5.0.0
       zod: ^3.14.2
 
-  fastify@5.8.4:
+  fastify@5.8.5:
     resolution:
       {
-        integrity: sha512-sa42J1xylbBAYUWALSBoyXKPDUvM3OoNOibIefA+Oha57FryXKKCZarA1iDntOCWp3O35voZLuDg2mdODXtPzQ==,
+        integrity: sha512-Yqptv59pQzPgQUSIm87hMqHJmdkb1+GPxdE6vW6FRyVE9G86mt7rOghitiU4JHRaTyDUk9pfeKmDeu70lAwM4Q==,
       }
 
   fastparallel@2.4.1:
@@ -2995,10 +3019,10 @@ packages:
         integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==,
       }
 
-  follow-redirects@1.15.11:
+  follow-redirects@1.16.0:
     resolution:
       {
-        integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==,
+        integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==,
       }
     engines: { node: '>=4.0' }
     peerDependencies:
@@ -4134,6 +4158,13 @@ packages:
         integrity: sha512-a39t9ApHNx2L4+HBnQKqxxHNs1r7KF+Intd8Q/g1bUh6q0WIp9voPXJ/x0j+ZL45KF1pJd9+q2jLIRMfvEshkA==,
       }
 
+  prom-client@15.1.3:
+    resolution:
+      {
+        integrity: sha512-6ZiOBfCywsD4k1BN9IX0uZhF+tJkV8q8llP64G5Hajs4JOeVLPCwpPVcpXy3BwYiUGgyJzsJJQeOIv7+hDSq8g==,
+      }
+    engines: { node: ^16 || ^18 || >=20 }
+
   proxy-from-env@2.1.0:
     resolution:
       {
@@ -4527,6 +4558,12 @@ packages:
     resolution:
       {
         integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==,
+      }
+
+  tdigest@0.1.2:
+    resolution:
+      {
+        integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==,
       }
 
   thread-stream@4.0.0:
@@ -5516,11 +5553,11 @@ snapshots:
       fastify-plugin: 5.1.0
       helmet: 8.1.0
 
-  '@fastify/jwt@9.1.0':
+  '@fastify/jwt@10.0.0':
     dependencies:
       '@fastify/error': 4.2.0
       '@lukeed/ms': 2.0.2
-      fast-jwt: 5.0.6
+      fast-jwt: 6.2.1
       fastify-plugin: 5.1.0
       steed: 1.1.3
 
@@ -5551,7 +5588,7 @@ snapshots:
       type-is: 2.0.1
       vary: 1.1.2
 
-  '@fastify/static@9.1.0':
+  '@fastify/static@9.1.1':
     dependencies:
       '@fastify/accept-negotiator': 2.0.1
       '@fastify/send': 4.1.0
@@ -5562,7 +5599,7 @@ snapshots:
 
   '@fastify/swagger-ui@5.2.5':
     dependencies:
-      '@fastify/static': 9.1.0
+      '@fastify/static': 9.1.1
       fastify-plugin: 5.1.0
       openapi-types: 12.1.3
       rfdc: 1.4.1
@@ -5625,6 +5662,8 @@ snapshots:
       '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
     optional: true
+
+  '@opentelemetry/api@1.9.1': {}
 
   '@oxc-project/types@0.123.0': {}
 
@@ -6073,7 +6112,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
+      vitest: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
 
   '@vitest/expect@1.6.1':
     dependencies:
@@ -6285,7 +6324,7 @@ snapshots:
 
   axios@1.15.0:
     dependencies:
-      follow-redirects: 1.15.11
+      follow-redirects: 1.16.0
       form-data: 4.0.5
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
@@ -6300,6 +6339,8 @@ snapshots:
   bidi-js@1.0.3:
     dependencies:
       require-from-string: 2.0.2
+
+  bintrees@1.0.2: {}
 
   bn.js@4.12.3: {}
 
@@ -6683,12 +6724,13 @@ snapshots:
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
 
-  fast-jwt@5.0.6:
+  fast-jwt@6.2.1:
     dependencies:
       '@lukeed/ms': 2.0.2
       asn1.js: 5.4.1
       ecdsa-sig-formatter: 1.0.11
       mnemonist: 0.40.3
+      safe-regex2: 5.1.0
 
   fast-levenshtein@2.0.6: {}
 
@@ -6704,14 +6746,14 @@ snapshots:
 
   fastify-plugin@5.1.0: {}
 
-  fastify-type-provider-zod@4.0.2(fastify@5.8.4)(zod@3.25.76):
+  fastify-type-provider-zod@4.0.2(fastify@5.8.5)(zod@3.25.76):
     dependencies:
       '@fastify/error': 4.2.0
-      fastify: 5.8.4
+      fastify: 5.8.5
       zod: 3.25.76
       zod-to-json-schema: 3.25.2(zod@3.25.76)
 
-  fastify@5.8.4:
+  fastify@5.8.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
@@ -6769,7 +6811,7 @@ snapshots:
 
   flatted@3.4.2: {}
 
-  follow-redirects@1.15.11: {}
+  follow-redirects@1.16.0: {}
 
   form-data@4.0.5:
     dependencies:
@@ -7367,6 +7409,11 @@ snapshots:
 
   process-warning@5.0.0: {}
 
+  prom-client@15.1.3:
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      tdigest: 0.1.2
+
   proxy-from-env@2.1.0: {}
 
   punycode@2.3.1: {}
@@ -7586,6 +7633,10 @@ snapshots:
       has-flag: 4.0.0
 
   symbol-tree@3.2.4: {}
+
+  tdigest@0.1.2:
+    dependencies:
+      bintrees: 1.0.2
 
   thread-stream@4.0.0:
     dependencies:
@@ -7868,7 +7919,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)):
+  vitest@4.1.4(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       '@vitest/expect': 4.1.4
       '@vitest/mocker': 4.1.4(vite@8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
@@ -7891,13 +7942,14 @@ snapshots:
       vite: 8.0.7(@types/node@24.12.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.1
       '@types/node': 24.12.2
       '@vitest/coverage-v8': 4.1.4(vitest@4.1.4)
       jsdom: 29.0.2
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.4(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)):
+  vitest@4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.4)(jsdom@29.0.2)(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       '@vitest/expect': 4.1.4
       '@vitest/mocker': 4.1.4(vite@8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3))
@@ -7920,6 +7972,7 @@ snapshots:
       vite: 8.0.7(@types/node@25.6.0)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.8.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.1
       '@types/node': 25.6.0
       '@vitest/coverage-v8': 4.1.4(vitest@4.1.4)
       jsdom: 29.0.2

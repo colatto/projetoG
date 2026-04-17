@@ -19,7 +19,9 @@ export interface SyncCursorProps {
  * PRD-07 §4.4
  */
 export class SyncCursor {
-  private props: Required<Pick<SyncCursorProps, 'resourceType' | 'lastOffset' | 'syncStatus' | 'requiresFullSync'>> &
+  private props: Required<
+    Pick<SyncCursorProps, 'resourceType' | 'lastOffset' | 'syncStatus' | 'requiresFullSync'>
+  > &
     SyncCursorProps;
 
   constructor(props: SyncCursorProps) {

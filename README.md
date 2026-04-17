@@ -1,18 +1,27 @@
 # projetoG
 
-Base inicial do projeto de automacao de cotacao, follow-up logistico e integracao com Sienge descrito em `PRDGlobal.md`.
+Monorepo da aplicação da GRF para portal do fornecedor, backoffice interno e integração operacional com o Sienge.
 
-## Estrutura inicial
+## Estado atual
+
+O repositório já está operacional como monorepo `pnpm` e contém:
+
+- `apps/web`: SPA React 19 + Vite 8 para login, recuperação de senha, gestão de usuários e monitoramento de integração.
+- `apps/api`: API Fastify 5 com autenticação, RBAC, auditoria, webhooks Sienge e orquestração de jobs.
+- `workers`: runtime Node.js + `pg-boss` para polling, reconciliação, retries e escrita outbound no Sienge.
+- `packages/domain`: enums e entidades centrais de usuários, webhooks, integração e cursores de sincronização.
+- `packages/integration-sienge`: cliente HTTP resiliente, mapeadores e criptografia para credenciais Sienge.
+- `packages/shared`: schemas Zod, tipos do Supabase e utilitários compartilhados.
+- `supabase`: migrações, seed e configuração local/remota do projeto `dbGRF`.
+
+## Topologia do repositório
 
 ```text
 .
 ├── CLAUDE.md
-├── PRDGlobal.md
 ├── README.md
+├── PRDGlobal.md
 ├── .env.example
-├── pnpm-workspace.yaml       # gerenciador de workspace: pnpm (ADR-0003)
-├── package.json              # raiz do monorepo (a criar na inicializacao)
-├── pnpm-lock.yaml            # lockfile do pnpm (a criar na inicializacao)
 ├── apps/
 │   ├── api/
 │   └── web/
@@ -21,68 +30,108 @@ Base inicial do projeto de automacao de cotacao, follow-up logistico e integraca
 │   ├── decisions/
 │   ├── prd/
 │   └── runbooks/
-├── supabase/
-├── workers/
 ├── packages/
 │   ├── domain/
 │   ├── integration-sienge/
 │   └── shared/
+├── supabase/
 ├── tools/
-│   ├── prompts/
-│   └── scripts/
-└── .claude/
-    ├── hooks/
-    ├── settings.json
-    └── skills/
+└── workers/
 ```
 
-## Como esta base foi montada
+## Stack em uso
 
-- `PRDGlobal.md` continua como fonte de verdade de produto.
-- `apps/web` reserva o frontend SPA em React + TypeScript com build em Vite e deploy principal na Vercel.
-- `apps/api` reserva o backend dedicado em TypeScript para API interna, webhooks e orquestracao.
-- `packages/domain` concentra regras de negocio e contratos internos.
-- `packages/integration-sienge` concentra clientes, mapeamentos, idempotencia e reprocessamentos da integracao.
-- `packages/shared` concentra tipos, utilitarios e componentes compartilhados.
-- `supabase/` reserva configuracoes, migracoes e convencoes ligadas ao Supabase.
-- `workers/` reserva a camada explicita de jobs e workers para polling, retries, follow-up e reprocessamentos fora do ciclo do frontend.
-- `docs/` guarda arquitetura, decisoes e runbooks.
-- `.claude/` guarda contexto e automacoes para assistentes de codigo.
+| Camada       | Stack                                                                   | Observação                                         |
+| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------- |
+| Frontend     | React `19.2.4`, React Router `7.14.0`, Vite `8.0.7`, TypeScript `6.0.2` | SPA em `apps/web`                                  |
+| API          | Fastify `5.8.4`, `@fastify/jwt` `9.0.1`, Zod `3.23.8`, Vitest `2.1.0`   | Backend dedicado em `apps/api`                     |
+| Workers      | Node.js + `pg-boss` `9.0.3`, Supabase JS `2.39.0`, Vitest `1.4.0`       | Processamento assíncrono em `workers`              |
+| Integração   | Axios `1.15.0`, `axios-retry` `4.5.0`, Bottleneck `2.19.5`, Zod `4.3.6` | `packages/integration-sienge`                      |
+| Persistência | Supabase/PostgreSQL 17                                                  | Projeto `lkfevrdhofxlmwjfhnru`, região `sa-east-1` |
+| Qualidade    | ESLint 9, Prettier 3, Husky 9, lint-staged 16                           | Configuração por workspace                         |
 
-## Stack definida
+## Quick start
 
-- **gerenciador de workspace:** pnpm — `pnpm-workspace.yaml` na raiz (ADR-0003);
-- **frontend:** React + TypeScript + Vite em `apps/web`, com deploy principal na Vercel;
-- **backend:** Fastify v5 em TypeScript em `apps/api`, servidor standalone dedicado (ADR-0002);
-- **persistencia e identidade:** Supabase para PostgreSQL, autenticacao e suporte operacional (projeto `dbGRF`, `sa-east-1`);
-- **integracoes e dominio:** `packages/domain` e `packages/integration-sienge`;
-- **processamento assincrono:** Node.js + TypeScript standalone em `workers/`, filas e scheduling via pg-boss sobre PostgreSQL (ADR-0004).
+1. Instale dependências:
 
-## Qualidade de codigo
+```bash
+pnpm install
+```
 
-- **formatacao:** Prettier unificado na raiz do workspace;
-- **lint:** ESLint 9 com Flat Config por workspace, executado no contexto de cada pacote/app;
-- **pre-commit:** Husky + lint-staged na raiz para formatar arquivos staged e encaminhar o lint para o workspace correspondente.
+2. Crie os arquivos de ambiente por módulo a partir de:
 
-## Proximos passos
+- `.env.example`
+- `apps/api/.env.example`
+- `workers/.env.example`
 
-1. ~~Escolher o gerenciador do workspace~~ **pnpm** (ADR-0003).
-2. ~~Inicializar o monorepo com `pnpm init` + `pnpm-workspace.yaml` + `package.json` por modulo.~~
-3. ~~Inicializar `apps/web` com Vite e preparar deploy na Vercel.~~
-4. ~~Definir o framework do backend em `apps/api`~~ **Fastify v5** (ADR-0002).
-5. ~~Inicializar `apps/api` com Fastify e definir estrategia de deploy standalone.~~
-6. ~~Provisionar autenticacao no Supabase (`dbGRF`).~~
-7. ~~Definir a estrategia de jobs e workers~~ **Node.js + pg-boss** (ADR-0004).
-8. ~~Modelar entidades e fluxos em `packages/domain`.~~
-9. ~~Implementar a primeira fatia vertical: autenticacao, cotacao e leitura inicial do Sienge.~~
-10. ~~Implementar webhook e endpoints do Sienge (Fase 1 do PRD de Integração).~~
-11. Documentar pendências e iniciar fase de Homologação Externa do Sienge.
+3. Suba os processos em terminais separados:
 
-## Decisoes tomadas
+```bash
+pnpm --filter @projetog/web dev
+pnpm --filter @projetog/api dev
+pnpm --filter @projetog/workers dev
+```
 
-| #   | Decisao                        | Escolha                                      | ADR      |
-| --- | ------------------------------ | -------------------------------------------- | -------- |
-| 1   | Estrutura do repositorio       | Monorepo com separacao explicita por camada  | ADR-0001 |
-| 2   | Framework do backend           | Fastify v5 (TypeScript, servidor standalone) | ADR-0002 |
-| 3   | Gerenciador de workspace       | pnpm                                         | ADR-0003 |
-| 4   | Runtime e framework de workers | Node.js + TypeScript standalone, pg-boss     | ADR-0004 |
+4. Checks principais:
+
+```bash
+pnpm -r run test
+pnpm -r run build
+pnpm -r run lint
+```
+
+## Banco e Supabase
+
+Comandos utilitários definidos na raiz:
+
+```bash
+pnpm run db:login
+pnpm run db:link
+pnpm run db:push
+pnpm run db:pull
+pnpm run db:types
+```
+
+Referência operacional: `docs/runbooks/setup.md`
+
+## CI/CD observado
+
+- GitHub Actions em `.github/workflows/ci.yml`
+- gatilhos em `push` e `pull_request` para `main`
+- etapas: `pnpm install --frozen-lockfile`, `format:check`, `lint`, `test`, `pnpm -r run build`
+
+Não há manifesto de deploy versionado para API ou workers. O alvo operacional continua sendo backend/worker standalone [VERIFICAR].
+
+## Situação dos checks em 2026-04-17
+
+- `pnpm -r run test`: passa
+- `pnpm -r run build`: passa
+- `pnpm -r run lint`: falha em `apps/api` e `workers`
+
+As falhas de lint atuais são principalmente:
+
+- `no-unused-vars`
+- `no-explicit-any`
+- resíduos em arquivos de teste dos workers
+
+## Auditoria resumida de dependências em 2026-04-17
+
+- `pnpm audit`: 12 vulnerabilidades encontradas
+- críticas/altas concentradas em `fast-jwt` via `@fastify/jwt` e `fastify@5.8.4`
+- moderadas em `vite` transitivo do Vitest, `follow-redirects` via `axios` no frontend e `@fastify/static` via `@fastify/swagger-ui`
+
+Atualizações de menor risco já identificadas:
+
+- `fastify 5.8.4 -> 5.8.5`
+- `prettier 3.8.1 -> 3.8.3`
+- `react-router-dom 7.14.0 -> 7.14.1`
+- `typescript-eslint 8.58.1 -> 8.58.2`
+- `@supabase/supabase-js 2.102.1 -> 2.103.3`
+
+## Documentação principal
+
+- `CLAUDE.md`: baseline técnica e diretrizes do repositório
+- `docs/architecture.md`: arquitetura atual, diagramas, fluxos e inventário técnico
+- `docs/runbooks/setup.md`: instalação, execução e troubleshooting
+- `docs/runbooks/sienge-homologation.md`: pendências de homologação externa
+- `docs/runbooks/sienge-inventory.md`: inventário funcional da integração

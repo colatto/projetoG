@@ -50,7 +50,9 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
 
     if (diffMins > 60) {
-      console.warn(`[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`);
+      console.warn(
+        `[${JOB_NAME}] Dead lock detected. Forcing unlock. CorrelationId: ${correlationId}`,
+      );
       await supabase
         .from('sienge_sync_cursor')
         .update({ sync_status: SyncStatus.ERROR, error_message: 'Timeout lock' })
@@ -85,7 +87,6 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     let hasMore = true;
     let totalProcessed = 0;
     let totalErrors = 0;
-    let totalInvoices = 0;
 
     const processedInvoices = new Set<number>();
 
@@ -105,98 +106,95 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
         `[${JOB_NAME}] Fetched ${deliveries.length} delivery records (offset ${currentOffset}). CorrelationId: ${correlationId}`,
       );
 
-      let processedCount = 0;
-      let errorCount = 0;
-
       // ── Step 3: Process each delivery record ────────────────────
       for (const delivery of deliveries) {
-      try {
-        // Upsert the delivery record
-        const localDelivery = mapDeliveryAttendedToLocal(delivery);
-        await supabase.from('deliveries').upsert(
-          {
-            purchase_order_id: localDelivery.purchaseOrderId,
-            purchase_order_item_number: localDelivery.purchaseOrderItemNumber,
-            invoice_sequential_number: localDelivery.invoiceSequentialNumber,
-            invoice_item_number: localDelivery.invoiceItemNumber,
-            delivered_quantity: localDelivery.deliveredQuantity,
-            status: localDelivery.status,
-          },
-          { onConflict: 'purchase_order_id,purchase_order_item_number,invoice_sequential_number' },
-        );
+        try {
+          // Upsert the delivery record
+          const localDelivery = mapDeliveryAttendedToLocal(delivery);
+          await supabase.from('deliveries').upsert(
+            {
+              purchase_order_id: localDelivery.purchaseOrderId,
+              purchase_order_item_number: localDelivery.purchaseOrderItemNumber,
+              invoice_sequential_number: localDelivery.invoiceSequentialNumber,
+              invoice_item_number: localDelivery.invoiceItemNumber,
+              delivered_quantity: localDelivery.deliveredQuantity,
+              status: localDelivery.status,
+            },
+            {
+              onConflict: 'purchase_order_id,purchase_order_item_number,invoice_sequential_number',
+            },
+          );
 
-        // Sync the related invoice if not already processed
-        if (!processedInvoices.has(delivery.sequentialNumber)) {
-          processedInvoices.add(delivery.sequentialNumber);
+          // Sync the related invoice if not already processed
+          if (!processedInvoices.has(delivery.sequentialNumber)) {
+            processedInvoices.add(delivery.sequentialNumber);
 
-          try {
-            const invoice = await invoiceClient.getById(delivery.sequentialNumber, context);
-            const localInvoice = mapInvoiceToLocal(invoice);
+            try {
+              const invoice = await invoiceClient.getById(delivery.sequentialNumber, context);
+              const localInvoice = mapInvoiceToLocal(invoice);
 
-            await supabase.from('purchase_invoices').upsert(
-              {
-                sequential_number: localInvoice.sequentialNumber,
-                supplier_id: localInvoice.supplierId,
-                document_id: localInvoice.documentId,
-                series: localInvoice.series,
-                number: localInvoice.number,
-                issue_date: localInvoice.issueDate,
-                movement_date: localInvoice.movementDate,
-                consistency: localInvoice.consistency,
-              },
-              { onConflict: 'sequential_number' },
-            );
-
-            // Fetch and upsert invoice items
-            const items = await invoiceClient.getItems(delivery.sequentialNumber, context);
-            const localItems = mapInvoiceItemsToLocal(delivery.sequentialNumber, items);
-
-            for (const item of localItems) {
-              await supabase.from('invoice_items').upsert(
+              await supabase.from('purchase_invoices').upsert(
                 {
-                  invoice_sequential_number: item.invoiceSequentialNumber,
-                  item_number: item.itemNumber,
-                  quantity: item.quantity,
+                  sequential_number: localInvoice.sequentialNumber,
+                  supplier_id: localInvoice.supplierId,
+                  document_id: localInvoice.documentId,
+                  series: localInvoice.series,
+                  number: localInvoice.number,
+                  issue_date: localInvoice.issueDate,
+                  movement_date: localInvoice.movementDate,
+                  consistency: localInvoice.consistency,
                 },
-                { onConflict: 'invoice_sequential_number,item_number' },
+                { onConflict: 'sequential_number' },
+              );
+
+              // Fetch and upsert invoice items
+              const items = await invoiceClient.getItems(delivery.sequentialNumber, context);
+              const localItems = mapInvoiceItemsToLocal(delivery.sequentialNumber, items);
+
+              for (const item of localItems) {
+                await supabase.from('invoice_items').upsert(
+                  {
+                    invoice_sequential_number: item.invoiceSequentialNumber,
+                    item_number: item.itemNumber,
+                    quantity: item.quantity,
+                  },
+                  { onConflict: 'invoice_sequential_number,item_number' },
+                );
+              }
+            } catch (invoiceError: unknown) {
+              const err = invoiceError as { message?: string };
+              console.warn(
+                `[${JOB_NAME}] Failed to fetch invoice ${delivery.sequentialNumber}: ${err.message}. CorrelationId: ${correlationId}`,
               );
             }
-          } catch (invoiceError: unknown) {
-            const err = invoiceError as { message?: string };
-            console.warn(
-              `[${JOB_NAME}] Failed to fetch invoice ${delivery.sequentialNumber}: ${err.message}. CorrelationId: ${correlationId}`,
-            );
           }
-        }
 
-        processedCount++;
-        totalProcessed++;
-      } catch (delError: unknown) {
-        errorCount++;
-        totalErrors++;
-        const err = delError as { message?: string };
-        console.error(
-          `[${JOB_NAME}] Failed to process delivery for order ${delivery.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
+          totalProcessed++;
+        } catch (delError: unknown) {
+          totalErrors++;
+          const err = delError as { message?: string };
+          console.error(
+            `[${JOB_NAME}] Failed to process delivery for order ${delivery.purchaseOrderId}: ${err.message}. CorrelationId: ${correlationId}`,
+          );
+        }
+      }
+
+      // Extract invoice→order links (§9.7)
+      const links = extractInvoiceOrderLinks(deliveries);
+      for (const link of links) {
+        await supabase.from('invoice_order_links').upsert(
+          {
+            sequential_number: link.sequentialNumber,
+            invoice_item_number: link.invoiceItemNumber,
+            purchase_order_id: link.purchaseOrderId,
+            purchase_order_item_number: link.purchaseOrderItemNumber,
+          },
+          {
+            onConflict:
+              'sequential_number,invoice_item_number,purchase_order_id,purchase_order_item_number',
+          },
         );
       }
-    }
-
-    // Extract invoice→order links (§9.7)
-    const links = extractInvoiceOrderLinks(deliveries);
-    for (const link of links) {
-      await supabase.from('invoice_order_links').upsert(
-        {
-          sequential_number: link.sequentialNumber,
-          invoice_item_number: link.invoiceItemNumber,
-          purchase_order_id: link.purchaseOrderId,
-          purchase_order_item_number: link.purchaseOrderItemNumber,
-        },
-        {
-          onConflict:
-            'sequential_number,invoice_item_number,purchase_order_id,purchase_order_item_number',
-        },
-      );
-    }
 
       const totalCount = page.resultSetMetadata?.count ?? 0;
       currentOffset += pageLimit;
@@ -223,8 +221,11 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
         startDateFilter: startDateFilter ?? null,
         finalOffset: currentOffset,
         invoices: processedInvoices.size,
-      }) as any,
-      response_payload: sanitizeForLog({ processed: totalProcessed, errors: totalErrors }) as any,
+      }) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog({
+        processed: totalProcessed,
+        errors: totalErrors,
+      }) as unknown as import('@projetog/shared').Json,
       related_entity_type: IntegrationEntityType.INVOICE,
       retry_count: 0,
       max_retries: 5,

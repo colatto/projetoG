@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { CreateUserDto, UpdateUserDto, UserQueryDto, userIdParamSchema } from '@projetog/shared';
+import { CreateUserDto, UpdateUserDto, UserQueryDto } from '@projetog/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { UserRole, UserStatus } from '@projetog/domain';
 
@@ -152,7 +152,7 @@ export class UsersController {
       return reply.code(404).send({ message: 'Usuário não encontrado' });
     }
 
-    const updates: any = {};
+    const updates: import('@projetog/shared').Database['public']['Tables']['profiles']['Update'] = {};
 
     if (changes.name && changes.name !== user.name) {
       updates.name = changes.name;
@@ -307,7 +307,7 @@ export class UsersController {
       return reply.code(409).send({ message: 'Usuário já está removido' });
 
     // Set auth to suspended or just delete from auth. In this context, we just mark as removido as soft delete.
-    const { error: authError } = await supabase.auth.admin.deleteUser(id); // Or keep it if we want to retain references, but deleting from auth revokes everything.
+    await supabase.auth.admin.deleteUser(id); // Or keep it if we want to retain references, but deleting from auth revokes everything.
 
     // We will do soft delete locally
     const { error } = await supabase

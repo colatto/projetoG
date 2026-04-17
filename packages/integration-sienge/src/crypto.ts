@@ -13,7 +13,7 @@ function getEncryptionKey(): Buffer {
   if (!hexKey) {
     throw new Error('SIENGE_ENCRYPTION_KEY environment variable is not defined.');
   }
-  
+
   const keyBuffer = Buffer.from(hexKey, 'hex');
   if (keyBuffer.length !== EXPECTED_KEY_LENGTH) {
     throw new Error(`SIENGE_ENCRYPTION_KEY must be a ${EXPECTED_KEY_LENGTH}-byte hex string.`);
@@ -30,7 +30,7 @@ export function encryptSiengeCredential(plaintext: string): string {
   const keyBuffer = getEncryptionKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, keyBuffer, iv);
-  
+
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
@@ -43,7 +43,7 @@ export function encryptSiengeCredential(plaintext: string): string {
 export function decryptSiengeCredential(encryptedText: string): string {
   const keyBuffer = getEncryptionKey();
   const parts = encryptedText.split(':');
-  
+
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted credential format. Expected iv:authTag:encrypted');
   }
@@ -55,7 +55,7 @@ export function decryptSiengeCredential(encryptedText: string): string {
 
   const decipher = createDecipheriv(ALGORITHM, keyBuffer, iv);
   decipher.setAuthTag(authTag);
-  
+
   const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
   return decrypted.toString('utf8');
 }

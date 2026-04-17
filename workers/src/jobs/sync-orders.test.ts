@@ -106,7 +106,9 @@ describe('processSyncOrders', () => {
     });
 
     getItemsMock.mockResolvedValue([{ purchaseOrderItemNumber: 1, quantity: 5 }]);
-    getDeliverySchedulesMock.mockResolvedValue([{ sheduledDate: '2026-04-10', sheduledQuantity: 5 }]);
+    getDeliverySchedulesMock.mockResolvedValue([
+      { sheduledDate: '2026-04-10', sheduledQuantity: 5 },
+    ]);
 
     await processSyncOrders({ id: 'job-1' } as never);
 
@@ -169,13 +171,15 @@ describe('processSyncOrders', () => {
     await expect(processSyncOrders({ id: 'job-3' } as never)).rejects.toThrow('Total API failure');
 
     expect(purchaseOrdersUpsertMock).not.toHaveBeenCalled();
-    
+
     // Assert error event is logged
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'failure',
-      error_message: expect.stringContaining('Total API failure'),
-    }));
-    
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failure',
+        error_message: expect.stringContaining('Total API failure'),
+      }),
+    );
+
     // Assert cursor is set to error
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.ORDERS);
   });

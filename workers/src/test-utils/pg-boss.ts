@@ -16,6 +16,6 @@ export function createPgBossMock() {
       work: bossWorkMock,
       complete: bossCompleteMock,
       fail: bossFailMock,
-    }
+    },
   };
 }

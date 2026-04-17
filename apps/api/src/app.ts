@@ -14,10 +14,12 @@ import healthRoute from './routes/health.js';
 import { supabasePlugin } from './plugins/supabase.js';
 import { authPlugin } from './plugins/auth.js';
 import { pgBossPlugin } from './plugins/pg-boss.js';
+import { metricsPlugin } from './plugins/metrics.js';
 import { authRoutes } from './modules/auth/index.js';
 import { usersRoutes } from './modules/users/index.js';
 import { webhookRoutes } from './modules/webhooks/index.js';
 import { integrationRoutes } from './modules/integration/index.js';
+import { quotationsBackofficeRoutes, supplierQuotationsRoutes } from './modules/quotations/index.js';
 import type { JobPublisher } from './plugins/pg-boss.js';
 
 interface BuildAppOptions {
@@ -40,6 +42,7 @@ export function buildApp(options: BuildAppOptions = {}) {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   app.register(sensible);
+  app.register(metricsPlugin);
 
   // Swagger Documentation
   app.register(swagger, {
@@ -85,6 +88,12 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(webhookRoutes, { prefix: '/webhooks' });
   app.register(integrationRoutes, { prefix: '/api/integration' });
+
+  // Quotations (PRD-02) — canonical routes + compatibility aliases (PRD-09)
+  app.register(quotationsBackofficeRoutes, { prefix: '/api/quotations' });
+  app.register(quotationsBackofficeRoutes, { prefix: '/api/backoffice/quotations' });
+  app.register(supplierQuotationsRoutes, { prefix: '/api/supplier/quotations' });
+  app.register(supplierQuotationsRoutes, { prefix: '/api/supplier-portal/quotations' });
 
   return app;
 }

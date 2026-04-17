@@ -12,7 +12,8 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
-    const inputId = id || Math.random().toString(36).substring(7);
+    const reactId = React.useId();
+    const inputId = id || reactId;
 
     return (
       <div className="form-group w-full">

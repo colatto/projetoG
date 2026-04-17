@@ -172,16 +172,20 @@ describe('processSyncDeliveries', () => {
   it('should handle total failure gracefully', async () => {
     getDeliveriesAttendedPagedMock.mockRejectedValue(new Error('Total API failure'));
 
-    await expect(processSyncDeliveries({ id: 'job-3' } as never)).rejects.toThrow('Total API failure');
+    await expect(processSyncDeliveries({ id: 'job-3' } as never)).rejects.toThrow(
+      'Total API failure',
+    );
 
     expect(deliveriesUpsertMock).not.toHaveBeenCalled();
-    
+
     // Assert error event is logged
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'failure',
-      error_message: expect.stringContaining('Total API failure'),
-    }));
-    
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failure',
+        error_message: expect.stringContaining('Total API failure'),
+      }),
+    );
+
     // Assert cursor is set to error
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.DELIVERIES);
   });

@@ -76,14 +76,16 @@ export const writeNegotiationBodySchema = z.object({
   supplierAnswerDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD'),
   validity: z.number().int().min(0),
   seller: z.string().min(1),
-  items: z.array(
-    z.object({
-      purchaseQuotationItemId: z.number().int().positive(),
-      unitPrice: z.number().min(0),
-      quantity: z.number().min(0),
-      deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD'),
-    })
-  ).min(1),
+  items: z
+    .array(
+      z.object({
+        purchaseQuotationItemId: z.number().int().positive(),
+        unitPrice: z.number().min(0),
+        quantity: z.number().min(0),
+        deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD'),
+      }),
+    )
+    .min(1),
 });
 
 export type WriteNegotiationBodyDto = z.infer<typeof writeNegotiationBodySchema>;

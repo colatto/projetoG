@@ -1,78 +1,140 @@
 # Contexto do Projeto
 
-## Objetivo
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-17`.
 
-Construir uma aplicacao web para a GRF com:
+## Ordem de consulta
 
-- portal do fornecedor;
-- backoffice interno;
-- workflow de cotacao;
-- follow-up logistico;
-- gestao de avarias;
-- dashboards;
-- integracao com Sienge.
+1. `PRDGlobal.md`
+2. `CLAUDE.md`
+3. `docs/architecture.md`
+4. `docs/decisions/*.md`
+5. `docs/prd/*.md`
+6. `docs/runbooks/*.md`
+7. `apps/*/CLAUDE.md`, `packages/*/CLAUDE.md`, `workers/CLAUDE.md`
 
-## Fonte de verdade
+## Objetivo do produto
 
-- Produto e regras de negocio: `PRDGlobal.md`
-- Arquitetura inicial: `docs/architecture.md`
-- Decisao de estrutura do repositorio: `docs/decisions/ADR-0001-repo-structure.md`
-- Identidade visual e assets oficiais: `docs/identidade_visual.md`
-- Paleta de cores de referencia para o frontend: `docs/paleta_de_cores.md`
-- PRDs filhos por modulo: `docs/prd/` (9 documentos, prd-01 a prd-09) <!-- atualizado -->
-- Varredura e reconhecimento do repositorio: `docs/decisions/relatorio-reconhecimento.md` <!-- atualizado -->
-- Framework do backend: `docs/decisions/ADR-0002-backend-framework.md` (Fastify v5) <!-- atualizado -->
-- Gerenciador de workspace: `docs/decisions/ADR-0003-workspace-manager.md` (pnpm) <!-- atualizado -->
-- Runtime e framework de workers: `docs/decisions/ADR-0004-workers-runtime.md` (Node.js + pg-boss) <!-- atualizado -->
-- Fronteira de integração API/Workers/Supabase: `docs/decisions/fronteira-integracao.md` <!-- atualizado -->
-- Política de logs e mascaramento: `docs/decisions/politica-logs.md` <!-- atualizado -->
+Construir uma aplicação web para a GRF com:
 
-## Regras obrigatorias
+- portal do fornecedor
+- backoffice interno
+- workflow de cotação
+- follow-up logístico
+- gestão de avarias
+- dashboards
+- integração com Sienge
 
-- Regras criticas ficam no backend e no dominio compartilhado, nunca no frontend.
-- O Sienge e a fonte principal de verdade dos dados operacionais mestres.
-- Nenhuma resposta de cotacao volta ao Sienge sem aprovacao manual de `Compras`.
-- Integracoes precisam de idempotencia, retry, rastreabilidade e reprocessamento.
-- O sistema deve manter trilha de auditoria persistida.
-- O frontend nao implementa autorizacao critica nem logica de integracao.
+## Estado atual do monorepo
 
-## Modulos esperados
+O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
-- `apps/web`: portal do fornecedor e backoffice com Vite e deploy principal na Vercel.
-- `apps/api`: API dedicada, autenticacao, webhooks e orquestracao.
-- `supabase/`: configuracoes de banco, autenticacao e operacao de dados.
-- `workers/`: processamento assincrono para follow-up, polling, retry e reprocessamento.
-- `packages/domain`: entidades, status, regras e casos de uso.
-- `packages/integration-sienge`: clientes e adaptadores do ERP (infraestrutura HTTP base inicializada).
-- `packages/shared`: tipos compartilhados, contratos e utilitarios.
+- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários e monitoramento de eventos de integração
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge e endpoints de integração
+- workers com polling de cotações, pedidos e entregas, reconciliação por webhook, retry de eventos e escrita outbound de negociação
+- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at` e migrações PRD-07
+- pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
+
+## Módulos reais
+
+| Módulo                        | Estado                    | Responsabilidade principal                       |
+| ----------------------------- | ------------------------- | ------------------------------------------------ |
+| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice                         |
+| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração e orquestração  |
+| `workers`                     | implementado parcialmente | polling, reconciliação, retry e jobs assíncronos |
+| `packages/domain`             | implementado parcialmente | entidades e enums centrais                       |
+| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                       |
+| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                     |
+| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                    |
+
+## Capacidades confirmadas no código
+
+### `apps/web`
+
+- `/login`
+- `/esqueci-senha`
+- `/reset-password`
+- `/admin/users`
+- `/admin/users/new`
+- `/admin/users/:id`
+- `/admin/integration`
+- `ProtectedRoute` com checagem por perfil
+- `AuthContext` com persistência de token em `localStorage`
+
+### `apps/api`
+
+- `GET /health`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `GET /api/auth/me`
+- `GET/POST/PATCH/DELETE /api/users...`
+- `POST /api/users/:id/block`
+- `POST /api/users/:id/reactivate`
+- `POST /api/users/:id/reset-password`
+- `POST /webhooks/sienge`
+- `GET /api/integration/events`
+- `POST /api/integration/events/:id/retry`
+- `GET/PUT /api/integration/credentials`
+- `POST /api/integration/negotiations/write`
+
+### `workers`
+
+Jobs registrados:
+
+- `sienge:sync-quotations`
+- `sienge:sync-orders`
+- `sienge:sync-deliveries`
+- `sienge:reconcile`
+- `sienge:process-webhook`
+- `sienge:outbound-negotiation`
+- `integration:retry`
+- `follow-up`
+
+Agendamentos observados:
+
+- `*/15 * * * *`: sincronização de cotações, pedidos e entregas
+- `0 * * * *`: retry de integração
+- `0 11 * * *`: follow-up diário
+
+## Regras obrigatórias
+
+- regras críticas ficam no backend e/ou no domínio, nunca no frontend
+- o Sienge é a fonte principal de verdade dos dados operacionais mestres
+- nenhuma resposta de cotação volta ao Sienge sem aprovação manual de `Compras`
+- integrações precisam de idempotência, retry, rastreabilidade e reprocessamento
+- o sistema deve manter trilha de auditoria persistida
+- webhooks são gatilhos de reconciliação, não substitutos de leitura detalhada via API
 
 ## Perfis oficiais
 
-<!-- relatorio-reconhecimento §perfis: cada perfil tem permissoes e restricoes explicitas -->
+| Perfil                    | Pode                                                                                   | Não pode                                               |
+| ------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `Fornecedor`              | acessar próprios dados, responder cotação, sugerir nova data, registrar avaria         | aprovar própria resposta ou acessar dados de terceiros |
+| `Compras`                 | revisar integrações, aprovar/reprovar respostas, validar entregas, tratar divergências | gerir acessos e parametrizações administrativas        |
+| `Administrador`           | criar/editar/bloquear/remover acessos e parametrizar integração                        | aprovar resposta de cotação                            |
+| `Visualizador de Pedidos` | consultar pedidos e entregas                                                           | alterar dados ou acessar rotas administrativas         |
 
-| Perfil                    | Pode                                                                                                                            | Nao pode                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `Fornecedor`              | Acessar proprios dados, responder cotacoes, sugerir novas datas, registrar avarias                                              | Aprovar propria resposta, aprovar nova data, modificar dados de outros |
-| `Compras`                 | Revisar dados do Sienge, aprovar/reprovar respostas de cotacao, aprovar/reprovar novas datas, validar entregas, tratar excecoes | Gerir acessos, parametrizar sistema                                    |
-| `Administrador`           | Criar/editar/bloquear/reativar/remover acessos, parametrizar workflow, editar templates de notificacao                          | Aprovar respostas de cotacao, definir acoes corretivas de avaria       |
-| `Visualizador de Pedidos` | Consultar pedidos e entregas                                                                                                    | Alterar dados, acessar dashboards, indicadores ou acoes operacionais   |
+## Entidades e identificadores centrais
 
-## Entidades centrais
+Entidades principais:
 
-- cotacao
-- resposta de cotacao
-- fornecedor
-- pedido
-- entrega
-- avaria
-- notificacao
-- auditoria
-- evento de integracao
-- usuario interno
+- `profiles`
+- `suppliers`
+- `supplier_contacts`
+- `purchase_quotations`
+- `supplier_negotiations`
+- `purchase_orders`
+- `deliveries`
+- `purchase_invoices`
+- `notifications`
+- `audit_logs`
+- `integration_events`
+- `webhook_events`
+- `sienge_sync_cursor`
+- `sienge_credentials`
 
-> **Nota de implementacao:** a entidade `users` do PRD-01 foi implementada como tabela `profiles` no banco (`public.profiles`), vinculada diretamente a `auth.users(id)`. Toda referencia do PRD a "tabela users" corresponde a `profiles` no schema real. A API e o frontend já consomem `profiles` de forma consistente.
-
-## Identificadores minimos persistidos
+Identificadores mínimos persistidos:
 
 - `purchaseQuotationId`
 - `supplierId`
@@ -84,136 +146,128 @@ Construir uma aplicacao web para a GRF com:
 - `invoiceItemNumber`
 - `creditorId` quando homologado
 
-## Diretriz para alteracoes
+## Variáveis de ambiente observadas
 
-Antes de criar codigo novo, verificar se a mudanca impacta:
+### Frontend
 
-- contratos com Sienge;
-- rastreabilidade e auditoria;
-- RBAC;
-- isolamento de dados por fornecedor;
-- sincronizacao assincrona e reprocessamento;
-- fronteira entre Vercel, API dedicada, Supabase e workers;
-- criterios de aceite macro do PRD.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_BASE_URL`
 
-### Proibicoes absolutas para agentes <!-- atualizado -->
+### API
 
-- NAO implementar logica de autorizacao critica no frontend.
-- NAO escrever dados no Sienge sem aprovacao previa do perfil `Compras`.
-- NAO criar entidades ou tabelas sem correspondencia com o dominio definido em `packages/domain`.
-- NAO duplicar regras de negocio entre frontend, API e workers — a camada de dominio e a fonte.
-- NAO ignorar idempotencia em integracao com o Sienge — toda chamada de escrita deve ser reprocessavel.
-- NAO criar novos perfis de acesso sem atualizacao do RBAC em `apps/api` e `packages/domain`.
-- NAO remover trilha de auditoria de eventos criticos (cotacao, aprovacao, avaria, integracao).
-- NAO reutilizar artefatos, tabelas ou Edge Functions do projeto legado `dbOrion` (`jvonweijpbyyjgywlfxu`) para este produto sem validacao explicita. <!-- relatorio-reconhecimento §Projeto Supabase legado -->
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SIENGE_BASE_URL`
+- `SIENGE_API_KEY`
+- `SIENGE_API_SECRET`
+- `SIENGE_WEBHOOK_SECRET`
+- `SIENGE_ENCRYPTION_KEY`
+- `JWT_SECRET`
+- `PORT`
+- `NODE_ENV`
+- `DATABASE_URL` opcional para publicar jobs via `pg-boss`
 
-## Funcionalidades fora do escopo da V1.0 <!-- relatorio-reconhecimento §out of scope -->
+### Workers
 
-As seguintes funcionalidades estao explicitamente excluidas da V1.0 e nao devem ser implementadas:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `DATABASE_URL`
+- `SIENGE_BASE_URL`
+- `SIENGE_API_KEY`
+- `SIENGE_API_SECRET`
+- `SIENGE_ENCRYPTION_KEY`
+- `NODE_ENV`
 
-- Alteracao automatica de data planejada no Sienge a partir de sugestao do fornecedor.
-- Auto cadastro de fornecedor.
-- Ativacao autonoma de credenciais sem acao do Administrador.
-- Envio de anexos/documentos pelo fornecedor.
-- Exposicao de propostas concorrentes entre fornecedores.
-- Automacoes financeiras, fiscais ou contabeis alem do uso logistico de NF.
-- Regua separada por parcela de entrega do mesmo item.
-- Politicas avancadas de seguranca alem do minimo operacional.
-- Notificacao por WhatsApp (planejado para V2.0).
+## Convenções observadas
 
-## Diretriz visual minima
+- linguagem principal: TypeScript
+- backend/workers com `strict: true`
+- frontend com TypeScript menos restritivo que backend/workers
+- ESLint 9 Flat Config por workspace
+- Prettier unificado na raiz
+- Husky + `lint-staged` no pre-commit
+- `kebab-case` para arquivos, `PascalCase` para componentes/classes, `camelCase` para símbolos
+- mensagens de usuário em português; identificadores e mensagens técnicas em inglês
+- convenção de commit observada no histórico: `feat|fix|docs|test|refactor|chore`, mas sem validação automática de commit message
 
-- o favicon oficial do projeto e `src/assets/faviconGRF.png`;
-- a logo oficial do projeto e `src/assets/GRFlogo.png`;
-- qualquer mudanca de branding deve atualizar `docs/identidade_visual.md`.
+## Estado dos checks
 
-## Convencoes de codigo <!-- atualizado -->
+Em `2026-04-17`:
 
-- Linguagem: TypeScript estrito em todos os modulos (`strict: true`).
-- Formatação: Prettier unificado na raiz do workspace, executado via Husky e lint-staged no pre-commit.
-- Linter: ESLint 9 com Flat Config por workspace, sempre executado no contexto do pacote/app correspondente; integrar com `eslint-config-prettier` quando aplicavel para evitar conflitos.
-- Nomenclatura de arquivos: kebab-case para arquivos e diretorios; PascalCase para componentes React e classes.
-- Nomenclatura de variaveis e funcoes: camelCase.
-- Nomenclatura de tipos e interfaces: PascalCase com prefixo `I` opcional para interfaces.
-- Imports: absolutos com alias de modulo quando o monorepo estiver configurado; relativos apenas dentro do mesmo modulo.
-- Idioma do codigo: ingles para identificadores, comentarios e mensagens tecnicas; portugues para mensagens de usuario na UI.
-- Commit: convencional (feat, fix, chore, docs, refactor, test).
-- CI/CD: Pipeline ativa via GitHub Actions (`.github/workflows/ci.yml`).
+- `pnpm -r run test`: OK
+- `pnpm -r run build`: OK
+- `pnpm -r run lint`: falha
 
-## Variaveis de ambiente esperadas <!-- atualizado -->
+Falhas de lint concentram-se em:
 
-As variaveis abaixo sao esperadas com base na stack definida. Os valores exatos devem ser confirmados na inicializacao.
+- `apps/api`: `no-unused-vars` e `no-explicit-any`
+- `workers`: `no-unused-vars`, `prefer-const` e `no-explicit-any`
 
-### `apps/web` (frontend)
+## Auditoria de dependências
 
-- `VITE_SUPABASE_URL` — URL publica do projeto Supabase (projeto `dbGRF`)
-- `VITE_SUPABASE_ANON_KEY` — chave publica (anon key) do Supabase
-- `VITE_API_BASE_URL` — endereco base da API dedicada em `apps/api` [VERIFICAR]
+`pnpm audit` retornou 12 vulnerabilidades:
 
-### `apps/api` (backend)
+- 2 críticas em `fast-jwt` via `@fastify/jwt`
+- 2 altas em `fastify`/`fast-jwt`
+- 8 moderadas em `vite`, `follow-redirects` e `@fastify/static`
 
-- `SUPABASE_URL` — URL do projeto Supabase (projeto `dbGRF`)
-- `SUPABASE_SERVICE_ROLE_KEY` — chave de servico do Supabase para operacoes privilegiadas
-- `SIENGE_BASE_URL` — URL base da API do Sienge
-- `SIENGE_API_KEY` — usuario da API do Sienge (Basic Auth — user)
-- `SIENGE_API_SECRET` — senha da API do Sienge (Basic Auth — password)
-- `JWT_SECRET` — segredo exclusivo para verificacao de tokens JWT internos
-- `PORT` — porta de execucao da API
+Atualizações seguras de curto prazo já identificadas:
 
-### `workers/`
+- `fastify 5.8.4 -> 5.8.5`
+- `prettier 3.8.1 -> 3.8.3`
+- `react-router-dom 7.14.0 -> 7.14.1`
+- `typescript-eslint 8.58.1 -> 8.58.2`
+- `@supabase/supabase-js 2.102.1 -> 2.103.3`
 
-<!-- ADR-0004 §vars env: estas variaveis sao necessarias e confirmadas pela decisao de workers -->
+Atualizações de maior impacto a planejar:
 
-- `SUPABASE_URL` — mesma instancia da API
-- `SUPABASE_SERVICE_ROLE_KEY` — chave de servico
-- `SIENGE_BASE_URL` — URL base da API Sienge
-- `SIENGE_API_KEY` — usuario da API do Sienge (Basic Auth — user)
-- `SIENGE_API_SECRET` — senha da API do Sienge (Basic Auth — password)
-- `DATABASE_URL` — string de conexao direta ao PostgreSQL, necessaria para inicializacao do pg-boss.
+- `@fastify/jwt 9.1.0 -> 10.0.0`
+- `pg-boss 9.0.3 -> 12.15.0`
+- `zod 3.x -> 4.x` fora do pacote de integração
+- `vitest 1/2 -> 4`
+- `eslint 9 -> 10`
 
-> `.env.example` criado na raiz com todas as variaveis documentadas por modulo.
+## Riscos atuais confirmados
 
-## Projeto Supabase provisionado <!-- atualizado -->
+- existem arquivos `.env` versionados em `apps/api`, `apps/web` e `workers`; tratar como incidente de governança e rotacionar segredos fora da documentação
+- não existe manifesto de deploy para API ou workers no repositório
+- o pacote `apps/` ainda mantém artefatos do template Vite e não representa um produto executável
+- a estratégia formal de branching/code review não está documentada; o que existe hoje é um gate de CI em `pull_request` e `push` para `main`
 
-- Nome: `dbGRF`
-- Project ID: `lkfevrdhofxlmwjfhnru`
-- Regiao: `sa-east-1` (South America — Sao Paulo)
-- Estado: ativo, com o schema relacional e migrações base processadas.
-- Referencia completa: `docs/decisions/relatorio-reconhecimento.md`
+## Mudanças recentes já incorporadas ao codebase
 
-## Contexto de testes <!-- atualizado -->
+### Histórico Git observado
 
-- **Framework:** Vitest — para frontend (`apps/web` com `@testing-library/react` e `jsdom`) e backend (`apps/api` via `fastify.inject()`) e workers.
-- Localizacao: arquivos `.test.ts` ou `.spec.ts` co-localizados com o codigo de producao, ou em subpastas `__tests__/`.
-- Padrao: testes unitarios para `packages/domain`; testes de integracao para `apps/api`; testes de componente/logica para `apps/web`.
-- Flags: Subpacotes vazios ignoram a falha usando a flag `--passWithNoTests`.
-- Comando: `pnpm -r run test`
+- `2026-04-10` `ada641a`: início da implementação do PRD-07, com tipos Sienge e migração de integração
+- `2026-04-16` `0fb49dd`: entrada dos módulos de integração/webhooks, entidades de domínio, workers e mapeadores
+- `2026-04-16` `44669cd`: expansão forte de cobertura de testes, runbooks e melhorias em sync cursor/retries
 
-## Comandos essenciais <!-- atualizado -->
+### Working tree atual ainda não commitado
 
-Os comandos abaixo assumem os pacotes `@projetog/` instalados via workspace (ADR-0003).
+- UI administrativa de eventos de integração no frontend
+- persistência do payload completo de webhook
+- correção do `http_method` outbound para `POST`
+- extração correta de `payload.data` ao reprocessar webhooks
+- janela explícita de datas em health check e sync de cotações
+- utilitário de notificações operacionais para `Compras`
 
-> **Nota (ADR-0003):** use sempre `pnpm` diretamente. Nao misture `npm` ou `yarn` — isso quebra o `pnpm-lock.yaml`. Use `pnpm dlx` no lugar de `npx` para execucao de binarios sem instalacao global.
+## Diretriz para alterações futuras
 
-> **Nota (ADR-0002):** o backend (`apps/api`) deve rodar como servidor standalone dedicado. Deploy na Vercel como funcao serverless curta nao e o modo otimizado para este produto.
+Antes de alterar código ou documentação, validar impacto em:
 
-| Acao                      | Comando                                 |
-| ------------------------- | --------------------------------------- |
-| Instalar dependencias     | `pnpm install`                          |
-| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`       |
-| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`       |
-| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`   |
-| Build frontend            | `pnpm --filter @projetog/web build`     |
-| Build API                 | `pnpm --filter @projetog/api build`     |
-| Build workers             | `pnpm --filter @projetog/workers build` |
-| Testes (todos os modulos) | `pnpm -r run test`                      |
-| Lint (todos os modulos)   | `pnpm -r run lint`                      |
-| Format (todos os modulos) | `pnpm run format`                       |
-| Autenticar Supabase       | `pnpm run db:login`                     |
-| Ligar Supabase            | `pnpm run db:link`                      |
-| Migracoes (Supabase)      | `pnpm run db:push`                      |
-| Deploy frontend           | Vercel via CI/CD [VERIFICAR]            |
-| Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
-| Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
+- contratos com Sienge
+- auditoria e rastreabilidade
+- RBAC
+- isolamento por fornecedor
+- sync assíncrono e reprocessamento
+- fronteira entre web, API, Supabase e workers
 
-> As estruturas base dos diretórios já foram inicializadas. Consultar `docs/runbooks/setup.md` para as etapas faltantes.
+## Proibições absolutas
+
+- não mover lógica crítica para o frontend
+- não escrever no Sienge sem aprovação prévia de `Compras`
+- não duplicar regras entre frontend, API, workers e domínio
+- não criar integrações fora de `packages/integration-sienge`
+- não remover trilha de auditoria de eventos críticos
+- não assumir que a documentação antiga ainda representa o runtime sem verificar o código

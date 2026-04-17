@@ -1,1 +1,2 @@
+pnpm run security:secrets
 pnpm exec lint-staged

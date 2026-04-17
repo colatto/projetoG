@@ -294,7 +294,9 @@ export class IntegrationController {
 
     if (error) {
       request.log.error(error, 'Failed to update credentials');
-      return reply.code(500).send({ message: 'Erro ao atualizar credenciais', error: error.message });
+      return reply
+        .code(500)
+        .send({ message: 'Erro ao atualizar credenciais', error: error.message });
     }
 
     // Register audit
@@ -335,8 +337,8 @@ export class IntegrationController {
     const eventParams = {
       event_type: IntegrationEventType.WRITE_NEGOTIATION,
       direction: IntegrationDirection.OUTBOUND,
-      endpoint: '/purchase-quotations/.../negotiations',
-      http_method: 'POST/PUT/PATCH',
+      endpoint: `/purchase-quotations/${payload.purchaseQuotationId}/suppliers/${payload.supplierId}/negotiations`,
+      http_method: 'POST',
       status: IntegrationEventStatus.PENDING,
       request_payload: payload as unknown as Json,
       related_entity_type: IntegrationEntityType.QUOTATION,
@@ -356,7 +358,8 @@ export class IntegrationController {
       // Check if duplicate idempotency key
       if (insertError.code === '23505') {
         return reply.code(409).send({
-          message: 'Uma integração com esta chave de idempotência já está em andamento ou foi concluída.',
+          message:
+            'Uma integração com esta chave de idempotência já está em andamento ou foi concluída.',
         });
       }
       request.log.error(insertError, 'Failed to insert WRITE_NEGOTIATION event');
@@ -383,13 +386,23 @@ export class IntegrationController {
       });
 
       request.log.info(
-        { eventId: event.id, quotationId: payload.purchaseQuotationId, supplierId: payload.supplierId },
+        {
+          eventId: event.id,
+          quotationId: payload.purchaseQuotationId,
+          supplierId: payload.supplierId,
+        },
         'Outbound negotiation enqueued',
       );
     } catch (enqueueError: unknown) {
-      request.log.error({ err: enqueueError, eventId: event.id }, 'Failed to enqueue outbound negotiation');
+      request.log.error(
+        { err: enqueueError, eventId: event.id },
+        'Failed to enqueue outbound negotiation',
+      );
       // Mark event as failed since it couldn't be queued
-      await supabase.from('integration_events').update({ status: 'failure', error_message: 'Falha ao enfileirar job' }).eq('id', event.id);
+      await supabase
+        .from('integration_events')
+        .update({ status: 'failure', error_message: 'Falha ao enfileirar job' })
+        .eq('id', event.id);
       return reply.code(500).send({ message: 'Erro ao enfileirar envio para o Sienge' });
     }
 
@@ -399,7 +412,10 @@ export class IntegrationController {
       actor_id: actorId,
       entity_type: 'purchase_quotations',
       entity_id: String(payload.purchaseQuotationId),
-      metadata: { supplier_id: payload.supplierId, integration_event_id: event.id } as unknown as Json,
+      metadata: {
+        supplier_id: payload.supplierId,
+        integration_event_id: event.id,
+      } as unknown as Json,
     });
 
     return reply.code(202).send({
@@ -448,7 +464,9 @@ export class IntegrationController {
           payload: {
             webhookEventId: webhookEvent.id,
             webhookType: webhookEvent.webhook_type,
-            payload: webhookEvent.payload as Record<string, unknown>,
+            payload: IntegrationController.extractWebhookJobPayload(
+              webhookEvent.payload as Record<string, unknown>,
+            ),
           },
         };
       }
@@ -465,5 +483,23 @@ export class IntegrationController {
         return null;
     }
   }
-}
 
+  private static extractWebhookJobPayload(
+    payload: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> {
+    if (!payload) {
+      return {};
+    }
+
+    if (
+      'data' in payload &&
+      payload.data &&
+      typeof payload.data === 'object' &&
+      !Array.isArray(payload.data)
+    ) {
+      return payload.data as Record<string, unknown>;
+    }
+
+    return payload;
+  }
+}

@@ -22,11 +22,8 @@ const supplierNegotiationItemsUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
 
 const suppliersUpsertMock = vi.fn();
-const supplierContactsUpsertMock = vi.fn();
 const supplierContactsUpdateMock = vi.fn();
 const supplierContactsInsertMock = vi.fn();
-const supplierContactsSelectMock = vi.fn();
-const supplierContactsEqMock = vi.fn();
 const supplierContactsMaybeSingleMock = vi.fn();
 
 const supabaseMock = {
@@ -252,6 +249,25 @@ describe('processSyncQuotations', () => {
     ]);
   });
 
+  it('uses an explicit quotation date window on the first synchronization', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
+
+    await processSyncQuotations({ id: 'job-window' } as never);
+
+    expect(listNegotiationsMock).toHaveBeenCalledWith(
+      {
+        limit: 50,
+        offset: 0,
+        startDate: '2025-10-17',
+        endDate: '2026-04-17',
+      },
+      expect.any(Object),
+    );
+
+    vi.useRealTimers();
+  });
+
   it('handles partial failures gracefully (e.g. failing to fetch creditor)', async () => {
     getCreditorByIdMock.mockRejectedValue(new Error('Creditor API Error'));
 
@@ -265,7 +281,9 @@ describe('processSyncQuotations', () => {
   it('handles total failure gracefully', async () => {
     listNegotiationsMock.mockRejectedValue(new Error('Total API failure'));
 
-    await expect(processSyncQuotations({ id: 'job-3' } as never)).rejects.toThrow('Total API failure');
+    await expect(processSyncQuotations({ id: 'job-3' } as never)).rejects.toThrow(
+      'Total API failure',
+    );
 
     expect(purchaseQuotationsUpsertMock).not.toHaveBeenCalled();
 

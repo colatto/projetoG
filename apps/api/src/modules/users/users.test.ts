@@ -57,8 +57,8 @@ async function getComprasToken(app: ReturnType<typeof buildApp>) {
 }
 
 // Mock helper for chainable Supabase queries
-function mockSupabaseQuery(data: any, error: any = null, count?: number) {
-  const chain: any = {};
+function mockSupabaseQuery(data: unknown, error: unknown = null, count?: number) {
+  const chain: Record<string, unknown> = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.neq = vi.fn().mockReturnValue(chain);
@@ -73,10 +73,9 @@ function mockSupabaseQuery(data: any, error: any = null, count?: number) {
   chain.then = undefined;
   if (count !== undefined) {
     // Override for paginated queries — return data+count when awaited
-    const originalOrder = chain.order;
     chain.order = vi.fn().mockReturnValue({
       ...chain,
-      then: (resolve: any) => resolve({ data, count, error }),
+      then: (resolve: (val: unknown) => void) => resolve({ data, count, error }),
     });
   }
   return chain;

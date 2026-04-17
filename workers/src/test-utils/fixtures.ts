@@ -16,6 +16,7 @@ export const baseOutboundJobData = {
   actorId: 'user-1',
   purchaseQuotationId: 10,
   supplierId: 20,
+  idempotencyKey: 'idem-123',
   supplierAnswerDate: '2026-04-20',
   validity: 15,
   seller: 'John Doe',
@@ -34,5 +35,5 @@ export const baseWebhookPayload = {
   payload: {
     data: { id: 999 },
     timestamp: '2026-04-16T12:00:00Z',
-  }
+  },
 };

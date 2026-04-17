@@ -55,15 +55,18 @@ export async function processRetryIntegration(job: PgBoss.Job) {
         expireInHours: 1,
       });
 
-      await supabase.from('integration_events').update({
-        status: IntegrationEventStatus.PENDING,
-        next_retry_at: null,
-        updated_at: new Date().toISOString()
-      }).eq('id', event.id);
+      await supabase
+        .from('integration_events')
+        .update({
+          status: IntegrationEventStatus.PENDING,
+          next_retry_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', event.id);
 
       console.log(`[${JOB_NAME}] Successfully retried event ${event.id} -> ${targetJob}`);
     } catch (enqueueError) {
-       console.error(`[${JOB_NAME}] Failed to re-enqueue event ${event.id}:`, enqueueError);
+      console.error(`[${JOB_NAME}] Failed to re-enqueue event ${event.id}:`, enqueueError);
     }
   }
 }

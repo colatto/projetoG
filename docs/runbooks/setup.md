@@ -1,91 +1,218 @@
-# Runbook de Setup Inicial
+# Runbook de Setup
 
-## Objetivo
+Runbook operacional para instalar, executar e validar o monorepo no estado atual.
 
-Transformar esta base documental em um workspace executavel com frontend em Vite, backend dedicado, Supabase e pacotes compartilhados.
+## 1. Pré-requisitos
 
-## Estado atual da base
+- Node.js 20 com `corepack`
+- `pnpm` habilitado via `corepack enable`
+- acesso ao projeto Supabase `dbGRF`
+- credenciais do Sienge para ambiente homologação/desenvolvimento
+- conexão PostgreSQL direta para `pg-boss` quando for executar `workers`
 
-- o monorepo esta inicializado com `pnpm`;
-- `apps/web`, `apps/api`, `packages/*` e `workers/` estao com seus scaffolds e dependencias basicas configurados e interligados no workspace;
-- o projeto Supabase `dbGRF` ja esta linkado (via db:login e db:link) e pronto para gerenciamento de migrations local;
-- as decisoes de stack ja foram tomadas:
-  - workspace com `pnpm`;
-  - `apps/api` com Fastify v5;
-  - `workers/` com Node.js + TypeScript + `pg-boss`.
+## 2. Instalação inicial
 
-## Pre-requisitos
+```bash
+corepack enable
+pnpm install
+```
 
-Antes de iniciar o setup:
+## 3. Arquivos de ambiente
 
-1. Garantir Node.js com `corepack` disponivel.
-2. Habilitar `pnpm` com `corepack enable` ou instalar `pnpm` globalmente.
-3. Confirmar acesso ao projeto Supabase `dbGRF`.
-4. Preencher as variaveis necessarias a partir de `.env.example`.
-5. Confirmar credenciais e ambiente de homologacao do Sienge antes de qualquer integracao.
+Use:
 
-## Ordem sugerida
+- `.env.example`
+- `apps/api/.env.example`
+- `workers/.env.example`
 
-1. (CONCLUÍDO) Garantir que `pnpm` esta disponivel.
-2. (CONCLUÍDO) Inicializar o monorepo com:
-   - `package.json` na raiz;
-   - `pnpm-workspace.yaml`;
-   - `package.json` em `apps/web`, `apps/api`, `packages/domain`, `packages/integration-sienge`, `packages/shared` e `workers`;
-   - `pnpm install` na raiz.
-3. (CONCLUÍDO) Inicializar `apps/web` com React + TypeScript + Vite.
-4. (CONCLUÍDO) Inicializar `apps/api` com TypeScript + Fastify v5 para API interna, webhooks e orquestracao.
-5. (CONCLUÍDO) Inicializar `workers/` com Node.js + TypeScript + `pg-boss` para polling, retries, scheduler e reprocessamentos.
-6. (CONCLUÍDO) Configurar o projeto Supabase `dbGRF` ja provisionado:
-   - autenticacao;
-   - conexao de ambiente;
-   - migracoes;
-   - convencoes operacionais em `supabase/`.
-7. (CONCLUÍDO) Configurar lint, formatacao, testes e CI.
-8. (CONCLUÍDO) Modelar o banco relacional.
-9. (CONCLUÍDO) Implementar autenticação, gestão CRUD de usuários e RBAC (Sprints A e B concluídas).
-   9.1 (CONCLUÍDO) Implementar Frontend Autenticação e Gestão React/Vite (Sprint C concluída).
-10. Configurar deploy principal do web na Vercel.
-11. Definir estrategia de deploy standalone para `apps/api` e `workers/`.
-12. (CONCLUÍDO) Implementar integracao inicial com Sienge (Cliente HTTP Base e Resiliência).
+### 3.1 Frontend (`apps/web/.env`)
 
-## Variaveis e configuracao inicial
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_BASE_URL=http://localhost:3000/api
+```
 
-Usar `.env.example` como referencia obrigatoria durante o bootstrap.
+### 3.2 API (`apps/api/.env`)
 
-Minimo esperado por modulo:
+```env
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=
+SIENGE_BASE_URL=https://api.sienge.com.br
+SIENGE_API_KEY=
+SIENGE_API_SECRET=
+SIENGE_WEBHOOK_SECRET=
+SIENGE_ENCRYPTION_KEY=
+JWT_SECRET=
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=
+```
 
-- `apps/web`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL`;
-- `apps/api`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SIENGE_BASE_URL`, `SIENGE_API_KEY`, `JWT_SECRET`, `PORT`, `NODE_ENV`, `SIENGE_WEBHOOK_SECRET` (segredo para validação de webhooks - deve residir unicamente no ambiente/nuvem);
-- `workers/`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SIENGE_BASE_URL`, `SIENGE_API_KEY` e a string de conexao PostgreSQL usada pelo runtime de jobs.
+`DATABASE_URL` é opcional na API. Quando ausente, a API sobe sem publisher de `pg-boss`.
 
-## Rotacao de Credenciais e Segredos (API Sienge)
+### 3.3 Workers (`workers/.env`)
 
-A integração baseia-se em `sienge_credentials`. Estas credenciais ficam criptografadas em repouso no banco. Para rotacionar:
+```env
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+SIENGE_BASE_URL=https://api.sienge.com.br
+SIENGE_API_KEY=
+SIENGE_API_SECRET=
+SIENGE_ENCRYPTION_KEY=
+NODE_ENV=development
+```
 
-1. O perfil **Administrador** deve atualizar as credenciais via interface de Backoffice.
-2. O sistema persistirá os novos dados (`api_user`, `api_password`) de forma segura.
-3. Não há necessidade de restart da aplicação, as próximas chamadas aos clientes Sienge utilizarão a nova credencial ativa.
-4. Para a variável de ambiente `SIENGE_WEBHOOK_SECRET`, atualize a secret na Vercel/Infraestrutura e reinicie a aplicação (`apps/api`).
+## 4. Supabase
 
-## Endpoints Expostos e Portas
+### 4.1 Projeto local
 
-- **API de Integração (Webhooks)**: O endpoint `POST /webhooks/sienge` é exposto publicamente para o Sienge.
-- **Performance e Timeout**: É exigido um tempo máximo de resposta de `2,5s` para os webhooks do Sienge. A API deve apenas persistir o payload e fazer `ACK` assíncrono para os workers processarem.
-- **Firewall/WAF**: Recomenda-se permitir apenas os IPs conhecidos do Sienge (se fornecidos) para a rota `/webhooks/sienge`.
+Configuração observada em `supabase/config.toml`:
 
-## Jobs e Cronjobs (Workers)
+- API: `54321`
+- DB: `54322`
+- Studio: `54323`
+- Inbucket: `54324`
 
-A arquitetura de sincronização assíncrona com o Sienge baseia-se em schedulers gerenciados pelo `pg-boss` no módulo `workers/`:
+### 4.2 Comandos úteis
 
-- **Sincronizações de Leitura (Inbound)**: Schedulers (ex: `sienge:polling`) são ativados periodicamente para buscar atualizações em background de credores, pedidos, cotações e notas fiscais.
-- **Retentativas de Falhas (Retry)**: O job dedicado `integration:retry` é responsável por buscar e processar as retentativas de falha de integração. Este cronjob garante que as falhas operacionais temporárias nas requisições outbound sejam reprocessadas respeitando os intervalos estritos de 24 horas definidos na RN-13.
+```bash
+pnpm run db:login
+pnpm run db:link
+pnpm run db:push
+pnpm run db:pull
+pnpm run db:types
+```
 
-## Validacoes antes de codificar integracoes
+## 5. Subida local dos serviços
 
-- definir a fronteira entre o que roda em `apps/api`, no Supabase e nos workers;
-- confirmar credenciais e ambientes do Sienge;
-- confirmar a estrategia de conexao PostgreSQL usada pelos workers;
-- validar webhooks disponiveis em homologacao;
-- validar correspondencia entre `supplierId` e `creditorId`;
-- validar estrategia de retry e reprocessamento;
-- definir politica de logs com mascaramento de dados sensiveis.
+Em terminais separados:
+
+```bash
+pnpm --filter @projetog/web dev
+pnpm --filter @projetog/api dev
+pnpm --filter @projetog/workers dev
+```
+
+Pontos de acesso:
+
+- web: porta padrão do Vite
+- API: `http://localhost:3000`
+- Swagger: `http://localhost:3000/docs`
+
+## 6. Checks recomendados
+
+```bash
+pnpm -r run test
+pnpm -r run build
+pnpm -r run lint
+```
+
+Situação observada em `2026-04-17`:
+
+- `test`: passa
+- `build`: passa
+- `lint`: falha em `apps/api` e `workers`
+
+## 7. Hooks de commit
+
+O repositório usa:
+
+- Husky 9
+- `lint-staged.config.mjs`
+
+No pre-commit são executados:
+
+- `eslint --fix` por workspace afetado
+- `prettier --write` nos arquivos staged
+
+## 8. Integração Sienge
+
+### 8.1 Credenciais ativas
+
+O worker tenta primeiro buscar credenciais ativas em `sienge_credentials`. Sem elas:
+
+- em `development`, faz fallback para `SIENGE_BASE_URL`, `SIENGE_API_KEY` e `SIENGE_API_SECRET`
+- fora de `development`, falha
+
+### 8.2 Webhooks
+
+Endpoint público esperado:
+
+```text
+POST /webhooks/sienge
+```
+
+Headers obrigatórios observados:
+
+- `x-sienge-id`
+- `x-sienge-event`
+
+Headers opcionais suportados:
+
+- `x-sienge-hook-id`
+- `x-sienge-tenant`
+- `x-webhook-secret`
+
+## 9. Troubleshooting
+
+### API sobe mas sem fila
+
+Sintoma:
+
+- log `DATABASE_URL not configured; pg-boss publisher disabled in API`
+
+Causa:
+
+- `DATABASE_URL` ausente em `apps/api/.env`
+
+### Workers falham ao iniciar
+
+Sintoma:
+
+- erro ao construir `PgBoss`
+
+Causa provável:
+
+- `DATABASE_URL` inválida
+- banco Supabase/local indisponível
+
+### Credenciais Sienge ausentes
+
+Sintoma:
+
+- erro ao criar cliente Sienge nos workers
+
+Causa provável:
+
+- não há linha ativa em `sienge_credentials`
+- fallback local não configurado
+
+### Lint falha no monorepo
+
+Sintoma:
+
+- `pnpm -r run lint` interrompe em `apps/api` ou `workers`
+
+Causa:
+
+- débitos conhecidos de `no-unused-vars`, `prefer-const` e `no-explicit-any`
+
+### Testes de integração live do Sienge
+
+Requisito:
+
+- variáveis reais de Sienge configuradas
+- ambiente com acesso externo disponível
+
+Referências:
+
+- `docs/runbooks/sienge-homologation.md`
+- `docs/runbooks/prd-07-remediation-log-2026-04-17.md`
+
+## 10. Observações operacionais
+
+- a estratégia de deploy da API e dos workers não está versionada no repositório [VERIFICAR]
+- arquivos `.env` com segredos não devem ser commitados; tratar qualquer credencial já exposta como comprometida
+- para homologação externa do Sienge, use os artefatos em `docs/runbooks/`

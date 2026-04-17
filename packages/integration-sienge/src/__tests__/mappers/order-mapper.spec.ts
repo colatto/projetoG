@@ -124,7 +124,10 @@ describe('Order Mapper', () => {
   describe('extractOrderQuotationLinks', () => {
     it('should return empty array if no purchaseQuotations', () => {
       const order = { purchaseOrderId: 100 } as unknown as SiengePurchaseOrder;
-      const orderEmpty = { purchaseOrderId: 100, purchaseQuotations: [] } as unknown as SiengePurchaseOrder;
+      const orderEmpty = {
+        purchaseOrderId: 100,
+        purchaseQuotations: [],
+      } as unknown as SiengePurchaseOrder;
 
       expect(extractOrderQuotationLinks(order)).toEqual([]);
       expect(extractOrderQuotationLinks(orderEmpty)).toEqual([]);

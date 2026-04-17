@@ -44,8 +44,15 @@ describe('Creditor Mapper', () => {
 
   describe('mapCreditorContacts', () => {
     it('should return empty array if contacts is undefined or empty', () => {
-      expect(mapCreditorContacts({ creditorId: 1, creditorName: 'A' } as unknown as SiengeCreditor, 1)).toEqual([]);
-      expect(mapCreditorContacts({ creditorId: 1, creditorName: 'A', contacts: [] } as unknown as SiengeCreditor, 1)).toEqual([]);
+      expect(
+        mapCreditorContacts({ creditorId: 1, creditorName: 'A' } as unknown as SiengeCreditor, 1),
+      ).toEqual([]);
+      expect(
+        mapCreditorContacts(
+          { creditorId: 1, creditorName: 'A', contacts: [] } as unknown as SiengeCreditor,
+          1,
+        ),
+      ).toEqual([]);
     });
 
     it('should map valid contacts and set first valid as primary', () => {

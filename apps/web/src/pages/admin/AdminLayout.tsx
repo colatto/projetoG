@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Users, LogOut, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Users, LogOut, LayoutDashboard, ShieldCheck, Cable, FileText } from 'lucide-react';
 import { UserRole } from '@projetog/domain';
 
 export default function AdminLayout() {
@@ -25,6 +25,24 @@ export default function AdminLayout() {
       path: '/admin/users',
       icon: <Users size={20} />,
       roles: [UserRole.ADMINISTRADOR],
+    },
+    {
+      name: 'Integração Sienge',
+      path: '/admin/integration',
+      icon: <Cable size={20} />,
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
+    },
+    {
+      name: 'Cotações',
+      path: '/admin/quotations',
+      icon: <FileText size={20} />,
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
+    },
+    {
+      name: 'Minhas Cotações',
+      path: '/supplier/quotations',
+      icon: <FileText size={20} />,
+      roles: [UserRole.FORNECEDOR],
     },
   ];
 

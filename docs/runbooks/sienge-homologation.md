@@ -9,6 +9,8 @@ Esta é uma documentação viva para guiar as sessões de testes integrados e as
 - **Identificação**: Validação do vínculo entre APIs de compras e credores.
 - **Ambiente Real**: Base de dados populada do cliente no Sienge.
 - **Critérios**: Confirmar se o campo `supplierId` retornado na API de Cotação mapeia exatamente (1:1) com o `creditorId` da API de Credores.
+- **Status em 2026-04-17**: Validado.
+- **Evidência**: Script `packages/integration-sienge/src/__tests__/supplier-mapping.integration.ts` executado em ambiente real; `40/40` fornecedores resolvidos com sucesso e `40/40` com correspondência nominal exata.
 - **Responsáveis**: Equipe de Engenharia Local + Cliente.
 - **Prazo Estimado**: 2 dias.
 
@@ -17,6 +19,8 @@ Esta é uma documentação viva para guiar as sessões de testes integrados e as
 - **Identificação**: Consistência da regra de captação de e-mail do fornecedor (RN-05).
 - **Ambiente Real**: Cadastros reais de credores no Sienge do cliente.
 - **Critérios**: Confirmar se utilizar o primeiro e-mail válido no array `contacts[].email` reflete corretamente o contato operacional de compras do fornecedor no dia a dia.
+- **Status em 2026-04-17**: Parcialmente validado.
+- **Evidência**: No mesmo script de validação, `35/40` credores amostrados possuem e-mail em `contacts[]`; `5/40` não possuem e permanecem corretamente bloqueáveis pela RN-05. Ainda depende de confirmação do setor de Compras de que o primeiro e-mail válido é de fato o contato operacional desejado.
 - **Responsáveis**: Cliente (Setor de Compras).
 - **Prazo Estimado**: 3 dias.
 

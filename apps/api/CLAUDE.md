@@ -1,66 +1,72 @@
-# Contexto do Modulo API
+# Contexto do Módulo API
 
 ## Objetivo
 
-Implementar o backend dedicado em TypeScript para API interna, autenticacao, webhooks e orquestracao do sistema.
+Servir o backend dedicado do projeto com Fastify 5.
 
-## Responsabilidades (Status)
+## Escopo atual implementado
 
-- RBAC por perfil oficial `(CONCLUÍDO)`;
-- autenticacao por e-mail e senha `(CONCLUÍDO)`;
-- links seguros de primeiro acesso e redefinicao `(CONCLUÍDO)`;
-- auditoria persistida `(CONCLUÍDO)`;
-- workflow de cotacao;
-- workflow de follow-up;
-- gestao de avarias;
-- reprocessamento de integracao;
-- coordenacao com Supabase para persistencia e autenticacao `(CONCLUÍDO)`;
-- despacho de tarefas assincronas para workers e jobs fora do ciclo HTTP.
+- autenticação por e-mail/senha
+- JWT próprio da aplicação
+- RBAC por perfil
+- CRUD administrativo de usuários
+- auditoria persistida
+- recebimento de webhooks do Sienge
+- listagem e retry manual de eventos de integração
+- leitura e atualização de credenciais Sienge
+- enfileiramento de negociação outbound via `pg-boss`
 
-## Regras locais
+## Pontos de entrada reais
 
-- toda aprovacao de cotacao ocorre aqui;
-- toda regra de prazo, status e follow-up ocorre aqui ou em `packages/domain`;
-- integracoes com Sienge devem ser idempotentes e rastreaveis;
-- jobs nao dependem do frontend;
-- a API pode ser exposta na Vercel para fluxos sincronos, mas o processamento demorado nao deve depender do tempo de vida de uma requisicao serverless.
+- `src/server.ts`: bootstrap do servidor
+- `src/app.ts`: factory usada em runtime e testes
 
-## Framework e deploy <!-- atualizado -->
+## Plugins registrados
 
-- **Framework:** Fastify v5 — decisao registrada em `docs/decisions/ADR-0002-backend-framework.md`.
-- **Estrategia de deploy:** servidor standalone dedicado (Railway, Fly.io, VPS ou container). A API NAO deve rodar exclusivamente como funcao serverless de curta duracao, pois processa webhooks e coordena jobs de longa duracao.
-- **Entrypoint:** `apps/api/src/server.ts` (inicializa Fastify e registra plugins); `apps/api/src/app.ts` (factory exportavel para testes via `fastify.inject()`).
-- **Estrutura esperada de pastas:**
-  - `src/routes/` — rotas agrupadas por modulo de dominio
-  - `src/plugins/` — plugins globais (jwt, cors, helmet, sensible)
-  - `src/hooks/` — lifecycle hooks (RBAC, auditoria)
-  - `src/schemas/` — JSON Schemas de request/response
+- `supabasePlugin`
+- `authPlugin`
+- `pgBossPlugin` quando `DATABASE_URL` está presente
 
-## Dependencias principais esperadas <!-- atualizado -->
+## Rotas reais
 
-| Pacote                              | Finalidade                     |
-| ----------------------------------- | ------------------------------ |
-| `fastify`                           | Core do framework              |
-| `@fastify/jwt`                      | Verificacao de JWT             |
-| `@fastify/cors`                     | Politica CORS                  |
-| `@fastify/helmet`                   | Headers de seguranca           |
-| `@fastify/sensible`                 | Utilitarios de respostas HTTP  |
-| `@fastify/swagger`                  | Documentacao automatica de API |
-| `@supabase/supabase-js`             | Cliente Supabase               |
-| `zod` e `fastify-type-provider-zod` | Validacao de schemas           |
+- `/health`
+- `/api/auth/*`
+- `/api/users/*`
+- `/webhooks/sienge`
+- `/api/integration/*`
 
-## Variaveis de ambiente esperadas <!-- atualizado -->
+## Dependências principais
 
-- `SUPABASE_URL` — URL do projeto `dbGRF`
-- `SUPABASE_SERVICE_ROLE_KEY` — chave de servico do Supabase
-- `SIENGE_BASE_URL` — URL base da API do Sienge
-- `SIENGE_API_KEY` ou `SIENGE_TOKEN` — credencial de acesso ao Sienge
-- `JWT_SECRET` — segredo para `@fastify/jwt`
-- `PORT` — porta de execucao do servidor (padrao: 3000)
+- `fastify 5.8.4`
+- `@fastify/jwt 9.0.1`
+- `@fastify/swagger 9.4.0`
+- `@fastify/swagger-ui 5.2.0`
+- `@supabase/supabase-js 2.102.1`
+- `fastify-type-provider-zod 4.0.2`
+- `pg-boss 9.0.3`
 
-## Contexto de testes <!-- atualizado -->
+## Ambiente
 
-- **Framework:** Vitest — compativel com `fastify.inject()` para testes de rotas sem servidor HTTP real.
-- **Padrao:** testes de integracao via `fastify.inject()` por rota/endpoint; testes unitarios para hooks, plugins e orquestracao.
-- **Localizacao:** `apps/api/src/**/*.test.ts` ou subpastas `__tests__/`.
-- **Referencia:** `docs/decisions/ADR-0002-backend-framework.md`.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SIENGE_BASE_URL`
+- `SIENGE_API_KEY`
+- `SIENGE_API_SECRET`
+- `SIENGE_WEBHOOK_SECRET`
+- `SIENGE_ENCRYPTION_KEY`
+- `JWT_SECRET`
+- `PORT`
+- `NODE_ENV`
+- `DATABASE_URL` opcional
+
+## Estado de qualidade
+
+- testes: passam
+- build: passa
+- lint: falha
+
+Principais débitos atuais:
+
+- `no-explicit-any`
+- `no-unused-vars`
+- tipagem frouxa em testes e plugin de auth

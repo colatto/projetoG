@@ -1,0 +1,43 @@
+name: Bug report
+description: Registrar falha funcional, regressão ou incidente de produção
+title: '[Bug] '
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resumo
+      description: Descreva o comportamento observado e o esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto
+      description: Quais módulos, usuários ou operações são afetados?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Inclua payloads, rotas e contexto necessário.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Logs, screenshots, traces e links relevantes.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true

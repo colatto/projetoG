@@ -8,8 +8,17 @@ const createMock = vi.fn();
 const updateMock = vi.fn();
 const updateItemMock = vi.fn();
 const authorizeMock = vi.fn();
+const profilesSelectMock = vi.fn();
+const notificationsInsertMock = vi.fn();
 
-const { supabaseClient, getTableMocks } = createSupabaseMock();
+const { supabaseClient, getTableMocks } = createSupabaseMock({
+  profiles: {
+    select: profilesSelectMock,
+  },
+  notifications: {
+    insert: notificationsInsertMock,
+  },
+});
 
 vi.mock('../supabase.js', () => ({
   getSupabase: () => supabaseClient,
@@ -40,6 +49,18 @@ const { processOutboundNegotiation } = await import('./outbound-negotiation.js')
 describe('processOutboundNegotiation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    profilesSelectMock.mockResolvedValue({
+      data: [
+        {
+          id: 'compras-1',
+          email: 'compras@grf.com.br',
+          role: 'compras',
+          status: 'ativo',
+        },
+      ],
+      error: null,
+    });
+    notificationsInsertMock.mockResolvedValue({ error: null });
 
     getTableMocks('purchase_quotations').selectEqSingle.mockResolvedValue({
       data: { id: 10, quotation_date: '2026-04-01' },
@@ -49,16 +70,24 @@ describe('processOutboundNegotiation', () => {
     getTableMocks('integration_events').updateEq.mockResolvedValue({ error: null });
     getTableMocks('integration_events').insertMock.mockResolvedValue({ error: null });
     getTableMocks('integration_events').selectEqSingle.mockResolvedValue({
-      data: { retry_count: 0, max_retries: 2 },
+      data: {
+        status: IntegrationEventStatus.PENDING,
+        retry_count: 0,
+        max_retries: 2,
+        idempotency_key: 'idem-123',
+      },
       error: null,
     });
 
     getTableMocks('supplier_negotiations').updateEqEq.mockResolvedValue({ error: null });
-    
+
     getTableMocks('audit_logs').insertMock.mockResolvedValue({ error: null });
   });
 
   it('should process outbound negotiation successfully when negotiation already exists', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
+
     listNegotiationsPagedMock.mockResolvedValueOnce({
       results: [
         {
@@ -66,9 +95,7 @@ describe('processOutboundNegotiation', () => {
           suppliers: [
             {
               supplierId: 20,
-              negotiations: [
-                { negotiationId: 99, negotiationNumber: 999 },
-              ],
+              negotiations: [{ negotiationId: 99, negotiationNumber: 999 }],
             },
           ],
         },
@@ -78,13 +105,22 @@ describe('processOutboundNegotiation', () => {
 
     await processOutboundNegotiation({ id: 'job-1', data: baseOutboundJobData } as never);
 
+    expect(listNegotiationsPagedMock).toHaveBeenCalledWith(
+      {
+        supplierId: 20,
+        startDate: '2026-04-01',
+        endDate: '2026-04-17',
+      },
+      expect.any(Object),
+    );
+
     // Assert update
     expect(updateMock).toHaveBeenCalledWith(
       10,
       20,
       999,
       expect.objectContaining({ seller: 'John Doe' }),
-      expect.any(Object)
+      expect.any(Object),
     );
 
     // Assert item update
@@ -94,7 +130,7 @@ describe('processOutboundNegotiation', () => {
       999,
       30,
       expect.objectContaining({ unitPrice: 100 }),
-      expect.any(Object)
+      expect.any(Object),
     );
 
     // Assert authorize
@@ -103,10 +139,12 @@ describe('processOutboundNegotiation', () => {
     // Assert event update success
     expect(getTableMocks('integration_events').update).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: IntegrationEventStatus.SUCCESS
-      })
+        status: IntegrationEventStatus.SUCCESS,
+      }),
     );
     expect(getTableMocks('integration_events').updateEq).toHaveBeenCalledWith('id', 'evt-123');
+
+    vi.useRealTimers();
   });
 
   it('should create negotiation if none exists, then update and authorize', async () => {
@@ -144,17 +182,11 @@ describe('processOutboundNegotiation', () => {
       10,
       20,
       expect.objectContaining({ seller: 'John Doe' }),
-      expect.any(Object)
+      expect.any(Object),
     );
 
     // Assert update uses the newly created ID
-    expect(updateMock).toHaveBeenCalledWith(
-      10,
-      20,
-      999,
-      expect.any(Object),
-      expect.any(Object)
-    );
+    expect(updateMock).toHaveBeenCalledWith(10, 20, 999, expect.any(Object), expect.any(Object));
   });
 
   it('should abort and flag if supplier is not found in the quotation map (RN-10)', async () => {
@@ -172,9 +204,15 @@ describe('processOutboundNegotiation', () => {
 
     expect(getTableMocks('integration_events').update).toHaveBeenCalledWith(
       expect.objectContaining({
-        event_type: IntegrationEventType.SUPPLIER_INVALID_MAP
-      })
+        event_type: IntegrationEventType.SUPPLIER_INVALID_MAP,
+      }),
     );
+    expect(getTableMocks('supplier_negotiations').update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'FORNECEDOR_FECHADO',
+      }),
+    );
+    expect(notificationsInsertMock).toHaveBeenCalled();
 
     // Ensure we don't call Sienge mutations
     expect(createMock).not.toHaveBeenCalled();
@@ -200,7 +238,7 @@ describe('processOutboundNegotiation', () => {
         retry_count: 1,
         error_message: 'API Down',
         next_retry_at: '2026-04-17T12:00:00.000Z', // 24 hours later
-      })
+      }),
     );
     expect(getTableMocks('integration_events').updateEq).toHaveBeenCalledWith('id', 'evt-123');
 
@@ -211,7 +249,12 @@ describe('processOutboundNegotiation', () => {
     listNegotiationsPagedMock.mockRejectedValue(new Error('API Down'));
 
     getTableMocks('integration_events').selectEqSingle.mockResolvedValue({
-      data: { retry_count: 2, max_retries: 2 },
+      data: {
+        status: IntegrationEventStatus.PENDING,
+        retry_count: 2,
+        max_retries: 2,
+        idempotency_key: 'idem-123',
+      },
       error: null,
     });
 
@@ -221,7 +264,33 @@ describe('processOutboundNegotiation', () => {
       expect.objectContaining({
         event_type: 'integration.failure_exhausted',
         entity_id: 'evt-123',
-      })
+      }),
     );
+    expect(notificationsInsertMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'INTEGRATION_FAILURE_EXHAUSTED',
+          recipient_email: 'compras@grf.com.br',
+        }),
+      ]),
+    );
+  });
+
+  it('should skip duplicate execution when the integration event is already successful', async () => {
+    getTableMocks('integration_events').selectEqSingle.mockResolvedValue({
+      data: {
+        status: IntegrationEventStatus.SUCCESS,
+        retry_count: 0,
+        max_retries: 2,
+        idempotency_key: 'idem-123',
+      },
+      error: null,
+    });
+
+    await processOutboundNegotiation({ id: 'job-6', data: baseOutboundJobData } as never);
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(authorizeMock).not.toHaveBeenCalled();
   });
 });

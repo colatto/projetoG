@@ -1,24 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { IntegrationDirection, IntegrationEntityType, IntegrationEventType } from '@projetog/domain';
+import {
+  IntegrationEntityType,
+  IntegrationEventType,
+} from '@projetog/domain';
 
 const getByIdMock = vi.fn();
 const getItemsMock = vi.fn();
 const listNegotiationsMock = vi.fn();
 
-const purchaseOrdersSelectMock = vi.fn();
-const purchaseOrdersEqMock = vi.fn();
 const purchaseOrdersSingleMock = vi.fn();
 
 const purchaseOrdersUpsertMock = vi.fn();
 const purchaseOrderItemsUpsertMock = vi.fn();
 const orderQuotationLinksUpsertMock = vi.fn();
 const purchaseQuotationsUpsertMock = vi.fn();
-const supplierNegotiationsUpdateMock = vi.fn();
-const supplierNegotiationsEqMock1 = vi.fn();
-const supplierNegotiationsEqMock2 = vi.fn();
 const supplierNegotiationsEqMock3 = vi.fn();
 
 const integrationEventsInsertMock = vi.fn();
+const profilesSelectMock = vi.fn();
+const notificationsInsertMock = vi.fn();
 
 const supabaseMock = {
   from: vi.fn((table: string) => {
@@ -47,8 +47,8 @@ const supabaseMock = {
       case 'supplier_negotiations':
         return {
           update: vi.fn(() => ({
-            eq: vi.fn((field1, val1) => ({
-              eq: vi.fn((field2, val2) => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
                 eq: supplierNegotiationsEqMock3,
               })),
             })),
@@ -57,6 +57,18 @@ const supabaseMock = {
       case 'integration_events':
         return {
           insert: integrationEventsInsertMock,
+        };
+      case 'profiles':
+        return {
+          select: profilesSelectMock,
+        };
+      case 'notifications':
+        return {
+          insert: notificationsInsertMock,
+        };
+      case 'audit_logs':
+        return {
+          insert: vi.fn().mockResolvedValue({ error: null }),
         };
       default:
         throw new Error(`Unexpected table: ${table}`);
@@ -86,9 +98,8 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
   };
 });
 
-const { processSiengeReconcile, reconcileOrderFromApi, reconcileQuotationFromApi } = await import(
-  './sienge-reconcile.js'
-);
+const { processSiengeReconcile } =
+  await import('./sienge-reconcile.js');
 
 describe('sienge-reconcile', () => {
   beforeEach(() => {
@@ -104,6 +115,18 @@ describe('sienge-reconcile', () => {
     purchaseQuotationsUpsertMock.mockResolvedValue({ error: null });
     supplierNegotiationsEqMock3.mockResolvedValue({ error: null });
     integrationEventsInsertMock.mockResolvedValue({ error: null });
+    profilesSelectMock.mockResolvedValue({
+      data: [
+        {
+          id: 'compras-1',
+          email: 'compras@grf.com.br',
+          role: 'compras',
+          status: 'ativo',
+        },
+      ],
+      error: null,
+    });
+    notificationsInsertMock.mockResolvedValue({ error: null });
   });
 
   describe('processSiengeReconcile', () => {
@@ -157,12 +180,17 @@ describe('sienge-reconcile', () => {
         expect.objectContaining({
           event_type: IntegrationEventType.RECONCILIATION_DIVERGENCE,
           response_payload: expect.objectContaining({
-            divergences: [
-              'sienge_status: PENDING -> APPROVED',
-              'authorized: false -> true',
-            ],
+            divergences: ['sienge_status: PENDING -> APPROVED', 'authorized: false -> true'],
           }),
         }),
+      );
+      expect(notificationsInsertMock).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'RECONCILIATION_DIVERGENCE',
+            recipient_email: 'compras@grf.com.br',
+          }),
+        ]),
       );
     });
 
@@ -185,9 +213,7 @@ describe('sienge-reconcile', () => {
         expect.objectContaining({
           event_type: IntegrationEventType.RECONCILIATION_DIVERGENCE,
           response_payload: expect.objectContaining({
-            divergences: [
-              'webhook link(s) missing from API confirmation: 999',
-            ],
+            divergences: ['webhook link(s) missing from API confirmation: 999'],
           }),
         }),
       );

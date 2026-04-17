@@ -14,6 +14,7 @@ import {
 import { sanitizeForLog } from '@projetog/shared';
 import { getSupabase } from '../supabase.js';
 import { getSiengeClient } from '../sienge.js';
+import { notifyComprasAboutOperationalIssue } from '../operational-notifications.js';
 
 const JOB_NAME = 'sienge:reconcile';
 
@@ -80,8 +81,12 @@ export async function processSiengeReconcile(job: PgBoss.Job): Promise<void> {
       http_method: 'GET',
       http_status: 200,
       status: 'success',
-      request_payload: sanitizeForLog({ entityType, entityId, reason }) as any,
-      response_payload: sanitizeForLog(result.summary) as any,
+      request_payload: sanitizeForLog({
+        entityType,
+        entityId,
+        reason,
+      }) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog(result.summary) as unknown as import('@projetog/shared').Json,
       related_entity_type: result.relatedEntityType,
       related_entity_id: String(result.entityId),
       retry_count: 0,
@@ -89,7 +94,7 @@ export async function processSiengeReconcile(job: PgBoss.Job): Promise<void> {
     });
 
     if (result.divergenceMessages.length > 0) {
-      await registerReconciliationDivergence(supabase, result, reason);
+      await registerReconciliationDivergence(supabase, result, reason, correlationId);
     }
 
     console.log(
@@ -111,7 +116,11 @@ export async function processSiengeReconcile(job: PgBoss.Job): Promise<void> {
       http_method: 'GET',
       status: 'failure',
       error_message: err.message ?? 'Unknown error',
-      request_payload: sanitizeForLog({ entityType, entityId, reason }) as any,
+      request_payload: sanitizeForLog({
+        entityType,
+        entityId,
+        reason,
+      }) as unknown as import('@projetog/shared').Json,
       related_entity_type:
         entityType === 'quotation' ? IntegrationEntityType.QUOTATION : IntegrationEntityType.ORDER,
       related_entity_id: entityId ? String(entityId) : null,
@@ -263,7 +272,7 @@ export async function reconcileQuotationFromApi(
         await supabase
           .from('supplier_negotiations')
           .update({
-            status: neg.authorized ? 'authorized' : 'pending',
+            status: neg.authorized ? 'INTEGRADA_SIENGE' : 'AGUARDANDO_RESPOSTA',
             delivery_date: neg.supplierAnswerDate ?? null,
             sienge_negotiation_id: neg.negotiationId,
             sienge_negotiation_number: neg.negotiationNumber,
@@ -292,6 +301,7 @@ async function registerReconciliationDivergence(
   supabase: ReturnType<typeof getSupabase>,
   result: ReconciliationResult,
   reason: string,
+  correlationId: string,
 ): Promise<void> {
   await supabase.from('integration_events').insert({
     event_type: IntegrationEventType.RECONCILIATION_DIVERGENCE,
@@ -304,11 +314,31 @@ async function registerReconciliationDivergence(
       entityType: result.entityType,
       entityId: result.entityId,
       reason,
-    }) as any,
-    response_payload: sanitizeForLog({ divergences: result.divergenceMessages }) as any,
+    }) as unknown as import('@projetog/shared').Json,
+    response_payload: sanitizeForLog({
+      divergences: result.divergenceMessages,
+    }) as unknown as import('@projetog/shared').Json,
     related_entity_type: result.relatedEntityType,
     related_entity_id: String(result.entityId),
     retry_count: 0,
     max_retries: 0,
   });
+
+  try {
+    await notifyComprasAboutOperationalIssue(supabase, {
+      type: 'RECONCILIATION_DIVERGENCE',
+      entityType: result.relatedEntityType,
+      entityId: String(result.entityId),
+      correlationId,
+      metadata: {
+        reason,
+        divergences: result.divergenceMessages,
+      },
+    });
+  } catch (notificationError: unknown) {
+    const err = notificationError as { message?: string };
+    console.warn(
+      `[${JOB_NAME}] Failed to notify Compras about reconciliation divergence: ${err.message}. CorrelationId: ${correlationId}`,
+    );
+  }
 }

@@ -20,14 +20,28 @@ declare module '@fastify/jwt' {
       name?: string;
       role?: UserRole;
       status?: UserStatus;
-      app_metadata?: any;
-      user_metadata?: any;
+      app_metadata?: Record<string, unknown>;
+      user_metadata?: Record<string, unknown>;
     };
   }
 }
 
 export interface AuthPluginOptions {
   jwtSecret: string;
+}
+
+const SUPPORTED_CRIT_HEADERS = new Set(['b64']);
+
+function hasUnsupportedCriticalHeaders(token: string, fastify: FastifyRequest['server']): boolean {
+  const decoded = fastify.jwt.decode<{ header?: Record<string, unknown> }>(token, { complete: true });
+  const header = decoded && typeof decoded === 'object' ? decoded.header : undefined;
+  const crit = header?.crit;
+
+  if (!Array.isArray(crit)) {
+    return false;
+  }
+
+  return crit.some((entry) => typeof entry !== 'string' || !SUPPORTED_CRIT_HEADERS.has(entry));
 }
 
 export const authPlugin = fp<AuthPluginOptions>(async (fastify, opts) => {
@@ -37,10 +51,24 @@ export const authPlugin = fp<AuthPluginOptions>(async (fastify, opts) => {
 
   fastify.register(fastifyJwt, {
     secret: opts.jwtSecret,
+    sign: {
+      algorithm: 'HS256',
+    },
+    verify: {
+      algorithms: ['HS256'],
+    },
   });
 
   fastify.decorate('authenticate', async function (request: FastifyRequest, reply: FastifyReply) {
     try {
+      const token = request.server.jwt.lookupToken(request);
+      if (token && hasUnsupportedCriticalHeaders(token, request.server)) {
+        reply
+          .code(401)
+          .send({ error: 'Unauthorized', message: 'JWT com cabeçalho crítico não suportado' });
+        return;
+      }
+
       await request.jwtVerify();
 
       // Validação de status ativo
@@ -56,6 +84,14 @@ export const authPlugin = fp<AuthPluginOptions>(async (fastify, opts) => {
   fastify.decorate('verifyRole', function (allowedRoles: UserRole[]) {
     return async function (request: FastifyRequest, reply: FastifyReply) {
       try {
+        const token = request.server.jwt.lookupToken(request);
+        if (token && hasUnsupportedCriticalHeaders(token, request.server)) {
+          reply
+            .code(401)
+            .send({ error: 'Unauthorized', message: 'JWT com cabeçalho crítico não suportado' });
+          return;
+        }
+
         await request.jwtVerify();
         const role = request.user.role || (request.user.app_metadata?.role as UserRole);
 
