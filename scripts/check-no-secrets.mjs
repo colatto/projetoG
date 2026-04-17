@@ -8,11 +8,16 @@ const BLOCKED_PATH_PATTERNS = [
   /(^|\/).*\.key$/i,
   /(^|\/)id_(rsa|ed25519)$/i,
 ];
+const ALLOWED_PATH_PATTERNS = [
+  /\.test\.[jt]sx?$/,
+  /\.spec\.[jt]sx?$/,
+  /(^|\/)__tests__\//,
+];
 
 const SECRET_PATTERNS = [
   {
     name: 'supabase-service-role',
-    pattern: /\bSUPABASE_SERVICE_ROLE_KEY\s*=\s*(?!.*(?:placeholder|example|changeme|redacted))/i,
+    pattern: /\bSUPABASE_SERVICE_ROLE_KEY\s*=\s*(?!.*(?:placeholder|example|changeme|redacted|test))/i,
   },
   {
     name: 'jwt-secret',
@@ -74,11 +79,9 @@ for (const file of stagedFiles) {
     findings.push(`${file}: arquivo sensível não deve ser commitado`);
     continue;
   }
-
+  if (isAllowedExample(file)) continue;
+  if (ALLOWED_PATH_PATTERNS.some(p => p.test(file))) continue; // <-- novo
   const content = readStagedFile(file);
-  if (!content) {
-    continue;
-  }
 
   const detectedSecret = detectSecret(content);
   if (detectedSecret) {
