@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, ResetPasswordDto } from '@projetog/shared';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -13,7 +14,6 @@ type FlowType = 'first-access' | 'recovery';
 export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [token, setToken] = useState<string>('');
   const [apiError, setApiError] = useState<string | null>(null);
 
   // Detect flow context: Supabase invite links contain type=invite,
@@ -29,12 +29,11 @@ export default function ResetPassword() {
 
   const isFirstAccess = flowType === 'first-access';
 
-  useEffect(() => {
+  // Derive token from URL params — avoids setState inside useEffect
+  const token = useMemo(() => {
     const queryParams = new URLSearchParams(location.search);
     const hashParams = new URLSearchParams(location.hash.replace('#', '?'));
-
-    const extractedToken = queryParams.get('token') || hashParams.get('access_token') || '';
-    setToken(extractedToken);
+    return queryParams.get('token') || hashParams.get('access_token') || '';
   }, [location]);
 
   const {
@@ -58,10 +57,9 @@ export default function ResetPassword() {
             : 'Senha redefinida com sucesso. Você já pode fazer login.',
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setApiError(
-        error.response?.data?.message ||
-          'Link inválido ou expirado. Solicite um novo na tela de login.',
+        getApiErrorMessage(error, 'Link inválido ou expirado. Solicite um novo na tela de login.'),
       );
     }
   };

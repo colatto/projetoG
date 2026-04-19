@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 
 type SupplierNegotiation = {
   id: string;
@@ -43,8 +44,8 @@ export default function QuotationDetail() {
         setLoading(true);
         const res = await api.get(`/quotations/${quotationId}`);
         setData(res.data.data);
-      } catch (e: any) {
-        setError(e?.response?.data?.message ?? 'Erro ao carregar cotação');
+      } catch (e: unknown) {
+        setError(getApiErrorMessage(e, 'Erro ao carregar cotação'));
       } finally {
         setLoading(false);
       }
@@ -61,8 +62,8 @@ export default function QuotationDetail() {
       alert(`Enviada. Fornecedores enviados: ${res.data.suppliers_sent}`);
       const reload = await api.get(`/quotations/${quotationId}`);
       setData(reload.data.data);
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Erro ao enviar');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Erro ao enviar'));
     } finally {
       setSending(false);
     }
@@ -75,8 +76,8 @@ export default function QuotationDetail() {
       alert(res.data.message ?? 'OK');
       const reload = await api.get(`/quotations/${quotationId}`);
       setData(reload.data.data);
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Erro ao revisar');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Erro ao revisar'));
     }
   };
 
@@ -84,8 +85,8 @@ export default function QuotationDetail() {
     try {
       const res = await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/retry-integration`);
       alert(res.data.message ?? 'Reprocessamento enfileirado');
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Erro ao reprocessar');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Erro ao reprocessar'));
     }
   };
 

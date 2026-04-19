@@ -25,7 +25,7 @@ export default function ForgotPassword() {
       setApiError(null);
       await api.post('/auth/forgot-password', data);
       setIsSuccess(true);
-    } catch (error) {
+    } catch {
       setApiError('Não foi possível enviar a solicitação. Tente novamente mais tarde.');
     }
   };

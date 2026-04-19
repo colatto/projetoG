@@ -15,6 +15,11 @@ Servir o backend dedicado do projeto com Fastify 5.
 - listagem e retry manual de eventos de integração
 - leitura e atualização de credenciais Sienge
 - enfileiramento de negociação outbound via `pg-boss`
+- fluxo completo de cotações para backoffice (listagem, detalhe, envio, revisão de resposta, retry de integração)
+- portal do fornecedor (listagem, detalhe, marcação de leitura, resposta com itens e entregas)
+- aliases de compatibilidade PRD-09 para rotas de cotação
+- documentação Swagger em `/docs`
+- métricas via `prom-client`
 
 ## Pontos de entrada reais
 
@@ -24,26 +29,34 @@ Servir o backend dedicado do projeto com Fastify 5.
 ## Plugins registrados
 
 - `supabasePlugin`
-- `authPlugin`
+- `authPlugin` (JWT + `authenticate` + `verifyRole`)
 - `pgBossPlugin` quando `DATABASE_URL` está presente
+- `metricsPlugin` (`prom-client`)
+- `helmet`, `cors`, `sensible`
+- `swagger` + `swagger-ui`
 
-## Rotas reais
+## Módulos de rotas reais
 
-- `/health`
-- `/api/auth/*`
-- `/api/users/*`
-- `/webhooks/sienge`
-- `/api/integration/*`
+| Módulo          | Prefixo                                                       | Rotas                                                               |
+| --------------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| health          | `/`                                                           | `GET /health`                                                       |
+| auth            | `/api/auth`                                                   | login, logout, forgot-password, reset-password, me                  |
+| users           | `/api/users`                                                  | CRUD completo + block/reactivate/reset-password                     |
+| webhooks        | `/webhooks`                                                   | `POST /webhooks/sienge`                                             |
+| integration     | `/api/integration`                                            | events, events/:id/retry, credentials (GET/PUT), negotiations/write |
+| quotations (bo) | `/api/quotations`, `/api/backoffice/quotations`               | listagem, detalhe, send, review, retry-integration                  |
+| quotations (sp) | `/api/supplier/quotations`, `/api/supplier-portal/quotations` | listagem, detalhe, read, respond                                    |
 
 ## Dependências principais
 
-- `fastify 5.8.4`
-- `@fastify/jwt 9.0.1`
+- `fastify 5.8.5`
+- `@fastify/jwt 10.0.0`
 - `@fastify/swagger 9.4.0`
 - `@fastify/swagger-ui 5.2.0`
-- `@supabase/supabase-js 2.102.1`
+- `@supabase/supabase-js ^2.45.0`
 - `fastify-type-provider-zod 4.0.2`
 - `pg-boss 9.0.3`
+- `prom-client 15.1.3`
 
 ## Ambiente
 
@@ -61,12 +74,11 @@ Servir o backend dedicado do projeto com Fastify 5.
 
 ## Estado de qualidade
 
-- testes: passam
+- testes: 40 passando (6 suítes)
 - build: passa
-- lint: falha
+- lint: passa
 
-Principais débitos atuais:
+## Funcionalidades ainda não implementadas
 
-- `no-explicit-any`
-- `no-unused-vars`
-- tipagem frouxa em testes e plugin de auth
+- testes para o módulo de cotações
+- endpoints de pedidos, entregas, follow-up, avarias e dashboard

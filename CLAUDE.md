@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-17`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-19`.
 
 ## Ordem de consulta
 
@@ -28,41 +28,58 @@ Construir uma aplicação web para a GRF com:
 
 O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
-- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários e monitoramento de eventos de integração
-- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge e endpoints de integração
-- workers com polling de cotações, pedidos e entregas, reconciliação por webhook, retry de eventos e escrita outbound de negociação
-- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at` e migrações PRD-07
+- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, listagem e detalhe de cotações (backoffice e portal do fornecedor)
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração
+- workers com polling de cotações, pedidos e entregas, reconciliação por webhook, retry de eventos, escrita outbound de negociação, e verificação automática de expiração de cotações
+- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações PRD-07 e PRD-02 (respostas de cotação versionadas)
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
+- infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
 
 ## Módulos reais
 
-| Módulo                        | Estado                    | Responsabilidade principal                       |
-| ----------------------------- | ------------------------- | ------------------------------------------------ |
-| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice                         |
-| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração e orquestração  |
-| `workers`                     | implementado parcialmente | polling, reconciliação, retry e jobs assíncronos |
-| `packages/domain`             | implementado parcialmente | entidades e enums centrais                       |
-| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                       |
-| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                     |
-| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                    |
+| Módulo                        | Estado                    | Responsabilidade principal                                |
+| ----------------------------- | ------------------------- | --------------------------------------------------------- |
+| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users e cotações       |
+| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações e orquestração |
+| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check e jobs        |
+| `packages/domain`             | implementado parcialmente | entidades e enums centrais                                |
+| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                |
+| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                              |
+| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                             |
 
 ## Capacidades confirmadas no código
 
 ### `apps/web`
 
+Rotas públicas:
+
 - `/login`
 - `/esqueci-senha`
 - `/reset-password`
-- `/admin/users`
-- `/admin/users/new`
-- `/admin/users/:id`
-- `/admin/integration`
+
+Rotas protegidas (layout administrativo):
+
+- `/` (dashboard placeholder)
+- `/admin/users` (Administrador)
+- `/admin/users/new` (Administrador)
+- `/admin/users/:id` (Administrador)
+- `/admin/integration` (Administrador, Compras)
+- `/admin/quotations` (Administrador, Compras)
+- `/admin/quotations/:id` (Administrador, Compras)
+- `/supplier/quotations` (Fornecedor)
+- `/supplier/quotations/:id` (Fornecedor)
+
+Componentes:
+
 - `ProtectedRoute` com checagem por perfil
 - `AuthContext` com persistência de token em `localStorage`
+- `AdminLayout` com navegação lateral por perfil
+- componentes UI: `Button`, `Input`, `IntegrationStatusBadge`
 
 ### `apps/api`
 
 - `GET /health`
+- `GET /docs` (Swagger UI)
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `POST /api/auth/forgot-password`
@@ -77,6 +94,20 @@ O repositório não está mais em fase de scaffold. Hoje ele já contém:
 - `POST /api/integration/events/:id/retry`
 - `GET/PUT /api/integration/credentials`
 - `POST /api/integration/negotiations/write`
+- `GET /api/quotations` (backoffice — lista)
+- `GET /api/quotations/:quotation_id` (backoffice — detalhe)
+- `POST /api/quotations/:quotation_id/send` (enviar cotação)
+- `POST /api/quotations/:quotation_id/suppliers/:supplier_id/review` (revisar resposta)
+- `POST /api/quotations/:quotation_id/suppliers/:supplier_id/retry-integration` (retry)
+- `GET /api/supplier/quotations` (portal fornecedor — lista)
+- `GET /api/supplier/quotations/:quotation_id` (portal fornecedor — detalhe)
+- `POST /api/supplier/quotations/:quotation_id/read` (marcar leitura)
+- `POST /api/supplier/quotations/:quotation_id/respond` (responder cotação)
+
+Aliases de compatibilidade (PRD-09):
+
+- `/api/backoffice/quotations/*` → `/api/quotations/*`
+- `/api/supplier-portal/quotations/*` → `/api/supplier/quotations/*`
 
 ### `workers`
 
@@ -90,12 +121,21 @@ Jobs registrados:
 - `sienge:outbound-negotiation`
 - `integration:retry`
 - `follow-up`
+- `quotation:expire-check`
 
 Agendamentos observados:
 
 - `*/15 * * * *`: sincronização de cotações, pedidos e entregas
 - `0 * * * *`: retry de integração
-- `0 11 * * *`: follow-up diário
+- `0 11 * * *`: follow-up diário (08:00 BRT)
+- `15 11 * * *`: expire-check de cotações (08:15 BRT)
+
+Infraestrutura de suporte:
+
+- `logger.ts`: logging estruturado
+- `observability.ts`: métricas e monitoramento
+- `operational-notifications.ts`: notificações operacionais para `Compras`
+- `test-utils/`: fixtures, mocks de pg-boss e supabase
 
 ## Regras obrigatórias
 
@@ -123,10 +163,22 @@ Entidades principais:
 - `suppliers`
 - `supplier_contacts`
 - `purchase_quotations`
+- `purchase_quotation_items`
 - `supplier_negotiations`
+- `supplier_negotiation_items`
+- `quotation_responses`
+- `quotation_response_items`
+- `quotation_response_item_deliveries`
 - `purchase_orders`
+- `purchase_order_items`
+- `delivery_schedules`
 - `deliveries`
 - `purchase_invoices`
+- `invoice_items`
+- `order_quotation_links`
+- `invoice_order_links`
+- `follow_up_trackers`
+- `damages`
 - `notifications`
 - `audit_logs`
 - `integration_events`
@@ -193,47 +245,65 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-17`:
+Em `2026-04-19`:
 
-- `pnpm -r run test`: OK
-- `pnpm -r run build`: OK
-- `pnpm -r run lint`: falha
+- `pnpm -r run build`: OK (6 workspaces)
+- `pnpm -r run test`: OK (40 testes passando em `apps/api`)
+- `pnpm -r run lint`: OK (todos os workspaces passam)
 
-Falhas de lint concentram-se em:
+Observação residual de lint:
 
-- `apps/api`: `no-unused-vars` e `no-explicit-any`
-- `workers`: `no-unused-vars`, `prefer-const` e `no-explicit-any`
+- `apps/web`: 1 warning (`react-hooks/incompatible-library` em UserCreate por `watch()` do react-hook-form — não acionável)
 
 ## Auditoria de dependências
 
-`pnpm audit` retornou 12 vulnerabilidades:
+`pnpm audit` retornou 3 vulnerabilidades moderadas:
 
-- 2 críticas em `fast-jwt` via `@fastify/jwt`
-- 2 altas em `fastify`/`fast-jwt`
-- 8 moderadas em `vite`, `follow-redirects` e `@fastify/static`
+- 2 em `vite` transitivo via `vitest` (`apps/api` e `workers`): path traversal em `.map` (≤6.4.1)
+- 1 em `esbuild` transitivo via `vitest > vite` (`apps/api`): leitura arbitrária no dev server (≤0.24.2)
 
-Atualizações seguras de curto prazo já identificadas:
+Mitigações já aplicadas via `pnpm.overrides` no `package.json` raiz:
 
-- `fastify 5.8.4 -> 5.8.5`
-- `prettier 3.8.1 -> 3.8.3`
-- `react-router-dom 7.14.0 -> 7.14.1`
-- `typescript-eslint 8.58.1 -> 8.58.2`
-- `@supabase/supabase-js 2.102.1 -> 2.103.3`
+- `@fastify/static`: `9.1.1`
+- `fast-jwt`: `6.2.1`
+- `follow-redirects`: `1.16.0`
 
-Atualizações de maior impacto a planejar:
+Heterogeneidade de versões observada entre workspaces:
 
-- `@fastify/jwt 9.1.0 -> 10.0.0`
-- `pg-boss 9.0.3 -> 12.15.0`
-- `zod 3.x -> 4.x` fora do pacote de integração
-- `vitest 1/2 -> 4`
-- `eslint 9 -> 10`
+- `vitest`: `1.4.0` (workers), `2.1.0` (api), `4.1.4` (web, domain, integration-sienge, shared)
+- `typescript`: `5.4.3` (workers), `5.6.0` (api), `6.0.2` (web)
+- `@types/node`: `20.x` (workers), `22.x` (api), `24.x` (web), `25.x` (integration-sienge)
+- `zod`: `3.23.8` (api, shared), `3.25.76` (web), `4.3.6` (integration-sienge)
+- `@supabase/supabase-js`: `2.39.0` (workers), `2.45.0` (api)
+
+## Infraestrutura de deploy
+
+### CI/CD (GitHub Actions)
+
+- `ci.yml`: format, lint, test, build em `push`/`pull_request` para `main`
+- `deploy.yml`: build Docker + push GHCR + deploy K8s via `workflow_dispatch` ou `push` para `main`
+- `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
+
+### Containers
+
+- `apps/api/Dockerfile`: imagem de produção da API
+- `workers/Dockerfile`: imagem de produção dos workers
+
+### Kubernetes
+
+- `deploy/k8s/`: manifests com deployments, services, configmaps e secrets para API e workers
+- Kustomization para aplicação declarativa
+
+### Templates do repositório
+
+- `.github/ISSUE_TEMPLATE/`: templates para bug report e feature request
+- `.github/PULL_REQUEST_TEMPLATE.md`: checklist de PR
 
 ## Riscos atuais confirmados
 
 - existem arquivos `.env` versionados em `apps/api`, `apps/web` e `workers`; tratar como incidente de governança e rotacionar segredos fora da documentação
-- não existe manifesto de deploy para API ou workers no repositório
-- o pacote `apps/` ainda mantém artefatos do template Vite e não representa um produto executável
 - a estratégia formal de branching/code review não está documentada; o que existe hoje é um gate de CI em `pull_request` e `push` para `main`
+- heterogeneidade de versões de dependências entre workspaces pode causar comportamentos inesperados
 
 ## Mudanças recentes já incorporadas ao codebase
 
@@ -242,15 +312,14 @@ Atualizações de maior impacto a planejar:
 - `2026-04-10` `ada641a`: início da implementação do PRD-07, com tipos Sienge e migração de integração
 - `2026-04-16` `0fb49dd`: entrada dos módulos de integração/webhooks, entidades de domínio, workers e mapeadores
 - `2026-04-16` `44669cd`: expansão forte de cobertura de testes, runbooks e melhorias em sync cursor/retries
+- `2026-04-17` `ce3d828`: atualização de banco de dados (migração PRD-02)
+- `2026-04-17` `855e118`: instalação do lint-staged, deploy workflows, K8s manifests, módulo de cotações (PRD-02), templates de PR/issue, plugin de métricas, portal do fornecedor
 
-### Working tree atual ainda não commitado
+### Working tree atual
 
-- UI administrativa de eventos de integração no frontend
-- persistência do payload completo de webhook
-- correção do `http_method` outbound para `POST`
-- extração correta de `payload.data` ao reprocessar webhooks
-- janela explícita de datas em health check e sync de cotações
-- utilitário de notificações operacionais para `Compras`
+Limpa — nenhuma alteração pendente.
+
+> **Nota (2026-04-19):** saneamento de lint em `apps/web` concluído — helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo` para derivação de token e `useCallback` para deps de efeitos. Lint agora passa em todos os workspaces.
 
 ## Diretriz para alterações futuras
 

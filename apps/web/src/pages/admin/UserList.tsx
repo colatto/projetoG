@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { User } from '../../contexts/AuthContext';
 import { UserRole, UserStatus } from '@projetog/domain';
@@ -6,16 +6,20 @@ import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 
+/** Extended type for user list items — the /users endpoint returns more fields than the auth User type */
+interface UserListItem extends User {
+  created_at: string;
+}
+
 export default function UserList() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -24,16 +28,16 @@ export default function UserList() {
 
       const response = await api.get(`/users?${params.toString()}`);
       setUsers(response.data.data);
-    } catch (e) {
+    } catch {
       console.error('Falha ao carregar lista de usuários');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, roleFilter]);
 
   useEffect(() => {
     loadUsers();
-  }, [search, roleFilter]);
+  }, [loadUsers]);
 
   const renderBadge = (status: UserStatus) => {
     switch (status) {
@@ -141,7 +145,7 @@ export default function UserList() {
                     </td>
                   </tr>
                 ) : (
-                  users.map((u: any) => (
+                  users.map((u) => (
                     <tr key={u.id}>
                       <td style={{ fontWeight: 500 }}>{u.name}</td>
                       <td>{u.email}</td>

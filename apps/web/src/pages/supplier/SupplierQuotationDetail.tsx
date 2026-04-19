@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 
 type QuotationItem = {
   id: number; // purchaseQuotationItemId (Sienge)
@@ -47,7 +48,7 @@ export default function SupplierQuotationDetail() {
         const initial: Record<number, { negotiatedQuantity: number; unitPrice: number; deliveryDate: string }> = {};
         const today = new Date();
         const defaultDelivery = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
-        (dto.purchase_quotations.purchase_quotation_items ?? []).forEach((it, idx) => {
+        (dto.purchase_quotations.purchase_quotation_items ?? []).forEach((it) => {
           initial[it.id] = {
             negotiatedQuantity: Number(it.quantity ?? 0),
             unitPrice: 0,
@@ -55,8 +56,8 @@ export default function SupplierQuotationDetail() {
           };
         });
         setForm(initial);
-      } catch (e: any) {
-        setError(e?.response?.data?.message ?? 'Erro ao carregar cotação');
+      } catch (e: unknown) {
+        setError(getApiErrorMessage(e, 'Erro ao carregar cotação'));
       } finally {
         setLoading(false);
       }
@@ -70,8 +71,8 @@ export default function SupplierQuotationDetail() {
       alert(`Leitura registrada em ${res.data.read_at}`);
       const reload = await api.get(`/supplier/quotations/${quotationId}`);
       setData(reload.data.data);
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Erro ao marcar leitura');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Erro ao marcar leitura'));
     }
   };
 
@@ -104,8 +105,8 @@ export default function SupplierQuotationDetail() {
       alert(`Resposta enviada. Versão: ${res.data.version}`);
       const reload = await api.get(`/supplier/quotations/${quotationId}`);
       setData(reload.data.data);
-    } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Erro ao enviar resposta');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Erro ao enviar resposta'));
     } finally {
       setSubmitting(false);
     }

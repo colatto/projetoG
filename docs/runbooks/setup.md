@@ -109,11 +109,11 @@ pnpm -r run build
 pnpm -r run lint
 ```
 
-Situação observada em `2026-04-17`:
+Situação observada em `2026-04-19`:
 
-- `test`: passa
-- `build`: passa
-- `lint`: falha em `apps/api` e `workers`
+- `test`: passa (40 testes em `apps/api`)
+- `build`: passa (6 workspaces)
+- `lint`: passa (1 warning residual em `apps/web` — `react-hooks/incompatible-library`, não acionável)
 
 ## 7. Hooks de commit
 
@@ -193,11 +193,13 @@ Causa provável:
 
 Sintoma:
 
-- `pnpm -r run lint` interrompe em `apps/api` ou `workers`
+- `pnpm -r run lint` interrompe em algum workspace
 
 Causa:
 
-- débitos conhecidos de `no-unused-vars`, `prefer-const` e `no-explicit-any`
+- verificar se há `no-explicit-any`, `no-unused-vars` ou erros de React hooks
+- erros de catch devem usar `catch (e: unknown)` com `getApiErrorMessage()` de `src/lib/error-utils.ts`
+- todos os workspaces passam lint desde `2026-04-19`
 
 ### Testes de integração live do Sienge
 
@@ -211,8 +213,14 @@ Referências:
 - `docs/runbooks/sienge-homologation.md`
 - `docs/runbooks/prd-07-remediation-log-2026-04-17.md`
 
-## 10. Observações operacionais
+## 10. Deploy
 
-- a estratégia de deploy da API e dos workers não está versionada no repositório [VERIFICAR]
+- Dockerfiles disponíveis em `apps/api/Dockerfile` e `workers/Dockerfile`
+- Manifests Kubernetes em `deploy/k8s/` com Kustomization
+- Pipeline de deploy via GitHub Actions (`deploy.yml`): Docker build → GHCR push → K8s apply
+- Pipeline de segurança (`security.yml`): pnpm audit, gitleaks, dependency review
+
+## 11. Observações operacionais
+
 - arquivos `.env` com segredos não devem ser commitados; tratar qualquer credencial já exposta como comprometida
 - para homologação externa do Sienge, use os artefatos em `docs/runbooks/`

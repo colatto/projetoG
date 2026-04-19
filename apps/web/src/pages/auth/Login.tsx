@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { isAxiosError } from '../../lib/error-utils';
 import logoGrf from '../../assets/GRFlogo.png';
 
 export default function Login() {
@@ -26,8 +27,8 @@ export default function Login() {
       setApiError(null);
       await login(data);
       navigate('/'); // Vai para o Dashboard padrao (admin ou fornecedor)
-    } catch (error: any) {
-      if (error.response?.status === 401 || error.response?.status === 403) {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
         setApiError('Credenciais inválidas ou acesso bloqueado.');
       } else {
         setApiError('Ocorreu um erro no servidor. Tente novamente mais tarde.');

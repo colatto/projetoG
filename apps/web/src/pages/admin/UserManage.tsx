@@ -1,35 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UserStatus, UserRole } from '@projetog/domain';
 import { ArrowLeft, Lock, Unlock, Mail, Trash } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
+/** Extended profile type used by the manage screen */
+interface UserManageProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  status: UserStatus;
+  created_at: string;
+  original_email?: string;
+  supplier_id?: number | null;
+  blocked_at?: string | null;
+}
+
 export default function UserManage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserManageProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await api.get(`/users/${id}`);
       setUser(res.data.data);
-    } catch (e) {
+    } catch {
       setApiError('Não foi possível encontrar o usuário.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadUser();
-  }, [id]);
+  }, [loadUser]);
 
   const handleAction = async (
     action: 'block' | 'reactivate' | 'reset-password' | 'delete',
@@ -51,8 +65,8 @@ export default function UserManage() {
             : 'Ação concluída com sucesso!',
         );
       }
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Falha ao processar a requisição.');
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, 'Falha ao processar a requisição.'));
     } finally {
       setIsProcessing(false);
     }

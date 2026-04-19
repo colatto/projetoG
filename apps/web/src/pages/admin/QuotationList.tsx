@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 
 type QuotationRow = {
   id: number;
@@ -28,8 +29,8 @@ export default function QuotationList() {
         setLoading(true);
         const res = await api.get('/quotations', { params: { page: 1, limit: 50 } });
         setData(res.data.data ?? []);
-      } catch (e: any) {
-        setError(e?.response?.data?.message ?? 'Erro ao carregar cotações');
+      } catch (e: unknown) {
+        setError(getApiErrorMessage(e, 'Erro ao carregar cotações'));
       } finally {
         setLoading(false);
       }

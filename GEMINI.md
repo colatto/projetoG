@@ -36,24 +36,24 @@ Se dois documentos parecerem conflitar, nao invente conciliacao. Priorize o de m
 
 ## 2. Estado real do repositorio
 
-Este repositorio ja teve o seu Workspace inicializado, mas os dominios continuam sem implementacao funcional.
+O repositorio ja ultrapassou a fase de scaffold. Possui implementacao funcional em multiplos dominios.
 
 - O monorepo foi inicializado com `pnpm`.
 - Existe `package.json` raiz e manifestos em cada submódulo.
 - Existe `pnpm-workspace.yaml` criado e interligando os projetos.
-- O frontend (`apps/web`) possui o scaffold completo de React/Vite com roteamento, design system (Vanilla CSS) e o módulo de Autenticação/Backoffice implementado. Módulos de domínio operacionais (como cotações) ainda não estão construídos.
-- O backend (`apps/api`) possui o scaffold inicial do framework (Fastify v5 + Zod + Vitest), configurado como ECMAScript Module e pronto para orquestracao.
-- O modulo de processamento assincrono (`workers/`) possui o scaffold inicial (Node.js + pg-boss + TypeScript), com os handlers registrados, porem sem regras de negocio de polling/reconciliacao implementadas.
-- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional base e os gatilhos para a V1.0 foram criados via migração inicial e a infraestrutura de Autenticação/Auditoria foi estabilizada através de migrações sequenciais.
-- Os tipos do Supabase (database.types.ts) estão gerados no pacote `packages/shared`.
-- Foram implementadas as rotas definitivas de Autenticação e Gestão de Usuários (CRUD administrativo) e RBAC no backend (`apps/api`), bem como a criação das entidades correspondentes no Domínio. Com as Sprints A e B completas, a Fase 3 do PRD-01 (Backend) está concluída.
-- Foi implementado o pacote de Autenticação e Gestão de Usuários no frontend (`apps/web`). A **Sprint C** foi concluída com as interfaces, rotas em react-router, context API e wrappers Axios, utilizando Vanilla CSS integrado com a Identidade Visual do projeto (Fases 4 e 5). O ecossistema auth + contas administrativas está operante.
-- O pacote de integração (`packages/integration-sienge`) possui a infraestrutura base de cliente HTTP isolada e resiliente implementada (Axios + Retry + Mascaramento), exportada para consumo por `apps/api` e `workers/`.
-  Consequencia pratica:
+- O frontend (`apps/web`) possui React/Vite com roteamento, design system (Vanilla CSS), módulo de Autenticação/Backoffice implementado, gestão administrativa de usuários, monitoramento de eventos de integração, e o fluxo de cotações (backoffice e portal do fornecedor) com listagem, detalhe, envio e resposta.
+- O backend (`apps/api`) possui Fastify v5 com JWT, RBAC, CRUD de usuários, webhooks Sienge, endpoints de integração (eventos, credenciais, negociação outbound) e o fluxo completo de cotações (backoffice: listagem, detalhe, envio, revisão de resposta, retry de integração; fornecedor: listagem, detalhe, marcação de leitura, resposta).
+- O modulo de processamento assincrono (`workers/`) possui pg-boss com jobs especializados de polling (cotações, pedidos, entregas), reconciliação por webhook, processamento de webhook, escrita outbound de negociação, retry de integração, follow-up (stub) e verificação automática de expiração de cotações.
+- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional inclui 9 migrações cobrindo schema inicial, autenticação, integração Sienge (PRD-07) e respostas de cotação versionadas (PRD-02).
+- Os tipos do Supabase (`database.types.ts`) estão gerados no pacote `packages/shared`.
+- O pacote de integração (`packages/integration-sienge`) possui cliente HTTP com retry, rate limit (bottleneck), paginação, 6 clientes especializados (quotation, creditor, order, invoice, delivery-requirement, negotiation), 5 mapeadores, criptografia AES para credenciais e testes unitários + integração live.
+- Existe infraestrutura de deploy: Dockerfiles para API e workers, manifests Kubernetes em `deploy/k8s/`, e pipelines GitHub Actions para CI, deploy e segurança.
 
-- nao assumir que algo ja existe;
-- nao referenciar arquivos, comandos ou estruturas como se ja estivessem inicializados;
-- antes de propor ou escrever codigo, verificar se isso respeita a ordem de setup em `docs/runbooks/setup.md`.
+Consequencia pratica:
+
+- o repositorio ja possui implementacao funcional em auth, usuarios, integracao Sienge e fluxo de cotacoes;
+- antes de propor ou escrever codigo, verificar se isso respeita a ordem de setup em `docs/runbooks/setup.md`;
+- consultar `CLAUDE.md` para o inventario completo de rotas, jobs e entidades ja existentes.
 
 ---
 
@@ -118,6 +118,7 @@ O repositorio foi definido como monorepo com estas fronteiras:
 - persistencia e identidade: Supabase Postgres + Supabase Auth;
 - jobs e scheduling: Node.js + TypeScript + `pg-boss`;
 - workspace manager: `pnpm`;
+- observabilidade: `prom-client` (metricas) em API e workers;
 - idioma do repositorio: portugues para documentacao e UI; ingles para identificadores, comentarios e mensagens tecnicas de codigo.
 
 Antes de sugerir tecnologia adicional, valide se ela realmente e necessaria e se nao conflita com as ADRs ja aceitas.
@@ -136,7 +137,7 @@ Perfis oficiais do sistema:
 Entidades centrais:
 
 - cotacao;
-- resposta de cotacao;
+- resposta de cotacao (versionada);
 - fornecedor;
 - pedido;
 - entrega;
@@ -147,6 +148,8 @@ Entidades centrais:
 - usuario interno.
 
 > **Nota de implementacao:** a entidade `users` do PRD-01 foi implementada como tabela `profiles` no banco (`public.profiles`), vinculada diretamente a `auth.users(id)`. Toda referencia do PRD a "tabela users" corresponde a `profiles` no schema real. A API e o frontend já consomem `profiles` de forma consistente.
+
+> **Nota PRD-02:** as respostas de cotação são versionadas em `quotation_responses` (com `quotation_response_items` e `quotation_response_item_deliveries`). O `review_status` controla o ciclo de revisão (`pending` → `approved`/`rejected`/`correction_requested`) e o `integration_status` rastreia a escrita no Sienge.
 
 Identificadores minimos persistidos:
 
@@ -187,7 +190,6 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - NAO ignorar idempotencia em integracoes com o Sienge.
 - NAO criar novos perfis de acesso sem atualizar RBAC e dominio.
 - NAO remover ou enfraquecer trilha de auditoria.
-- NAO assumir que o repositorio esta inicializado quando ele ainda nao esta.
 - NAO reutilizar artefatos do projeto legado `dbOrion` para este produto sem validacao explicita.
 
 ---
@@ -200,7 +202,8 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - responsiva para desktop e mobile;
 - consumir contratos filtrados pelo backend;
 - nao conter regra critica nem integracao direta com Sienge;
-- usar branding e paleta definidos em `docs/identidade_visual.md` e `docs/paleta_de_cores.md`.
+- usar branding e paleta definidos em `docs/identidade_visual.md` e `docs/paleta_de_cores.md`;
+- paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail), supplier (quotation list/detail).
 
 ### `apps/api`
 
@@ -209,15 +212,21 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - pode disparar jobs para workers;
 - deve ser testavel por `fastify.inject()`;
 - **nao deve ser modelada como apenas funcao serverless curta** — o produto exige polling, retries e reconciliacao de longa duracao; <!-- ADR-0002: deploy na Vercel como funcao serverless nao e o caso de uso otimizado -->
-- estrutura interna esperada (ADR-0002):
+- estrutura interna real:
   ```
   apps/api/src/
-  ├── server.ts   # inicializa instancia Fastify e registra plugins
-  ├── app.ts      # factory exportavel para fastify.inject() em testes
-  ├── routes/     # rotas agrupadas por modulo de dominio
-  ├── plugins/    # plugins globais (auth, cors, helmet, sensible)
-  ├── hooks/      # lifecycle hooks (RBAC, auditoria)
-  └── schemas/    # JSON Schemas de request/response compartilhados
+  ├── server.ts       # bootstrap do servidor
+  ├── app.ts          # factory exportável para testes
+  ├── routes/         # rotas gerais (health)
+  ├── plugins/        # auth, supabase, pg-boss, metrics
+  ├── modules/
+  │   ├── auth/       # login, logout, forgot/reset password, me
+  │   ├── users/      # CRUD administrativo
+  │   ├── audit/      # serviço de auditoria
+  │   ├── webhooks/   # recebimento de webhooks Sienge
+  │   ├── integration/# eventos, credenciais, negociação outbound
+  │   └── quotations/ # backoffice e fornecedor (PRD-02)
+  └── test/           # setup de testes
   ```
 
 ### `packages/domain`
@@ -239,7 +248,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 
 - processo standalone em Node.js + TypeScript;
 - usar `pg-boss` sobre PostgreSQL;
-- concentrar polling, follow-up, retries e reconciliacao.
+- concentrar polling, follow-up, retries, reconciliacao e expire-check.
 
 ---
 
@@ -256,7 +265,10 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - **Formatação de Código**: O projeto usa **Prettier** unificado na raiz do workspace.
 - **Lint**: O monorepo usa **ESLint 9 (Flat Config)** por workspace, executado **no contexto do pacote/app correspondente** e integrado ao `eslint-config-prettier` quando aplicavel. <!-- ADR-0003: o comando global pnpm -r run lint chama o lint de cada workspace individualmente, garantindo isolamento de config -->
 - **Pre-commit**: O monorepo possui **Husky** e **Lint-Staged** configurados na raiz. Commits na linha de comando corrigem a formatação e despacham o lint automaticamente para o workspace correto.
-- **Integração Contínua (CI)**: Pipeline ativa via **GitHub Actions** (`.github/workflows/ci.yml`) que barra Pull Requests que fujam aos testes, lints ou build.
+- **Integração Contínua (CI)**: Pipelines ativas via **GitHub Actions** (`.github/workflows/`):
+  - `ci.yml`: format, lint, test, build em PRs e push para `main`
+  - `deploy.yml`: build Docker, push para GHCR, deploy K8s em push para `main` ou manual
+  - `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
 - **Execucao de binarios**: usar `pnpm dlx` no lugar de `npx` para nao quebrar o `pnpm-lock.yaml`. <!-- ADR-0003: misturar npm/npx com pnpm quebra o lockfile -->
 
 Sempre marcar incertezas ainda nao homologadas com `[VERIFICAR]` quando estiver documentando algo ainda nao confirmado.
@@ -369,13 +381,9 @@ O workspace pnpm ja foi inicializado. Os comandos de referencia sao:
 | Autenticar Supabase       | `pnpm run db:login`                     |
 | Ligar Supabase            | `pnpm run db:link`                      |
 | Migracoes (Supabase)      | `pnpm run db:push`                      |
+| Gerar tipos Supabase      | `pnpm run db:types`                     |
 | Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
 | Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
-
-Importante:
-
-- trate esses comandos como alvo de arquitetura;
-- apesar do workspace estar operante, a logica interna dos domínios ainda nao esta desenvolvida.
 
 ---
 

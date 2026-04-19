@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-17` para refletir o estado real do monorepo.
+Atualizado em `2026-04-19` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -94,6 +94,7 @@ flowchart TD
     C --> SD[sienge:sync-deliveries]
     C --> RI[integration:retry]
     C --> FU[follow-up]
+    C --> QE[quotation:expire-check]
 
     SQ --> SC[(sienge_sync_cursor)]
     SO --> SC
@@ -104,6 +105,32 @@ flowchart TD
     SD --> DB
     RI --> DB
     FU --> DB
+    QE --> DB
+```
+
+### 3.4 Fluxo de cotação (PRD-02)
+
+```mermaid
+sequenceDiagram
+    participant C as Compras (web)
+    participant A as apps/api
+    participant DB as Supabase
+    participant F as Fornecedor (web)
+
+    Note over C,A: Backoffice envia cotação
+    C->>A: POST /api/quotations/:id/send
+    A->>DB: update purchase_quotations (sent_at, end_at)
+    A->>DB: update supplier_negotiations (sent_at)
+
+    Note over F,A: Fornecedor responde
+    F->>A: POST /api/supplier/quotations/:id/respond
+    A->>DB: insert quotation_responses + items + deliveries
+    A->>DB: update supplier_negotiations (status, latest_response_id)
+
+    Note over C,A: Compras revisa
+    C->>A: POST /api/quotations/:id/suppliers/:sid/review
+    A->>DB: update quotation_responses (review_status)
+    A->>DB: update supplier_negotiations (status)
 ```
 
 ## 4. Inventário técnico com versões e racional
@@ -116,36 +143,41 @@ flowchart TD
 | Frontend      | `vite`                            | `8.0.7`                   | dev server e build          | build rápido para SPA                              |
 | Frontend      | `react-hook-form`                 | `7.72.1`                  | formulários de auth e admin | menor custo de renderização                        |
 | Frontend      | `axios`                           | `1.15.0`                  | cliente HTTP                | interceptors de auth                               |
-| API           | `fastify`                         | `5.8.4`                   | servidor HTTP               | performance, plugins e `inject()`                  |
-| API           | `@fastify/jwt`                    | `9.0.1`                   | JWT próprio da aplicação    | autenticação interna e RBAC                        |
+| Frontend      | `lucide-react`                    | `1.8.0`                   | ícones                      | biblioteca de ícones leve e moderna                |
+| Frontend      | `date-fns`                        | `4.1.0`                   | formatação de datas         | utilitário de datas tree-shakeable                 |
+| API           | `fastify`                         | `5.8.5`                   | servidor HTTP               | performance, plugins e `inject()`                  |
+| API           | `@fastify/jwt`                    | `10.0.0`                  | JWT próprio da aplicação    | autenticação interna e RBAC                        |
 | API           | `@fastify/swagger` + `swagger-ui` | `9.4.0` / `5.2.0`         | documentação em `/docs`     | inspeção rápida de contratos                       |
 | API           | `fastify-type-provider-zod`       | `4.0.2`                   | validação e tipagem         | reaproveita schemas Zod                            |
+| API           | `prom-client`                     | `15.1.3`                  | métricas Prometheus         | observabilidade de produção                        |
 | Workers       | `pg-boss`                         | `9.0.3`                   | fila, agendamento e retry   | evita Redis adicional                              |
+| Workers       | `prom-client`                     | `15.1.3`                  | métricas Prometheus         | observabilidade de produção                        |
 | Integração    | `axios-retry`                     | `4.5.0`                   | retry HTTP idempotente      | resiliência básica                                 |
 | Integração    | `bottleneck`                      | `2.19.5`                  | rate limiting               | controla limites REST/BULK do Sienge               |
 | Compartilhado | `zod`                             | `3.23.8` e `4.3.6`        | schemas e validação         | padroniza DTOs e env parsing                       |
-| Persistência  | Supabase JS                       | `2.102.1` / `2.39.0`      | acesso ao banco/auth        | cliente padrão do ecossistema                      |
-| Testes        | `vitest`                          | `1.6.1`, `2.1.9`, `4.1.4` | unitários e integração      | execução rápida em Node/jsdom                      |
+| Persistência  | Supabase JS                       | `^2.45.0` / `^2.39.0`     | acesso ao banco/auth        | cliente padrão do ecossistema                      |
+| Testes        | `vitest`                          | `1.4.0`, `2.1.0`, `4.1.4` | unitários e integração      | execução rápida em Node/jsdom                      |
 | Qualidade     | `eslint`                          | `9.39.4`                  | lint por workspace          | flat config                                        |
 | Qualidade     | `prettier`                        | `3.8.1`                   | formatação                  | padronização transversal                           |
 
 ### Observações de arquitetura técnica
 
 - Há heterogeneidade de versões de `vitest`, `typescript`, `@types/node`, `zod` e `@supabase/supabase-js` entre workspaces.
-- O pacote `apps/` permanece com um scaffold Vite genérico e não deve ser tratado como aplicação de produção.
+- O pacote `apps/` (raiz do diretório apps) permanece com um scaffold Vite genérico e não deve ser tratado como aplicação de produção.
 - `workers/dist` está presente no repositório; tratar como artefato gerado e não como fonte.
 
 ## 5. Estrutura de diretórios e aderência
 
 | Diretório                     | Papel                    | Aderência observada | Observações                                                                    |
 | ----------------------------- | ------------------------ | ------------------- | ------------------------------------------------------------------------------ |
-| `apps/web`                    | frontend real            | boa                 | rotas e contexto coerentes com o módulo                                        |
-| `apps/api`                    | backend real             | boa                 | módulos separados por domínio                                                  |
-| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso                                                |
+| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02 implementado          |
+| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02 implementado com controller robusto      |
+| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils         |
 | `packages/domain`             | domínio                  | média               | entidades centrais existem, mas parte da regra ainda está nos controllers/jobs |
-| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados                                          |
-| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados                                             |
-| `supabase`                    | plataforma de dados      | boa                 | migrações versionadas e config local clara                                     |
+| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                     |
+| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                  |
+| `supabase`                    | plataforma de dados      | boa                 | 9 migrações versionadas; PRD-02 com respostas versionadas e RLS                |
+| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                |
 | `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional         |
 
 ## 6. Banco de dados e Supabase
@@ -159,7 +191,21 @@ flowchart TD
 - PostgreSQL major: `17`
 - `auth.site_url`: `http://127.0.0.1:3000`
 
-### 6.2 Grupos principais de tabelas
+### 6.2 Migrações existentes
+
+| Migração                                             | Escopo                                  |
+| ---------------------------------------------------- | --------------------------------------- |
+| `20260409202239_initial_schema_v1.sql`               | schema base completo V1                 |
+| `20260409204644_remote_schema.sql`                   | alinhamento remoto                      |
+| `20260409212000_align_auth_to_prd01.sql`             | autenticação/perfis PRD-01              |
+| `20260411010000_integration_tables_prd07.sql`        | tabelas de integração Sienge PRD-07     |
+| `20260414100000_webhook_delivery_metadata.sql`       | metadata de delivery de webhook         |
+| `20260415100000_sienge_missing_tables.sql`           | tabelas complementares Sienge           |
+| `20260415100001_deliveries_unique.sql`               | unicidade de entregas                   |
+| `20260416100000_sienge_sync_cursor_enhancements.sql` | melhorias no cursor de sincronização    |
+| `20260417120000_prd02_quotation_responses.sql`       | respostas de cotação versionadas PRD-02 |
+
+### 6.3 Grupos principais de tabelas
 
 Identidade e acesso:
 
@@ -174,6 +220,9 @@ Operação de fornecedores/cotações:
 - `purchase_quotation_items`
 - `supplier_negotiations`
 - `supplier_negotiation_items`
+- `quotation_responses`
+- `quotation_response_items`
+- `quotation_response_item_deliveries`
 
 Pedidos e logística:
 
@@ -196,10 +245,10 @@ Integração Sienge:
 - `sienge_sync_cursor`
 - `sienge_credentials`
 
-### 6.3 RLS e governança
+### 6.4 RLS e governança
 
-- RLS está habilitado nas tabelas principais
-- políticas de leitura para fornecedor usam `public.get_auth_supplier_id()`
+- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items` e `quotation_response_item_deliveries`
+- políticas de leitura e inserção para fornecedor usam `public.get_auth_supplier_id()`
 - backend e workers usam `service_role`, então bypassam RLS quando necessário
 - triggers de `updated_at` existem em boa parte das entidades operacionais
 
@@ -215,7 +264,7 @@ Integração Sienge:
 ### 7.2 Problemas encontrados
 
 - arquivos `.env` com credenciais reais estão versionados no workspace local
-- `SIENGE_ENCRYPTION_KEY` já aparece nos exemplos, mas o código atual usa diretamente `encryptSiengeCredential`/`decryptSiengeCredential`; o mecanismo exato de chave deve permanecer alinhado com `packages/integration-sienge/crypto.ts` [VERIFICAR]
+- `SIENGE_ENCRYPTION_KEY` já aparece nos exemplos, mas o código atual usa diretamente `encryptSiengeCredential`/`decryptSiengeCredential`; o mecanismo exato de chave deve permanecer alinhado com `packages/integration-sienge/crypto.ts`
 - `DATABASE_URL` é opcional na API, mas obrigatório nos workers
 
 ### 7.3 Integrações externas observadas
@@ -223,58 +272,81 @@ Integração Sienge:
 - Supabase Auth e PostgreSQL
 - API REST do Sienge
 - webhooks Sienge (`x-sienge-id`, `x-sienge-event`, `x-sienge-hook-id`, `x-sienge-tenant`)
-- GitHub Actions para CI
-
-Não há integração de deploy automatizado versionada para Vercel, Railway, Fly.io ou containers [VERIFICAR].
+- GitHub Actions para CI, deploy e segurança
+- GHCR (GitHub Container Registry) para imagens Docker
 
 ## 8. Auditoria de dependências
 
 ### 8.1 Vulnerabilidades confirmadas (`pnpm audit`)
 
-| Severidade | Pacote                       | Faixa afetada        | Impacto observado                             |
-| ---------- | ---------------------------- | -------------------- | --------------------------------------------- |
-| crítica    | `fast-jwt`                   | `<6.2.0` / `<=6.1.0` | confusão de cache/algoritmo em JWT            |
-| alta       | `fastify`                    | `5.3.2..5.8.4`       | bypass de validação de schema por header      |
-| moderada   | `vite` transitivo            | `<=6.4.1`            | traversal em `.map`                           |
-| moderada   | `follow-redirects`           | `<=1.15.11`          | vazamento de headers em redirect cross-domain |
-| moderada   | `@fastify/static` transitivo | `<=9.1.0`            | traversal/bypass em listagem e guarda de rota |
+| Severidade | Pacote    | Faixa afetada | Impacto observado                                 |
+| ---------- | --------- | ------------- | ------------------------------------------------- |
+| moderada   | `vite`    | `≤6.4.1`      | traversal em `.map` (via vitest em api e workers) |
+| moderada   | `esbuild` | `≤0.24.2`     | leitura arbitrária no dev server (via vitest)     |
 
-### 8.2 Oportunidades de atualização
+Mitigações já aplicadas via `pnpm.overrides`:
 
-Patch/baixo risco:
+- `@fastify/static`: `9.1.1` (corrigiu traversal/bypass)
+- `fast-jwt`: `6.2.1` (corrigiu confusão de cache/algoritmo)
+- `follow-redirects`: `1.16.0` (corrigiu vazamento de headers)
 
-- `fastify 5.8.4 -> 5.8.5`
-- `prettier 3.8.1 -> 3.8.3`
-- `react-router-dom 7.14.0 -> 7.14.1`
-- `typescript-eslint 8.58.1 -> 8.58.2`
-- `@supabase/supabase-js 2.102.1 -> 2.103.3`
+### 8.2 Heterogeneidade de versões entre workspaces
+
+| Pacote                  | web        | api       | workers   | domain  | integration | shared    |
+| ----------------------- | ---------- | --------- | --------- | ------- | ----------- | --------- |
+| `vitest`                | `4.1.4`    | `2.1.0`   | `1.4.0`   | `4.1.4` | `4.1.4`     | `4.1.4`   |
+| `typescript`            | `~6.0.2`   | `^5.6.0`  | `^5.4.3`  | —       | —           | —         |
+| `@types/node`           | `^24.12.2` | `^22.0.0` | `^20.x`   | —       | `^25.6.0`   | —         |
+| `zod`                   | `^3.25.76` | `^3.23.8` | —         | —       | `^4.3.6`    | `^3.23.8` |
+| `@supabase/supabase-js` | —          | `^2.45.0` | `^2.39.0` | —       | —           | —         |
+
+### 8.3 Oportunidades de atualização
 
 Planejamento controlado:
 
-- `@fastify/jwt 9 -> 10`
 - `pg-boss 9 -> 12`
-- `zod 3 -> 4` em API/shared/web
-- unificação de `vitest`
-- unificação de `typescript`
+- `zod 3 -> 4` em api/shared/web (integration-sienge já usa 4.x)
+- unificação de `vitest` para 4.x em todos os workspaces
+- unificação de `typescript` para 6.x em todos os workspaces
 
-## 9. Fluxo de desenvolvimento até deployment
+## 9. Infraestrutura de deploy
 
-### 9.1 Desenvolvimento local
+### 9.1 Containers
+
+- `apps/api/Dockerfile`: imagem de produção da API
+- `workers/Dockerfile`: imagem de produção dos workers
+
+### 9.2 Kubernetes
+
+- `deploy/k8s/namespace.yaml`
+- `deploy/k8s/api-deployment.yaml` + `api-service.yaml` + `api-configmap.yaml` + `api-secret.example.yaml`
+- `deploy/k8s/workers-deployment.yaml` + `workers-service.yaml` + `workers-configmap.yaml` + `workers-secret.example.yaml`
+- `deploy/k8s/kustomization.yaml`
+
+### 9.3 GitHub Actions
+
+- `ci.yml`: format → lint → test → build
+- `deploy.yml`: Docker build → GHCR push → K8s apply
+- `security.yml`: pnpm audit → gitleaks → dependency review
+
+## 10. Fluxo de desenvolvimento até deployment
+
+### 10.1 Desenvolvimento local
 
 1. `pnpm install`
 2. configurar envs por módulo
 3. subir `apps/web`, `apps/api` e `workers`
 4. usar `pnpm -r run test`, `build`, `lint`
 
-### 9.2 Qualidade local
+### 10.2 Qualidade local
 
 - pre-commit via Husky roda `lint-staged`
 - `lint-staged.config.mjs` agrupa arquivos por workspace e executa `eslint --fix` + `prettier --write`
 - não há validação automática de mensagem de commit
 
-### 9.3 CI/CD observado
+### 10.3 CI/CD observado
 
-Pipeline:
+Pipeline CI:
 
 1. checkout
 2. Node 20
@@ -286,18 +358,30 @@ Pipeline:
 8. `pnpm run test`
 9. `pnpm -r run build`
 
-### 9.4 Branching strategy observada
+Pipeline Deploy:
+
+1. build e push de imagens Docker (API + workers) para GHCR
+2. apply de manifests K8s (quando `KUBE_CONFIG` está configurado)
+
+Pipeline Security:
+
+1. `pnpm audit --audit-level=moderate`
+2. scan gitleaks
+3. dependency review (em PRs)
+
+### 10.4 Branching strategy observada
 
 - somente branch `main` existe no remoto observado
 - PR gate é implícito pela workflow em `pull_request` para `main`
-- convenção de branching não está documentada no repositório [VERIFICAR]
+- runbook de branching em `docs/runbooks/branching-and-review.md`
 
-### 9.5 Code review process observado
+### 10.5 Templates do repositório
 
-- revisão depende de PR + CI verde
-- não há `CODEOWNERS`, checklist de PR ou template de revisão versionados [VERIFICAR]
+- `.github/ISSUE_TEMPLATE/bug_report.yml`: template de bug report
+- `.github/ISSUE_TEMPLATE/feature_request.yml`: template de feature request
+- `.github/PULL_REQUEST_TEMPLATE.md`: checklist de PR
 
-## 10. Padrões de código estabelecidos
+## 11. Padrões de código estabelecidos
 
 Padrões confirmados:
 
@@ -308,34 +392,32 @@ Padrões confirmados:
 - mapeadores e clientes em `packages/integration-sienge`
 - uso extensivo de `upsert` em syncs
 - auditoria em `audit_logs` e `integration_events`
+- observabilidade via `prom-client` e logging estruturado
 
 Débitos técnicos confirmados:
 
-- presença de `any` em API/workers
 - parte da regra de negócio ainda orquestrada diretamente em controllers/jobs
-- frontend usa `Math.random()` para `id` de input, o que pode gerar instabilidade em re-renderização
 
-## 11. Mudanças recentes desde a baseline documental anterior
+## 12. Mudanças desde a baseline documental anterior (2026-04-17)
 
-### Commits principais
+### Commits entre 2026-04-17 e 2026-04-19
 
-- `ada641a` (`2026-04-10`): base de PRD-07, tipos Sienge e migração `integration_tables_prd07`
-- `0fb49dd` (`2026-04-16`): módulos de integração/webhooks, workers principais e expansão do pacote de integração
-- `44669cd` (`2026-04-16`): cobertura de testes, melhorias de cursores e runbooks
+- `ce3d828`: migração PRD-02 (quotation_responses versionadas + RLS)
+- `855e118`: lint-staged, deploy workflows, K8s manifests, módulo de cotações (PRD-02), templates de PR/issue, plugin de métricas, portal do fornecedor, aliases de compatibilidade PRD-09
 
-### Working tree atual
+### Mudanças de estado de qualidade
 
-- tela administrativa de eventos de integração
-- payload completo de webhook persistido
-- outbound com `endpoint` e `http_method` corretos
-- notificações operacionais para `Compras`
-- janelas explícitas de data para sync/health check de cotações
+- lint em `apps/api` e `workers`: **agora passa** (antes falhava)
+- lint em `apps/web`: **agora passa** (20 errors corrigidos em 2026-04-19: helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo`, `useCallback`)
+- security audit: **reduzido de 12 para 3 vulnerabilidades** (overrides aplicados)
+- `@fastify/jwt`: **atualizado de 9.0.1 para 10.0.0**
+- `fastify`: **atualizado de 5.8.4 para 5.8.5**
 
-## 12. Conclusão técnica
+## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. Os principais pontos pendentes não são de estrutura, e sim de:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
 
-- endurecimento de segurança e rotação de segredos
-- atualização de dependências vulneráveis
-- saneamento de lint
-- formalização da estratégia de deploy e governança de revisão
+- unificação de versões de dependências entre workspaces
+- testes para o módulo de cotações na API
+- implementação real da régua de follow-up (PRD-04)
+- formalização da estratégia de deploy de produção
