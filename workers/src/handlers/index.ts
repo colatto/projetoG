@@ -86,7 +86,9 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work<object>('follow-up', async (job) => processFollowUp(job));
 
   // Quotation expire check — PRD-02 §6.6
-  await boss.work<object>('quotation:expire-check', async (job) => processQuotationExpireCheck(job));
+  await boss.work<object>('quotation:expire-check', async (job) =>
+    processQuotationExpireCheck(job),
+  );
 
   // ── Schedule cron jobs ────────────────────────────────────────
   // Uses singletonKey to prevent duplicate runs when cron fires before

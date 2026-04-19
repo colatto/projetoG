@@ -33,7 +33,9 @@ export interface AuthPluginOptions {
 const SUPPORTED_CRIT_HEADERS = new Set(['b64']);
 
 function hasUnsupportedCriticalHeaders(token: string, fastify: FastifyRequest['server']): boolean {
-  const decoded = fastify.jwt.decode<{ header?: Record<string, unknown> }>(token, { complete: true });
+  const decoded = fastify.jwt.decode<{ header?: Record<string, unknown> }>(token, {
+    complete: true,
+  });
   const header = decoded && typeof decoded === 'object' ? decoded.header : undefined;
   const crit = header?.crit;
 

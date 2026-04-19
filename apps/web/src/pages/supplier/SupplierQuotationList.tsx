@@ -49,7 +49,9 @@ export default function SupplierQuotationList() {
       )}
 
       {!loading && !error && (
-        <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+        <div
+          style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
@@ -91,4 +93,3 @@ export default function SupplierQuotationList() {
     </div>
   );
 }
-

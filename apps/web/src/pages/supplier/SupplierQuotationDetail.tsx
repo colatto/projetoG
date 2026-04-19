@@ -22,7 +22,12 @@ type SupplierQuotationDetailDto = {
     end_date: string | null;
     purchase_quotation_items: QuotationItem[];
   };
-  quotation_responses?: Array<{ id: string; version: number; review_status: string; integration_status: string }>;
+  quotation_responses?: Array<{
+    id: string;
+    version: number;
+    review_status: string;
+    integration_status: string;
+  }>;
 };
 
 export default function SupplierQuotationDetail() {
@@ -33,9 +38,9 @@ export default function SupplierQuotationDetail() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [form, setForm] = useState<Record<number, { negotiatedQuantity: number; unitPrice: number; deliveryDate: string }>>(
-    {},
-  );
+  const [form, setForm] = useState<
+    Record<number, { negotiatedQuantity: number; unitPrice: number; deliveryDate: string }>
+  >({});
 
   useEffect(() => {
     const load = async () => {
@@ -45,7 +50,10 @@ export default function SupplierQuotationDetail() {
         const dto = res.data.data as SupplierQuotationDetailDto;
         setData(dto);
 
-        const initial: Record<number, { negotiatedQuantity: number; unitPrice: number; deliveryDate: string }> = {};
+        const initial: Record<
+          number,
+          { negotiatedQuantity: number; unitPrice: number; deliveryDate: string }
+        > = {};
         const today = new Date();
         const defaultDelivery = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
         (dto.purchase_quotations.purchase_quotation_items ?? []).forEach((it) => {
@@ -113,7 +121,10 @@ export default function SupplierQuotationDetail() {
   };
 
   if (loading) return <div>Carregando...</div>;
-  if (error) return <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>{error}</div>;
+  if (error)
+    return (
+      <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>{error}</div>
+    );
   if (!data) return <div>Não encontrado.</div>;
 
   const endAt = data.purchase_quotations.end_at ?? data.purchase_quotations.end_date ?? '-';
@@ -121,14 +132,19 @@ export default function SupplierQuotationDetail() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}
+      >
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Cotação #{quotationId}</h2>
           <div style={{ color: 'var(--color-gray-600)' }}>
             Status: {data.status} | Prazo: {endAt}
           </div>
           <div style={{ color: 'var(--color-gray-600)', fontSize: 12 }}>
-            Última resposta: {latest ? `v${latest.version} (${latest.review_status}/${latest.integration_status})` : '—'}
+            Última resposta:{' '}
+            {latest
+              ? `v${latest.version} (${latest.review_status}/${latest.integration_status})`
+              : '—'}
           </div>
         </div>
         <button
@@ -148,7 +164,14 @@ export default function SupplierQuotationDetail() {
       </div>
 
       <h3 style={{ marginTop: 20, marginBottom: 8, fontWeight: 700 }}>Responder</h3>
-      <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 10, padding: 14 }}>
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid var(--border-color)',
+          borderRadius: 10,
+          padding: 14,
+        }}
+      >
         {(data.purchase_quotations.purchase_quotation_items ?? []).map((it, idx) => {
           const values = form[it.id] ?? { negotiatedQuantity: 0, unitPrice: 0, deliveryDate: '' };
           return (
@@ -163,7 +186,13 @@ export default function SupplierQuotationDetail() {
               <div style={{ fontWeight: 700, marginBottom: 6 }}>
                 Item {idx + 1} — {it.description ?? `#${it.id}`}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: 10,
+                }}
+              >
                 <label style={{ fontSize: 12, color: 'var(--color-gray-700)' }}>
                   Quantidade negociada
                   <input
@@ -175,7 +204,12 @@ export default function SupplierQuotationDetail() {
                         [it.id]: { ...values, negotiatedQuantity: Number(e.target.value) },
                       }))
                     }
-                    style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid var(--border-color)' }}
+                    style={{
+                      width: '100%',
+                      padding: 8,
+                      borderRadius: 8,
+                      border: '1px solid var(--border-color)',
+                    }}
                   />
                 </label>
                 <label style={{ fontSize: 12, color: 'var(--color-gray-700)' }}>
@@ -189,7 +223,12 @@ export default function SupplierQuotationDetail() {
                         [it.id]: { ...values, unitPrice: Number(e.target.value) },
                       }))
                     }
-                    style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid var(--border-color)' }}
+                    style={{
+                      width: '100%',
+                      padding: 8,
+                      borderRadius: 8,
+                      border: '1px solid var(--border-color)',
+                    }}
                   />
                 </label>
                 <label style={{ fontSize: 12, color: 'var(--color-gray-700)' }}>
@@ -203,7 +242,12 @@ export default function SupplierQuotationDetail() {
                         [it.id]: { ...values, deliveryDate: e.target.value },
                       }))
                     }
-                    style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid var(--border-color)' }}
+                    style={{
+                      width: '100%',
+                      padding: 8,
+                      borderRadius: 8,
+                      border: '1px solid var(--border-color)',
+                    }}
                   />
                 </label>
               </div>
@@ -229,4 +273,3 @@ export default function SupplierQuotationDetail() {
     </div>
   );
 }
-

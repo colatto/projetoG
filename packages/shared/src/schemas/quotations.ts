@@ -69,7 +69,10 @@ export type QuotationSendBodyDto = z.infer<typeof quotationSendBodySchema>;
 
 export const quotationRespondBodySchema = z.object({
   supplierAnswerDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD'),
-  validity: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD').optional(),
+  validity: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser YYYY-MM-DD')
+    .optional(),
   seller: z.string().min(1).optional(),
   discount: z.number().min(0).optional(),
   freightType: z.string().min(1).optional(),
@@ -125,4 +128,3 @@ export const quotationReviewBodySchema = z.object({
 });
 
 export type QuotationReviewBodyDto = z.infer<typeof quotationReviewBodySchema>;
-

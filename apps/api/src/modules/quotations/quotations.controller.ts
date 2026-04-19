@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
-import { IntegrationDirection, IntegrationEntityType, IntegrationEventStatus, IntegrationEventType } from '@projetog/domain';
+import {
+  IntegrationDirection,
+  IntegrationEntityType,
+  IntegrationEventStatus,
+  IntegrationEventType,
+} from '@projetog/domain';
 import type {
   QuotationsQueryDto,
   QuotationIdParamDto,
@@ -23,7 +28,11 @@ function asIsoOrNull(v: unknown): string | null {
 }
 
 async function getProfileSupplierId(supabase: Supabase, profileId: string): Promise<number | null> {
-  const { data, error } = await supabase.from('profiles').select('supplier_id').eq('id', profileId).single();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('supplier_id')
+    .eq('id', profileId)
+    .single();
   if (error) return null;
   return (data?.supplier_id as number | null) ?? null;
 }
@@ -35,14 +44,15 @@ export class QuotationsController {
   // Backoffice
   // ─────────────────────────────────────────────────────────────
 
-  async listBackoffice(request: FastifyRequest<{ Querystring: QuotationsQueryDto }>, reply: FastifyReply) {
+  async listBackoffice(
+    request: FastifyRequest<{ Querystring: QuotationsQueryDto }>,
+    reply: FastifyReply,
+  ) {
     const supabase = request.server.supabase;
     const { status, supplier_id, date_from, date_to, page = 1, limit = 20 } = request.query;
 
-    let q = supabase
-      .from('purchase_quotations')
-      .select(
-        `
+    let q = supabase.from('purchase_quotations').select(
+      `
         id,
         public_id,
         quotation_date,
@@ -65,8 +75,8 @@ export class QuotationsController {
           sienge_negotiation_number
         )
       `,
-        { count: 'exact' },
-      );
+      { count: 'exact' },
+    );
 
     if (date_from) q = q.gte('quotation_date', date_from);
     if (date_to) q = q.lte('quotation_date', date_to);
@@ -184,7 +194,9 @@ export class QuotationsController {
     const activeSupplierIds = new Set(
       (suppliers ?? []).filter((s) => s.access_status !== 'BLOCKED').map((s) => s.id as number),
     );
-    const withAccessSupplierIds = new Set((supplierProfiles ?? []).map((p) => p.supplier_id as number));
+    const withAccessSupplierIds = new Set(
+      (supplierProfiles ?? []).map((p) => p.supplier_id as number),
+    );
 
     const eligibleSupplierIds = supplierIds.filter(
       (id) => activeSupplierIds.has(id) && withAccessSupplierIds.has(id),
@@ -224,7 +236,10 @@ export class QuotationsController {
       .in('id', eligibleNegotiationIds);
 
     if (updateNegotiationsError) {
-      request.log.warn({ err: updateNegotiationsError }, 'Failed to set sent_at per supplier_negotiation');
+      request.log.warn(
+        { err: updateNegotiationsError },
+        'Failed to set sent_at per supplier_negotiation',
+      );
     }
 
     await this.audit.log({
@@ -284,11 +299,7 @@ export class QuotationsController {
     }
 
     const reviewStatus =
-      action === 'approve'
-        ? 'approved'
-        : action === 'reject'
-          ? 'rejected'
-          : 'correction_requested';
+      action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'correction_requested';
 
     const negotiationStatus =
       action === 'approve' ? 'APROVADA' : action === 'reject' ? 'REPROVADA' : 'CORRECAO_SOLICITADA';
@@ -360,10 +371,11 @@ export class QuotationsController {
     }
 
     const jobItems = responseItems.map((it) => {
-      const deliveries = (it.quotation_response_item_deliveries as Array<{
-        delivery_number: number;
-        delivery_date: string;
-      }> | null) ?? [];
+      const deliveries =
+        (it.quotation_response_item_deliveries as Array<{
+          delivery_number: number;
+          delivery_date: string;
+        }> | null) ?? [];
 
       deliveries.sort((a, b) => a.delivery_number - b.delivery_number);
       const firstDeliveryDate = deliveries[0]?.delivery_date;
@@ -417,7 +429,10 @@ export class QuotationsController {
       return reply.code(500).send({ message: 'Erro ao registrar evento de integração' });
     }
 
-    await supabase.from('quotation_responses').update({ integration_status: 'pending' }).eq('id', latestResponse.id);
+    await supabase
+      .from('quotation_responses')
+      .update({ integration_status: 'pending' })
+      .eq('id', latestResponse.id);
 
     await boss.send(
       'sienge:outbound-negotiation',
@@ -498,10 +513,12 @@ export class QuotationsController {
       .eq('quotation_response_id', resp.id);
 
     const items = (responseItems ?? []).map((it) => {
-      const deliveries = ((it.quotation_response_item_deliveries as Array<{
-        delivery_number: number;
-        delivery_date: string;
-      }> | null) ?? []).sort((a, b) => a.delivery_number - b.delivery_number);
+      const deliveries = (
+        (it.quotation_response_item_deliveries as Array<{
+          delivery_number: number;
+          delivery_date: string;
+        }> | null) ?? []
+      ).sort((a, b) => a.delivery_number - b.delivery_number);
       return {
         purchaseQuotationItemId: it.purchase_quotation_item_id,
         unitPrice: it.unit_price,
@@ -511,7 +528,9 @@ export class QuotationsController {
     });
 
     if (!items.length || items.some((i) => !i.deliveryDate)) {
-      return reply.code(422).send({ message: 'Resposta não possui itens/datas de entrega válidos' });
+      return reply
+        .code(422)
+        .send({ message: 'Resposta não possui itens/datas de entrega válidos' });
     }
 
     const idempotencyKey = randomUUID();
@@ -546,7 +565,10 @@ export class QuotationsController {
       return reply.code(500).send({ message: 'Erro ao registrar reprocessamento' });
     }
 
-    await supabase.from('quotation_responses').update({ integration_status: 'pending' }).eq('id', resp.id);
+    await supabase
+      .from('quotation_responses')
+      .update({ integration_status: 'pending' })
+      .eq('id', resp.id);
 
     await boss.send(
       'sienge:outbound-negotiation',
@@ -567,10 +589,16 @@ export class QuotationsController {
     await this.audit.log({
       eventType: 'quotation.integration.retry',
       actorId,
-      metadata: { purchase_quotation_id: quotation_id, supplier_id, integration_event_id: event.id },
+      metadata: {
+        purchase_quotation_id: quotation_id,
+        supplier_id,
+        integration_event_id: event.id,
+      },
     });
 
-    return reply.code(202).send({ message: 'Reprocessamento enfileirado', data: { integration_event_id: event.id } });
+    return reply
+      .code(202)
+      .send({ message: 'Reprocessamento enfileirado', data: { integration_event_id: event.id } });
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -648,10 +676,7 @@ export class QuotationsController {
     return reply.code(200).send({ data });
   }
 
-  async markRead(
-    request: FastifyRequest<{ Params: QuotationIdParamDto }>,
-    reply: FastifyReply,
-  ) {
+  async markRead(request: FastifyRequest<{ Params: QuotationIdParamDto }>, reply: FastifyReply) {
     const supabase = request.server.supabase;
     const actorId = request.user.sub;
     const supplierId = await getProfileSupplierId(supabase, actorId);
@@ -666,7 +691,8 @@ export class QuotationsController {
       .single();
 
     if (error || !negotiation) return reply.code(404).send({ message: 'Cotação não encontrada' });
-    if (negotiation.read_at) return reply.code(409).send({ message: 'Cotação já marcada como lida' });
+    if (negotiation.read_at)
+      return reply.code(409).send({ message: 'Cotação já marcada como lida' });
 
     const nowIso = new Date().toISOString();
     const { error: updError } = await supabase
@@ -814,7 +840,10 @@ export class QuotationsController {
 
     const itemIdByPurchaseQuotationItemId = new Map<number, string>();
     for (const row of insertedItems) {
-      itemIdByPurchaseQuotationItemId.set(row.purchase_quotation_item_id as number, row.id as string);
+      itemIdByPurchaseQuotationItemId.set(
+        row.purchase_quotation_item_id as number,
+        row.id as string,
+      );
     }
 
     // Insert deliveries
@@ -865,4 +894,3 @@ export class QuotationsController {
     return reply.code(201).send({ response_id: insertedResponse.id, version: nextVersion });
   }
 }
-

@@ -19,7 +19,10 @@ import { authRoutes } from './modules/auth/index.js';
 import { usersRoutes } from './modules/users/index.js';
 import { webhookRoutes } from './modules/webhooks/index.js';
 import { integrationRoutes } from './modules/integration/index.js';
-import { quotationsBackofficeRoutes, supplierQuotationsRoutes } from './modules/quotations/index.js';
+import {
+  quotationsBackofficeRoutes,
+  supplierQuotationsRoutes,
+} from './modules/quotations/index.js';
 import type { JobPublisher } from './plugins/pg-boss.js';
 
 interface BuildAppOptions {

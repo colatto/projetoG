@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  IntegrationEntityType,
-  IntegrationEventType,
-} from '@projetog/domain';
+import { IntegrationEntityType, IntegrationEventType } from '@projetog/domain';
 
 const getByIdMock = vi.fn();
 const getItemsMock = vi.fn();
@@ -98,8 +95,7 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
   };
 });
 
-const { processSiengeReconcile } =
-  await import('./sienge-reconcile.js');
+const { processSiengeReconcile } = await import('./sienge-reconcile.js');
 
 describe('sienge-reconcile', () => {
   beforeEach(() => {

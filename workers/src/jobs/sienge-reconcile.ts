@@ -86,7 +86,9 @@ export async function processSiengeReconcile(job: PgBoss.Job): Promise<void> {
         entityId,
         reason,
       }) as unknown as import('@projetog/shared').Json,
-      response_payload: sanitizeForLog(result.summary) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog(
+        result.summary,
+      ) as unknown as import('@projetog/shared').Json,
       related_entity_type: result.relatedEntityType,
       related_entity_id: String(result.entityId),
       retry_count: 0,

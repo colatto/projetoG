@@ -2,7 +2,11 @@ import 'dotenv/config';
 import { getBoss } from './boss.js';
 import { registerHandlers } from './handlers/index.js';
 import { installConsoleJsonLogger } from './logger.js';
-import { setWorkerReady, startObservabilityServer, stopObservabilityServer } from './observability.js';
+import {
+  setWorkerReady,
+  startObservabilityServer,
+  stopObservabilityServer,
+} from './observability.js';
 
 installConsoleJsonLogger();
 

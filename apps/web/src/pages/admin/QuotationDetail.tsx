@@ -26,7 +26,12 @@ type QuotationDetailDto = {
   sent_at: string | null;
   end_at: string | null;
   end_date: string | null;
-  purchase_quotation_items?: Array<{ id: number; description: string | null; quantity: number | null; unit: string | null }>;
+  purchase_quotation_items?: Array<{
+    id: number;
+    description: string | null;
+    quantity: number | null;
+    unit: string | null;
+  }>;
   supplier_negotiations?: SupplierNegotiation[];
 };
 
@@ -57,8 +62,12 @@ export default function QuotationDetail() {
     if (!data) return;
     try {
       setSending(true);
-      const endAt = data.end_at ?? (data.end_date ? new Date(`${data.end_date}T23:59:59.999Z`).toISOString() : null);
-      const res = await api.post(`/quotations/${quotationId}/send`, { end_at: endAt ?? new Date(Date.now() + 7 * 86400000).toISOString() });
+      const endAt =
+        data.end_at ??
+        (data.end_date ? new Date(`${data.end_date}T23:59:59.999Z`).toISOString() : null);
+      const res = await api.post(`/quotations/${quotationId}/send`, {
+        end_at: endAt ?? new Date(Date.now() + 7 * 86400000).toISOString(),
+      });
       alert(`Enviada. Fornecedores enviados: ${res.data.suppliers_sent}`);
       const reload = await api.get(`/quotations/${quotationId}`);
       setData(reload.data.data);
@@ -69,10 +78,16 @@ export default function QuotationDetail() {
     }
   };
 
-  const review = async (supplierId: number, action: 'approve' | 'reject' | 'request_correction') => {
+  const review = async (
+    supplierId: number,
+    action: 'approve' | 'reject' | 'request_correction',
+  ) => {
     try {
       const notes = window.prompt('Observações (opcional):') ?? undefined;
-      const res = await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/review`, { action, notes });
+      const res = await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/review`, {
+        action,
+        notes,
+      });
       alert(res.data.message ?? 'OK');
       const reload = await api.get(`/quotations/${quotationId}`);
       setData(reload.data.data);
@@ -83,7 +98,9 @@ export default function QuotationDetail() {
 
   const retryIntegration = async (supplierId: number) => {
     try {
-      const res = await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/retry-integration`);
+      const res = await api.post(
+        `/quotations/${quotationId}/suppliers/${supplierId}/retry-integration`,
+      );
       alert(res.data.message ?? 'Reprocessamento enfileirado');
     } catch (e: unknown) {
       alert(getApiErrorMessage(e, 'Erro ao reprocessar'));
@@ -91,12 +108,17 @@ export default function QuotationDetail() {
   };
 
   if (loading) return <div>Carregando...</div>;
-  if (error) return <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>{error}</div>;
+  if (error)
+    return (
+      <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>{error}</div>
+    );
   if (!data) return <div>Não encontrado.</div>;
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+      >
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Cotação #{data.id}</h2>
           <div style={{ color: 'var(--color-gray-600)' }}>
@@ -120,7 +142,9 @@ export default function QuotationDetail() {
       </div>
 
       <h3 style={{ marginTop: 20, marginBottom: 8, fontWeight: 700 }}>Itens</h3>
-      <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+      <div
+        style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}
+      >
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
@@ -151,11 +175,27 @@ export default function QuotationDetail() {
       </div>
 
       <h3 style={{ marginTop: 20, marginBottom: 8, fontWeight: 700 }}>Fornecedores</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 12,
+        }}
+      >
         {(data.supplier_negotiations ?? []).map((sn) => {
-          const latest = (sn.quotation_responses ?? []).slice().sort((a, b) => b.version - a.version)[0];
+          const latest = (sn.quotation_responses ?? [])
+            .slice()
+            .sort((a, b) => b.version - a.version)[0];
           return (
-            <div key={sn.id} style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 10, padding: 14 }}>
+            <div
+              key={sn.id}
+              style={{
+                background: 'white',
+                border: '1px solid var(--border-color)',
+                borderRadius: 10,
+                padding: 14,
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>Fornecedor {sn.supplier_id}</div>
@@ -163,35 +203,68 @@ export default function QuotationDetail() {
                     Status: {sn.status} | Lida: {sn.read_at ? 'Sim' : 'Não'}
                   </div>
                 </div>
-                {sn.closed_order_id && <div style={{ fontSize: 12 }}>Pedido: {sn.closed_order_id}</div>}
+                {sn.closed_order_id && (
+                  <div style={{ fontSize: 12 }}>Pedido: {sn.closed_order_id}</div>
+                )}
               </div>
 
               <div style={{ marginTop: 10, fontSize: 13 }}>
-                Última resposta: {latest ? `v${latest.version} (${latest.review_status}/${latest.integration_status})` : '—'}
+                Última resposta:{' '}
+                {latest
+                  ? `v${latest.version} (${latest.review_status}/${latest.integration_status})`
+                  : '—'}
               </div>
 
               <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => review(sn.supplier_id, 'approve')}
-                  style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}
+                  style={{
+                    background: '#16a34a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Aprovar
                 </button>
                 <button
                   onClick={() => review(sn.supplier_id, 'reject')}
-                  style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}
+                  style={{
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Reprovar
                 </button>
                 <button
                   onClick={() => review(sn.supplier_id, 'request_correction')}
-                  style={{ background: '#f59e0b', color: 'black', border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}
+                  style={{
+                    background: '#f59e0b',
+                    color: 'black',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Solicitar correção
                 </button>
                 <button
                   onClick={() => retryIntegration(sn.supplier_id)}
-                  style={{ background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 8, padding: '8px 10px', cursor: 'pointer' }}
+                  style={{
+                    background: 'var(--color-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Retry integração
                 </button>
@@ -203,4 +276,3 @@ export default function QuotationDetail() {
     </div>
   );
 }
-

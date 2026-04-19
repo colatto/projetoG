@@ -68,8 +68,13 @@ export async function processWebhook(job: PgBoss.Job): Promise<void> {
       http_method: 'POST',
       http_status: 200,
       status: 'success',
-      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as unknown as import('@projetog/shared').Json,
-      response_payload: sanitizeForLog(result.summary) as unknown as import('@projetog/shared').Json,
+      request_payload: sanitizeForLog({
+        webhookEventId,
+        webhookType,
+      }) as unknown as import('@projetog/shared').Json,
+      response_payload: sanitizeForLog(
+        result.summary,
+      ) as unknown as import('@projetog/shared').Json,
       related_entity_type: result.entityType ?? resolveEntityType(webhookType),
       related_entity_id:
         result.entityId ?? extractEntityIdFromPayload(webhookType, payload) ?? webhookEventId,
@@ -103,7 +108,10 @@ export async function processWebhook(job: PgBoss.Job): Promise<void> {
       http_method: 'POST',
       status: 'failure',
       error_message: err.message ?? 'Unknown error',
-      request_payload: sanitizeForLog({ webhookEventId, webhookType }) as unknown as import('@projetog/shared').Json,
+      request_payload: sanitizeForLog({
+        webhookEventId,
+        webhookType,
+      }) as unknown as import('@projetog/shared').Json,
       related_entity_type: resolveEntityType(webhookType),
       related_entity_id: extractEntityIdFromPayload(webhookType, payload) ?? webhookEventId,
       retry_count: 0,

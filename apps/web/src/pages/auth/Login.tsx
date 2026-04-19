@@ -28,7 +28,10 @@ export default function Login() {
       await login(data);
       navigate('/'); // Vai para o Dashboard padrao (admin ou fornecedor)
     } catch (error: unknown) {
-      if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+      if (
+        isAxiosError(error) &&
+        (error.response?.status === 401 || error.response?.status === 403)
+      ) {
         setApiError('Credenciais inválidas ou acesso bloqueado.');
       } else {
         setApiError('Ocorreu um erro no servidor. Tente novamente mais tarde.');

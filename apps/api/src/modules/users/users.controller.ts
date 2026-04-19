@@ -152,7 +152,8 @@ export class UsersController {
       return reply.code(404).send({ message: 'Usuário não encontrado' });
     }
 
-    const updates: import('@projetog/shared').Database['public']['Tables']['profiles']['Update'] = {};
+    const updates: import('@projetog/shared').Database['public']['Tables']['profiles']['Update'] =
+      {};
 
     if (changes.name && changes.name !== user.name) {
       updates.name = changes.name;

@@ -24,14 +24,8 @@ export default async function quotationsBackofficeRoutes(fastify: FastifyInstanc
   app.addHook('preValidation', fastify.authenticate);
   app.addHook('preValidation', fastify.verifyRole([UserRole.COMPRAS, UserRole.ADMINISTRADOR]));
 
-  app.get(
-    '/',
-    { schema: { querystring: quotationsQuerySchema } },
-    async (request, reply) =>
-      controller.listBackoffice(
-        request as typeof request & { query: QuotationsQueryDto },
-        reply,
-      ),
+  app.get('/', { schema: { querystring: quotationsQuerySchema } }, async (request, reply) =>
+    controller.listBackoffice(request as typeof request & { query: QuotationsQueryDto }, reply),
   );
 
   app.get(
@@ -62,7 +56,10 @@ export default async function quotationsBackofficeRoutes(fastify: FastifyInstanc
     },
     async (request, reply) =>
       controller.reviewSupplierResponse(
-        request as typeof request & { params: QuotationSupplierParamDto; body: QuotationReviewBodyDto },
+        request as typeof request & {
+          params: QuotationSupplierParamDto;
+          body: QuotationReviewBodyDto;
+        },
         reply,
       ),
   );
@@ -80,4 +77,3 @@ export default async function quotationsBackofficeRoutes(fastify: FastifyInstanc
       ),
   );
 }
-

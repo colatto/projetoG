@@ -65,4 +65,3 @@ export async function processQuotationExpireCheck(job: PgBoss.Job): Promise<void
     `[${JOB_NAME}] Marked suppliers without response for ${expiredIds.length} quotations. CorrelationId: ${correlationId}`,
   );
 }
-

@@ -50,7 +50,9 @@ export default function QuotationList() {
       )}
 
       {!loading && !error && (
-        <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+        <div
+          style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
@@ -65,7 +67,10 @@ export default function QuotationList() {
               {data.map((q) => (
                 <tr key={q.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: 12 }}>
-                    <Link to={`/admin/quotations/${q.id}`} style={{ color: 'var(--color-primary)' }}>
+                    <Link
+                      to={`/admin/quotations/${q.id}`}
+                      style={{ color: 'var(--color-primary)' }}
+                    >
                       {q.id}
                     </Link>
                   </td>
@@ -89,4 +94,3 @@ export default function QuotationList() {
     </div>
   );
 }
-
