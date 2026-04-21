@@ -1,7 +1,44 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import {
+  getStatusLabel,
+  getStatusBadgeClass,
+  getReviewLabel,
+  getReviewBadgeClass,
+  formatDate,
+  formatDateTime,
+  getDeadlineClass,
+  isTerminalStatus,
+} from '../quotation-helpers';
+import '../quotations.css';
+
+type ResponseItem = {
+  id: string;
+  purchase_quotation_item_id: number;
+  unit_price: number | null;
+  negotiated_quantity: number | null;
+  quotation_response_item_deliveries?: Array<{
+    delivery_number: number;
+    delivery_date: string;
+    delivery_quantity: number;
+  }>;
+};
+
+type QuotationResponse = {
+  id: string;
+  version: number;
+  review_status: string;
+  integration_status: string;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  supplier_answer_date: string | null;
+  validity: string | null;
+  seller: string | null;
+  quotation_response_items?: ResponseItem[];
+};
 
 type SupplierNegotiation = {
   id: string;
@@ -11,21 +48,22 @@ type SupplierNegotiation = {
   sent_at: string | null;
   latest_response_id: string | null;
   closed_order_id: number | null;
-  quotation_responses?: Array<{
-    id: string;
-    version: number;
-    review_status: string;
-    integration_status: string;
-    submitted_at: string;
-    reviewed_at: string | null;
-  }>;
+  sienge_negotiation_id: number | null;
+  sienge_negotiation_number: number | null;
+  suppliers?: { name: string } | null;
+  quotation_responses?: QuotationResponse[];
 };
 
 type QuotationDetailDto = {
   id: number;
+  public_id: string | null;
+  quotation_date: string | null;
+  response_date: string | null;
   sent_at: string | null;
+  sent_by: string | null;
   end_at: string | null;
   end_date: string | null;
+  sienge_status: string | null;
   purchase_quotation_items?: Array<{
     id: number;
     description: string | null;
@@ -42,13 +80,19 @@ export default function QuotationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [endDateInput, setEndDateInput] = useState('');
+  const [feedback, setFeedback] = useState<{ type: string; msg: string } | null>(null);
+
+  const reload = async () => {
+    const res = await api.get(`/quotations/${quotationId}`);
+    setData(res.data.data);
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/quotations/${quotationId}`);
-        setData(res.data.data);
+        await reload();
       } catch (e: unknown) {
         setError(getApiErrorMessage(e, 'Erro ao carregar cotação'));
       } finally {
@@ -56,23 +100,30 @@ export default function QuotationDetail() {
       }
     };
     if (!Number.isNaN(quotationId)) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quotationId]);
 
   const onSend = async () => {
     if (!data) return;
     try {
       setSending(true);
-      const endAt =
-        data.end_at ??
-        (data.end_date ? new Date(`${data.end_date}T23:59:59.999Z`).toISOString() : null);
-      const res = await api.post(`/quotations/${quotationId}/send`, {
-        end_at: endAt ?? new Date(Date.now() + 7 * 86400000).toISOString(),
+      setFeedback(null);
+      const endAt = endDateInput
+        ? new Date(`${endDateInput}T23:59:59.999Z`).toISOString()
+        : (data.end_at ??
+          (data.end_date ? new Date(`${data.end_date}T23:59:59.999Z`).toISOString() : null));
+      if (!endAt) {
+        setFeedback({ type: 'error', msg: 'Defina um prazo antes de enviar.' });
+        return;
+      }
+      const res = await api.post(`/quotations/${quotationId}/send`, { end_at: endAt });
+      setFeedback({
+        type: 'success',
+        msg: `Enviada com sucesso! ${res.data.suppliers_sent} fornecedor(es), ${res.data.suppliers_skipped} ignorado(s).`,
       });
-      alert(`Enviada. Fornecedores enviados: ${res.data.suppliers_sent}`);
-      const reload = await api.get(`/quotations/${quotationId}`);
-      setData(reload.data.data);
+      await reload();
     } catch (e: unknown) {
-      alert(getApiErrorMessage(e, 'Erro ao enviar'));
+      setFeedback({ type: 'error', msg: getApiErrorMessage(e, 'Erro ao enviar') });
     } finally {
       setSending(false);
     }
@@ -82,196 +133,288 @@ export default function QuotationDetail() {
     supplierId: number,
     action: 'approve' | 'reject' | 'request_correction',
   ) => {
+    const labels = {
+      approve: 'Aprovar',
+      reject: 'Reprovar',
+      request_correction: 'Solicitar correção',
+    };
+    const notes = window.prompt(`${labels[action]} — Observações (opcional):`) ?? undefined;
     try {
-      const notes = window.prompt('Observações (opcional):') ?? undefined;
-      const res = await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/review`, {
+      setFeedback(null);
+      await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/review`, {
         action,
         notes,
       });
-      alert(res.data.message ?? 'OK');
-      const reload = await api.get(`/quotations/${quotationId}`);
-      setData(reload.data.data);
+      setFeedback({
+        type: 'success',
+        msg: `${labels[action]} registrado com sucesso.`,
+      });
+      await reload();
     } catch (e: unknown) {
-      alert(getApiErrorMessage(e, 'Erro ao revisar'));
+      setFeedback({ type: 'error', msg: getApiErrorMessage(e, 'Erro ao revisar') });
     }
   };
 
   const retryIntegration = async (supplierId: number) => {
     try {
-      const res = await api.post(
-        `/quotations/${quotationId}/suppliers/${supplierId}/retry-integration`,
-      );
-      alert(res.data.message ?? 'Reprocessamento enfileirado');
+      setFeedback(null);
+      await api.post(`/quotations/${quotationId}/suppliers/${supplierId}/retry-integration`);
+      setFeedback({ type: 'info', msg: 'Reprocessamento enfileirado.' });
     } catch (e: unknown) {
-      alert(getApiErrorMessage(e, 'Erro ao reprocessar'));
+      setFeedback({ type: 'error', msg: getApiErrorMessage(e, 'Erro ao reprocessar') });
     }
   };
 
-  if (loading) return <div>Carregando...</div>;
-  if (error)
-    return (
-      <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>{error}</div>
-    );
-  if (!data) return <div>Não encontrado.</div>;
+  if (loading) return <div className="q-loading">Carregando cotação…</div>;
+  if (error) return <div className="q-notice q-notice--error">{error}</div>;
+  if (!data) return <div className="q-empty">Cotação não encontrada.</div>;
+
+  const isSent = !!data.sent_at;
+  const items = data.purchase_quotation_items ?? [];
+  const negotiations = data.supplier_negotiations ?? [];
 
   return (
     <div>
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
-      >
+      {/* Header */}
+      <div className="q-page-header">
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Cotação #{data.id}</h2>
-          <div style={{ color: 'var(--color-gray-600)' }}>
-            Enviada: {data.sent_at ? 'Sim' : 'Não'} | Fim: {data.end_at ?? data.end_date ?? '-'}
-          </div>
+          <p className="q-page-subtitle" style={{ marginBottom: '0.25rem' }}>
+            <Link to="/admin/quotations">← Voltar</Link>
+          </p>
+          <h1 className="q-page-title">Cotação #{data.id}</h1>
+          <p className="q-page-subtitle">
+            Data: {formatDate(data.quotation_date)} &nbsp;|&nbsp; Prazo:{' '}
+            <span className={getDeadlineClass(data.end_at, data.end_date)}>
+              {formatDate(data.end_at ?? data.end_date)}
+            </span>
+            &nbsp;|&nbsp; Sienge: {data.sienge_status ?? '—'}
+          </p>
         </div>
-        <button
-          onClick={onSend}
-          disabled={sending || !!data.sent_at}
-          style={{
-            background: data.sent_at ? 'var(--color-gray-200)' : 'var(--color-primary)',
-            color: data.sent_at ? 'var(--color-gray-700)' : 'white',
-            border: 'none',
-            borderRadius: 8,
-            padding: '10px 14px',
-            cursor: data.sent_at ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {data.sent_at ? 'Enviada' : sending ? 'Enviando...' : 'Enviar cotação'}
-        </button>
+        <div className="flex gap-2" style={{ alignItems: 'flex-end' }}>
+          {!isSent && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" htmlFor="send-end-date">
+                Prazo de envio
+              </label>
+              <input
+                id="send-end-date"
+                type="date"
+                className="form-input"
+                value={endDateInput || (data.end_date ?? '')}
+                onChange={(e) => setEndDateInput(e.target.value)}
+                style={{ width: 160 }}
+              />
+            </div>
+          )}
+          <button
+            className={`btn ${isSent ? 'btn-outline' : 'btn-primary'}`}
+            onClick={onSend}
+            disabled={sending || isSent}
+          >
+            {isSent
+              ? `Enviada em ${formatDateTime(data.sent_at)}`
+              : sending
+                ? 'Enviando…'
+                : 'Enviar cotação'}
+          </button>
+        </div>
       </div>
 
-      <h3 style={{ marginTop: 20, marginBottom: 8, fontWeight: 700 }}>Itens</h3>
-      <div
-        style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: 12 }}>ItemId</th>
-              <th style={{ padding: 12 }}>Descrição</th>
-              <th style={{ padding: 12 }}>Qtd</th>
-              <th style={{ padding: 12 }}>Un</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data.purchase_quotation_items ?? []).map((it) => (
-              <tr key={it.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: 12 }}>{it.id}</td>
-                <td style={{ padding: 12 }}>{it.description ?? '-'}</td>
-                <td style={{ padding: 12 }}>{it.quantity ?? '-'}</td>
-                <td style={{ padding: 12 }}>{it.unit ?? '-'}</td>
-              </tr>
-            ))}
-            {(data.purchase_quotation_items ?? []).length === 0 && (
+      {/* Feedback */}
+      {feedback && <div className={`q-notice q-notice--${feedback.type}`}>{feedback.msg}</div>}
+
+      {/* Items table */}
+      <div className="q-section">
+        <h2 className="q-section__title">📦 Itens da cotação</h2>
+        <div className="table-wrapper">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={4} style={{ padding: 16, color: 'var(--color-gray-500)' }}>
-                  Itens ainda não disponíveis localmente.
-                </td>
+                <th>Item</th>
+                <th>Descrição</th>
+                <th>Quantidade</th>
+                <th>Unidade</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((it) => (
+                <tr key={it.id} className="q-table-row">
+                  <td style={{ fontWeight: 600 }}>{it.id}</td>
+                  <td>{it.description ?? '—'}</td>
+                  <td>{it.quantity ?? '—'}</td>
+                  <td>{it.unit ?? '—'}</td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="q-empty">
+                    Itens não disponíveis.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <h3 style={{ marginTop: 20, marginBottom: 8, fontWeight: 700 }}>Fornecedores</h3>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 12,
-        }}
-      >
-        {(data.supplier_negotiations ?? []).map((sn) => {
-          const latest = (sn.quotation_responses ?? [])
-            .slice()
-            .sort((a, b) => b.version - a.version)[0];
-          return (
-            <div
-              key={sn.id}
-              style={{
-                background: 'white',
-                border: '1px solid var(--border-color)',
-                borderRadius: 10,
-                padding: 14,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>Fornecedor {sn.supplier_id}</div>
-                  <div style={{ color: 'var(--color-gray-600)', fontSize: 12 }}>
-                    Status: {sn.status} | Lida: {sn.read_at ? 'Sim' : 'Não'}
+      {/* Suppliers */}
+      <div className="q-section">
+        <h2 className="q-section__title">👥 Fornecedores ({negotiations.length})</h2>
+        <div className="q-suppliers-grid">
+          {negotiations.map((sn) => {
+            const responses = (sn.quotation_responses ?? [])
+              .slice()
+              .sort((a, b) => b.version - a.version);
+            const latest = responses[0];
+            const hasResponse = !!latest;
+            const canReview = hasResponse && latest.review_status === 'pending';
+            const showRetry =
+              hasResponse &&
+              latest.integration_status === 'error' &&
+              latest.review_status === 'approved';
+            const supplierName = sn.suppliers?.name ?? `Fornecedor #${sn.supplier_id}`;
+
+            return (
+              <div key={sn.id} className="q-supplier-card">
+                {/* Card header */}
+                <div className="q-supplier-card__header">
+                  <div>
+                    <div className="q-supplier-card__name">{supplierName}</div>
+                    <div className="q-supplier-card__meta">
+                      ID: {sn.supplier_id}
+                      {sn.sienge_negotiation_number && ` · Neg. #${sn.sienge_negotiation_number}`}
+                    </div>
                   </div>
+                  <span className={getStatusBadgeClass(sn.status)}>
+                    {getStatusLabel(sn.status)}
+                  </span>
                 </div>
-                {sn.closed_order_id && (
-                  <div style={{ fontSize: 12 }}>Pedido: {sn.closed_order_id}</div>
+
+                {/* Read + order info */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    fontSize: '0.8125rem',
+                    color: 'var(--color-gray-600)',
+                  }}
+                >
+                  <span className="read-indicator">
+                    <span className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`} />
+                    {sn.read_at ? `Lida ${formatDateTime(sn.read_at)}` : 'Não lida'}
+                  </span>
+                  {sn.closed_order_id && <span>Pedido #{sn.closed_order_id}</span>}
+                </div>
+
+                {/* Response history */}
+                {responses.length > 0 && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: 'var(--color-gray-500)',
+                        marginBottom: '0.375rem',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Respostas ({responses.length})
+                    </div>
+                    <div className="q-version-list">
+                      {responses.map((r) => (
+                        <div
+                          key={r.id}
+                          className={`q-version-item ${r.id === latest.id ? 'q-version-item--latest' : ''}`}
+                        >
+                          <strong>v{r.version}</strong>
+                          <span className={getReviewBadgeClass(r.review_status)}>
+                            {getReviewLabel(r.review_status)}
+                          </span>
+                          {r.integration_status && r.integration_status !== 'pending' && (
+                            <span
+                              className={`badge-status ${r.integration_status === 'success' ? 'badge-approved' : 'badge-rejected'}`}
+                            >
+                              Int: {r.integration_status}
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              color: 'var(--color-gray-400)',
+                              fontSize: '0.75rem',
+                              marginLeft: 'auto',
+                            }}
+                          >
+                            {formatDateTime(r.submitted_at)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Review notes */}
+                    {latest.review_notes && (
+                      <div
+                        className={`q-notice ${latest.review_status === 'correction_requested' ? 'q-notice--warning' : 'q-notice--info'}`}
+                        style={{ marginTop: '0.5rem', marginBottom: 0 }}
+                      >
+                        <strong>Obs. revisão:</strong> {latest.review_notes}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions — conditional on status */}
+                {(canReview || showRetry) && (
+                  <div className="q-supplier-card__actions">
+                    {canReview && (
+                      <>
+                        <button
+                          className="btn btn-sm btn-approve"
+                          onClick={() => review(sn.supplier_id, 'approve')}
+                        >
+                          ✓ Aprovar
+                        </button>
+                        <button
+                          className="btn btn-sm btn-reject"
+                          onClick={() => review(sn.supplier_id, 'reject')}
+                        >
+                          ✕ Reprovar
+                        </button>
+                        <button
+                          className="btn btn-sm btn-correction"
+                          onClick={() => review(sn.supplier_id, 'request_correction')}
+                        >
+                          ↺ Solicitar correção
+                        </button>
+                      </>
+                    )}
+                    {showRetry && (
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => retryIntegration(sn.supplier_id)}
+                      >
+                        ↻ Retry integração
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Terminal status info */}
+                {isTerminalStatus(sn.status) && !canReview && !showRetry && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      fontSize: '0.75rem',
+                      color: 'var(--color-gray-400)',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    Negociação finalizada
+                  </div>
                 )}
               </div>
-
-              <div style={{ marginTop: 10, fontSize: 13 }}>
-                Última resposta:{' '}
-                {latest
-                  ? `v${latest.version} (${latest.review_status}/${latest.integration_status})`
-                  : '—'}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => review(sn.supplier_id, 'approve')}
-                  style={{
-                    background: '#16a34a',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Aprovar
-                </button>
-                <button
-                  onClick={() => review(sn.supplier_id, 'reject')}
-                  style={{
-                    background: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Reprovar
-                </button>
-                <button
-                  onClick={() => review(sn.supplier_id, 'request_correction')}
-                  style={{
-                    background: '#f59e0b',
-                    color: 'black',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Solicitar correção
-                </button>
-                <button
-                  onClick={() => retryIntegration(sn.supplier_id)}
-                  style={{
-                    background: 'var(--color-primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Retry integração
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

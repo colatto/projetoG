@@ -1,6 +1,7 @@
 import PgBoss from 'pg-boss';
 import { NegotiationClient, QuotationClient } from '@projetog/integration-sienge';
 import {
+  IntegrationEntityType,
   IntegrationEventType,
   IntegrationEventStatus,
   OutboundNegotiationPayload,
@@ -120,7 +121,7 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
     const supplierData = quotationList?.suppliers?.find((s) => s.supplierId === payload.supplierId);
 
     if (!quotationList || !supplierData) {
-      // PRD-07 §9.9 (RN-10): Fornecedor inválido no mapa de cotação.
+      // PRD-07 §9.9 (RN-10) / PRD-02 (RN-30): Fornecedor inválido no mapa de cotação.
       await supabase
         .from('integration_events')
         .update({
@@ -139,11 +140,23 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
       await supabase
         .from('supplier_negotiations')
         .update({
-          status: 'FORNECEDOR_FECHADO',
+          status: 'FORNECEDOR_INVALIDO_MAPA',
           updated_at: new Date().toISOString(),
         })
         .eq('purchase_quotation_id', payload.purchaseQuotationId)
         .eq('supplier_id', payload.supplierId);
+
+      // Audit trail for supplier invalid in map
+      await supabase.from('audit_logs').insert({
+        event_type: 'supplier_invalid_map',
+        entity_type: IntegrationEntityType.QUOTATION,
+        entity_id: String(payload.purchaseQuotationId),
+        metadata: {
+          supplier_id: payload.supplierId,
+          integration_event_id: payload.integrationEventId,
+          reason: 'supplier_missing_in_quotation_map',
+        } as unknown as import('@projetog/shared').Json,
+      });
 
       try {
         await notifyComprasAboutOperationalIssue(supabase, {
@@ -286,6 +299,16 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
         .eq('id', payload.quotationResponseId);
     }
 
+    await supabase.from('audit_logs').insert({
+      entity_type: IntegrationEntityType.QUOTATION,
+      entity_id: String(payload.purchaseQuotationId),
+      event_type: 'quotation_integration_success',
+      metadata: {
+        supplier_id: payload.supplierId,
+        negotiation_number: negotiationNumber,
+      } as unknown as import('@projetog/shared').Json,
+    });
+
     // Update the Integration Event for WRITE_NEGOTIATION
     await supabase
       .from('integration_events')
@@ -361,13 +384,25 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
         })
         .eq('id', payload.integrationEventId);
 
-      await supabase.from('audit_logs').insert({
-        event_type: 'integration.failure_exhausted',
-        actor_id: payload.actorId,
-        entity_type: 'integration_event',
-        entity_id: payload.integrationEventId,
-        metadata: { error: err.message } as unknown as import('@projetog/shared').Json,
-      });
+      await supabase.from('audit_logs').insert([
+        {
+          event_type: 'integration.failure_exhausted',
+          actor_id: payload.actorId,
+          entity_type: 'integration_event',
+          entity_id: payload.integrationEventId,
+          metadata: { error: err.message } as unknown as import('@projetog/shared').Json,
+        },
+        {
+          event_type: 'quotation_integration_failed',
+          actor_id: payload.actorId,
+          entity_type: IntegrationEntityType.QUOTATION,
+          entity_id: String(payload.purchaseQuotationId),
+          metadata: {
+            supplier_id: payload.supplierId,
+            error: err.message,
+          } as unknown as import('@projetog/shared').Json,
+        },
+      ]);
 
       try {
         await notifyComprasAboutOperationalIssue(supabase, {

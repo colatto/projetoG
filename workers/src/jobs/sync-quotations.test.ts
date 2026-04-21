@@ -78,6 +78,10 @@ const supabaseMock = {
         return {
           insert: integrationEventsInsertMock,
         };
+      case 'audit_logs':
+        return {
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        };
       default:
         throw new Error(`Unexpected table: ${table}`);
     }

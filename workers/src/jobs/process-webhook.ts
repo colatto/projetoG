@@ -198,6 +198,16 @@ async function handleOrderGenerated(
       })
       .eq('purchase_quotation_id', purchaseQuotationId)
       .neq('supplier_id', supplierId);
+
+    await supabase.from('audit_logs').insert({
+      entity_type: IntegrationEntityType.QUOTATION,
+      entity_id: String(purchaseQuotationId),
+      event_type: 'quotation_supplier_closed',
+      metadata: {
+        winning_supplier_id: supplierId,
+        purchase_order_id: purchaseOrderId,
+      },
+    });
   }
 
   return {

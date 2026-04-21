@@ -95,6 +95,12 @@ pnpm --filter @projetog/api dev
 pnpm --filter @projetog/workers dev
 ```
 
+Se o ambiente bloquear o watcher do `tsx` com erro de IPC em `/tmp` ou impedir o script `dev` da API, use:
+
+```bash
+pnpm --filter @projetog/api dev:no-watch
+```
+
 Pontos de acesso:
 
 - web: porta padrão do Vite
@@ -166,6 +172,19 @@ Sintoma:
 Causa:
 
 - `DATABASE_URL` ausente em `apps/api/.env`
+
+### API nao sobe na porta 3000 no ambiente atual
+
+Sintoma:
+
+- verificador externo reporta que a API na porta `3000` nao esta rodando
+- `pnpm --filter @projetog/api dev` falha com erro de `tsx`/IPC em `/tmp`
+- bootstrap falha antes do `listen` com erro de import em plugin
+
+Causas provaveis:
+
+- ambiente restrito bloqueando o `tsx watch`; usar `pnpm --filter @projetog/api dev:no-watch`
+- incompatibilidade de runtime no plugin de metricas; validar `GET /metrics` e `GET /health`
 
 ### Workers falham ao iniciar
 

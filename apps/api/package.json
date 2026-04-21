@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:no-watch": "node --import tsx/esm src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",

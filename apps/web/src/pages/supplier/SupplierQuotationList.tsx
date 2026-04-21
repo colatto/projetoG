@@ -2,19 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import {
+  getStatusLabel,
+  getStatusBadgeClass,
+  formatDate,
+  getDeadlineClass,
+} from '../quotation-helpers';
+import '../quotations.css';
 
 type SupplierQuotationRow = {
   id: string;
   status: string;
   read_at: string | null;
+  latest_response_id: string | null;
   purchase_quotation_id: number;
   purchase_quotations?: {
     id: number;
+    public_id: string | null;
     quotation_date: string | null;
     end_at: string | null;
     end_date: string | null;
     sent_at: string | null;
-  };
+  } | null;
 };
 
 export default function SupplierQuotationList() {
@@ -39,49 +48,78 @@ export default function SupplierQuotationList() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>Minhas cotações</h2>
-
-      {loading && <div>Carregando...</div>}
-      {error && (
-        <div style={{ padding: 12, background: '#fff1f2', border: '1px solid #fecdd3' }}>
-          {error}
+      <div className="q-page-header">
+        <div>
+          <h1 className="q-page-title">Minhas cotações</h1>
+          <p className="q-page-subtitle">
+            {data.length} cotaç{data.length === 1 ? 'ão' : 'ões'} disponíve
+            {data.length === 1 ? 'l' : 'is'}
+          </p>
         </div>
-      )}
+      </div>
+
+      {loading && <div className="q-loading">Carregando cotações…</div>}
+
+      {error && <div className="q-notice q-notice--error">{error}</div>}
 
       {!loading && !error && (
-        <div
-          style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 8 }}
-        >
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-wrapper">
+          <table>
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: 12 }}>Cotação</th>
-                <th style={{ padding: 12 }}>Status</th>
-                <th style={{ padding: 12 }}>Prazo</th>
-                <th style={{ padding: 12 }}>Lida</th>
+              <tr>
+                <th>Cotação</th>
+                <th>Data</th>
+                <th>Prazo</th>
+                <th>Status</th>
+                <th>Leitura</th>
+                <th>Resposta</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((sn) => (
-                <tr key={sn.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: 12 }}>
-                    <Link
-                      to={`/supplier/quotations/${sn.purchase_quotation_id}`}
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      #{sn.purchase_quotation_id}
-                    </Link>
-                  </td>
-                  <td style={{ padding: 12 }}>{sn.status}</td>
-                  <td style={{ padding: 12 }}>
-                    {sn.purchase_quotations?.end_at ?? sn.purchase_quotations?.end_date ?? '-'}
-                  </td>
-                  <td style={{ padding: 12 }}>{sn.read_at ? 'Sim' : 'Não'}</td>
-                </tr>
-              ))}
+              {data.map((sn) => {
+                const pq = sn.purchase_quotations;
+                const deadlineClass = pq ? getDeadlineClass(pq.end_at, pq.end_date) : '';
+
+                return (
+                  <tr key={sn.id} className="q-table-row">
+                    <td>
+                      <Link
+                        to={`/supplier/quotations/${sn.purchase_quotation_id}`}
+                        style={{ fontWeight: 600 }}
+                      >
+                        #{sn.purchase_quotation_id}
+                      </Link>
+                    </td>
+                    <td>{formatDate(pq?.quotation_date)}</td>
+                    <td className={deadlineClass}>{formatDate(pq?.end_at ?? pq?.end_date)}</td>
+                    <td>
+                      <span className={getStatusBadgeClass(sn.status)}>
+                        {getStatusLabel(sn.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="read-indicator">
+                        <span
+                          className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`}
+                        />
+                        {sn.read_at ? 'Lida' : 'Não lida'}
+                      </span>
+                    </td>
+                    <td>
+                      {sn.latest_response_id ? (
+                        <span className="badge-status badge-approved">Enviada</span>
+                      ) : (
+                        <span style={{ color: 'var(--color-gray-400)', fontSize: '0.8125rem' }}>
+                          Pendente
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: 16, color: 'var(--color-gray-500)' }}>
+                  <td colSpan={6} className="q-empty">
                     Nenhuma cotação encontrada.
                   </td>
                 </tr>

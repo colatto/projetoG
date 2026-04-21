@@ -51,36 +51,36 @@ export class QuotationsController {
     const supabase = request.server.supabase;
     const { status, supplier_id, date_from, date_to, page = 1, limit = 20 } = request.query;
 
-    let q = supabase.from('purchase_quotations').select(
-      `
+    const selectQuery = `
+      id,
+      public_id,
+      quotation_date,
+      response_date,
+      end_date,
+      end_at,
+      sent_at,
+      buyer_id,
+      sienge_status,
+      consistency,
+      supplier_negotiations${status || supplier_id ? '!inner' : ''} (
         id,
-        public_id,
-        quotation_date,
-        response_date,
-        end_date,
-        end_at,
+        supplier_id,
+        status,
+        read_at,
         sent_at,
-        buyer_id,
-        sienge_status,
-        consistency,
-        supplier_negotiations (
-          id,
-          supplier_id,
-          status,
-          read_at,
-          sent_at,
-          closed_order_id,
-          latest_response_id,
-          sienge_negotiation_id,
-          sienge_negotiation_number
-        )
-      `,
-      { count: 'exact' },
-    );
+        closed_order_id,
+        latest_response_id,
+        sienge_negotiation_id,
+        sienge_negotiation_number,
+        suppliers ( name )
+      )
+    `;
+
+    let q = supabase.from('purchase_quotations').select(selectQuery, { count: 'exact' });
 
     if (date_from) q = q.gte('quotation_date', date_from);
     if (date_to) q = q.lte('quotation_date', date_to);
-    if (status) q = q.eq('local_status', status);
+    if (status) q = q.eq('supplier_negotiations.status', status);
     if (supplier_id) q = q.eq('supplier_negotiations.supplier_id', supplier_id);
 
     const from = (page - 1) * limit;
@@ -296,6 +296,10 @@ export class QuotationsController {
 
     if (rError || !latestResponse) {
       return reply.code(422).send({ message: 'Não existe resposta pendente para revisar' });
+    }
+
+    if (latestResponse.review_status !== 'pending') {
+      return reply.code(422).send({ message: 'A resposta não está pendente de revisão' });
     }
 
     const reviewStatus =
@@ -605,6 +609,25 @@ export class QuotationsController {
   // Supplier portal
   // ─────────────────────────────────────────────────────────────
 
+  /**
+   * RN-26 status priority for operational ordering in the supplier portal.
+   * Lower number = higher priority in the list.
+   * abertas pendentes > correção solicitada > em revisão > encerradas/integradas/sem resposta
+   */
+  private static readonly SUPPLIER_STATUS_PRIORITY: Record<string, number> = {
+    AGUARDANDO_RESPOSTA: 0,
+    CORRECAO_SOLICITADA: 1,
+    AGUARDANDO_REVISAO: 2,
+    APROVADA: 3,
+    AGUARDANDO_REENVIO_SIENGE: 4,
+    INTEGRADA_SIENGE: 5,
+    SEM_RESPOSTA: 6,
+    REPROVADA: 7,
+    FORNECEDOR_FECHADO: 8,
+    FORNECEDOR_INVALIDO_MAPA: 8,
+    ENCERRADA: 9,
+  };
+
   async listSupplier(request: FastifyRequest, reply: FastifyReply) {
     const supabase = request.server.supabase;
     const supplierId = await getProfileSupplierId(supabase, request.user.sub);
@@ -633,15 +656,35 @@ export class QuotationsController {
         )
       `,
       )
-      .eq('supplier_id', supplierId)
-      .order('sent_at', { ascending: false, nullsFirst: false });
+      .eq('supplier_id', supplierId);
 
     if (error) {
       request.log.error({ err: error }, 'Failed to list supplier quotations');
       return reply.code(500).send({ message: 'Erro ao listar cotações' });
     }
 
-    return reply.code(200).send({ data: data ?? [] });
+    // RN-26: Sort by operational priority, then by end_date ascending (most urgent first)
+    const sorted = (data ?? []).sort((a, b) => {
+      const priorityA = QuotationsController.SUPPLIER_STATUS_PRIORITY[a.status as string] ?? 99;
+      const priorityB = QuotationsController.SUPPLIER_STATUS_PRIORITY[b.status as string] ?? 99;
+
+      if (priorityA !== priorityB) return priorityA - priorityB;
+
+      // Secondary sort: end_date ascending (most urgent deadline first)
+      const pqA = a.purchase_quotations as {
+        end_date?: string | null;
+        end_at?: string | null;
+      } | null;
+      const pqB = b.purchase_quotations as {
+        end_date?: string | null;
+        end_at?: string | null;
+      } | null;
+      const endA = pqA?.end_at ?? pqA?.end_date ?? '';
+      const endB = pqB?.end_at ?? pqB?.end_date ?? '';
+      return endA.localeCompare(endB);
+    });
+
+    return reply.code(200).send({ data: sorted });
   }
 
   async getSupplierByQuotationId(

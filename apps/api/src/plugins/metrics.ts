@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { Registry, collectDefaultMetrics, contentType } from 'prom-client';
+import { Registry, collectDefaultMetrics } from 'prom-client';
 
 let metricsRegistry: Registry | null = null;
 
@@ -21,7 +21,7 @@ export const metricsPlugin = fp(async (fastify) => {
   const registry = getMetricsRegistry();
 
   fastify.get('/metrics', async (_request, reply) => {
-    reply.header('content-type', registry.contentType || contentType);
+    reply.header('content-type', registry.contentType);
     return registry.metrics();
   });
 });

@@ -147,9 +147,17 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
               buyer_id: localQuotation.buyerId,
               consistency: localQuotation.consistency,
               sienge_status: localQuotation.siengeStatus,
+              raw_payload: negotiation as unknown as import('@projetog/shared').Json,
             },
             { onConflict: 'id' },
           );
+
+          await supabase.from('audit_logs').insert({
+            entity_type: IntegrationEntityType.QUOTATION,
+            entity_id: String(localQuotation.id),
+            event_type: 'quotation_imported',
+            metadata: { source: 'sync-quotations' },
+          });
 
           // Process each supplier in this negotiation
           for (const supplier of negotiation.suppliers) {

@@ -209,7 +209,7 @@ describe('processOutboundNegotiation', () => {
     );
     expect(getTableMocks('supplier_negotiations').update).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: 'FORNECEDOR_FECHADO',
+        status: 'FORNECEDOR_INVALIDO_MAPA',
       }),
     );
     expect(notificationsInsertMock).toHaveBeenCalled();
@@ -261,10 +261,12 @@ describe('processOutboundNegotiation', () => {
     await processOutboundNegotiation({ id: 'job-5', data: baseOutboundJobData } as never);
 
     expect(getTableMocks('audit_logs').insertMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event_type: 'integration.failure_exhausted',
-        entity_id: 'evt-123',
-      }),
+      expect.arrayContaining([
+        expect.objectContaining({
+          event_type: 'integration.failure_exhausted',
+          entity_id: 'evt-123',
+        }),
+      ]),
     );
     expect(notificationsInsertMock).toHaveBeenCalledWith(
       expect.arrayContaining([
