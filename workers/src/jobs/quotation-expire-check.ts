@@ -24,11 +24,10 @@ export async function processQuotationExpireCheck(job: PgBoss.Job): Promise<void
 
   const nowIso = new Date().toISOString();
 
-  // Find quotations whose end is in the past and were sent
+  // Find quotations whose end is in the past
   const { data: expiredQuotations, error: qError } = await supabase
     .from('purchase_quotations')
-    .select('id, end_at, end_date, sent_at')
-    .not('sent_at', 'is', null);
+    .select('id, end_date');
 
   if (qError) {
     throw new Error(`Failed to list quotations for expire-check: ${qError.message}`);
@@ -37,9 +36,7 @@ export async function processQuotationExpireCheck(job: PgBoss.Job): Promise<void
   const expiredIds =
     expiredQuotations
       ?.filter((q) => {
-        const endAt = q.end_at
-          ? new Date(String(q.end_at))
-          : q.end_date
+        const endAt = q.end_date
             ? new Date(`${q.end_date}T23:59:59.999Z`)
             : null;
         return endAt ? endAt.getTime() < Date.now() : false;

@@ -183,7 +183,6 @@ async function handleOrderGenerated(
       .from('supplier_negotiations')
       .update({
         status: 'FORNECEDOR_FECHADO',
-        closed_order_id: purchaseOrderId,
         updated_at: new Date().toISOString(),
       })
       .eq('purchase_quotation_id', purchaseQuotationId)

@@ -42,16 +42,17 @@ O repositorio ja ultrapassou a fase de scaffold. Possui implementacao funcional 
 - Existe `package.json` raiz e manifestos em cada submódulo.
 - Existe `pnpm-workspace.yaml` criado e interligando os projetos.
 - O frontend (`apps/web`) possui React/Vite com roteamento, design system (Vanilla CSS), módulo de Autenticação/Backoffice implementado, gestão administrativa de usuários, monitoramento de eventos de integração, e o fluxo de cotações (backoffice e portal do fornecedor) com listagem, detalhe, envio e resposta.
-- O backend (`apps/api`) possui Fastify v5 com JWT, RBAC, CRUD de usuários, webhooks Sienge, endpoints de integração (eventos, credenciais, negociação outbound) e o fluxo completo de cotações (backoffice: listagem, detalhe, envio, revisão de resposta, retry de integração; fornecedor: listagem, detalhe, marcação de leitura, resposta).
-- O modulo de processamento assincrono (`workers/`) possui pg-boss com jobs especializados de polling (cotações, pedidos, entregas), reconciliação por webhook, processamento de webhook, escrita outbound de negociação, retry de integração, follow-up (stub) e verificação automática de expiração de cotações.
-- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional inclui 9 migrações cobrindo schema inicial, autenticação, integração Sienge (PRD-07) e respostas de cotação versionadas (PRD-02).
+- O backend (`apps/api`) possui Fastify v5 com JWT, RBAC, CRUD de usuários, webhooks Sienge, endpoints de integração (eventos, credenciais, negociação outbound), o fluxo completo de cotações (backoffice: listagem, detalhe, envio, revisão de resposta, retry de integração; fornecedor: listagem, detalhe, marcação de leitura, resposta), módulo de entregas com validação e listagem pendente (PRD-05) e módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05).
+- O modulo de processamento assincrono (`workers/`) possui pg-boss com jobs especializados de polling (cotações, pedidos, entregas), reconciliação por webhook, processamento de webhook, escrita outbound de negociação, retry de integração, follow-up (stub), verificação automática de expiração de cotações e recálculo automático de status de pedido via `OrderStatusEngine` com sinalização de follow-up (PRD-05).
+- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional inclui 11 migrações cobrindo schema inicial, autenticação, integração Sienge (PRD-07), respostas de cotação versionadas (PRD-02), hardening PRD-02 e PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders).
 - Os tipos do Supabase (`database.types.ts`) estão gerados no pacote `packages/shared`.
 - O pacote de integração (`packages/integration-sienge`) possui cliente HTTP com retry, rate limit (bottleneck), paginação, 6 clientes especializados (quotation, creditor, order, invoice, delivery-requirement, negotiation), 5 mapeadores, criptografia AES para credenciais e testes unitários + integração live.
+- O pacote de domínio (`packages/domain`) possui entidades, enums centrais (`OrderOperationalStatus`, `UserRole`, etc.), `OrderStatusEngine` com regras de precedência de status (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), e testes unitários.
 - Existe infraestrutura de deploy: Dockerfiles para API e workers, manifests Kubernetes em `deploy/k8s/`, e pipelines GitHub Actions para CI, deploy e segurança.
 
 Consequencia pratica:
 
-- o repositorio ja possui implementacao funcional em auth, usuarios, integracao Sienge e fluxo de cotacoes;
+- o repositorio ja possui implementacao funcional em auth, usuarios, integracao Sienge, fluxo de cotacoes e fluxo de entregas/pedidos (PRD-05);
 - antes de propor ou escrever codigo, verificar se isso respeita a ordem de setup em `docs/runbooks/setup.md`;
 - consultar `CLAUDE.md` para o inventario completo de rotas, jobs e entidades ja existentes.
 
@@ -151,6 +152,8 @@ Entidades centrais:
 
 > **Nota PRD-02:** as respostas de cotação são versionadas em `quotation_responses` (com `quotation_response_items` e `quotation_response_item_deliveries`). O `review_status` controla o ciclo de revisão (`pending` → `approved`/`rejected`/`correction_requested`) e o `integration_status` rastreia a escrita no Sienge.
 
+> **Nota PRD-05:** o PRD-05 (Entrega, Divergência e Status de Pedido) está implementado (Fases 1–6). Inclui: tabela `order_status_history` (append-only, RLS), campos calculados em `purchase_orders` (`total_quantity_ordered`, `total_quantity_delivered`, `pending_quantity`, `has_divergence`, `last_delivery_date`), validação de entrega (OK/DIVERGENCIA) com auditoria, `OrderStatusEngine` no domínio com precedência formal de status, cancelamento de pedido com encerramento automático de régua de follow-up, stub de recepção de avaria (PRD-06), e sinalização de follow-up tanto na API quanto nos workers.
+
 Identificadores minimos persistidos:
 
 - `purchaseQuotationId`
@@ -205,6 +208,8 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - usar branding e paleta definidos em `docs/identidade_visual.md` e `docs/paleta_de_cores.md`;
 - paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail), supplier (quotation list/detail).
 
+> **Nota:** as telas de pedidos e entregas do PRD-05 (backoffice, portal do fornecedor e visualizador de pedidos) ainda não foram implementadas no frontend. Os endpoints de API já estão disponíveis.
+
 ### `apps/api`
 
 - Fastify v5; <!-- ADR-0002: Fastify escolhido sobre Hono e Express -->
@@ -225,14 +230,17 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
   │   ├── audit/      # serviço de auditoria
   │   ├── webhooks/   # recebimento de webhooks Sienge
   │   ├── integration/# eventos, credenciais, negociação outbound
-  │   └── quotations/ # backoffice e fornecedor (PRD-02)
+  │   ├── quotations/ # backoffice e fornecedor (PRD-02)
+  │   ├── deliveries/ # validação de entrega e listagem pendente (PRD-05)
+  │   └── orders/     # listagem, detalhes, cancelamento, histórico de status e avaria (PRD-05)
   └── test/           # setup de testes
   ```
 
 ### `packages/domain`
 
 - fonte principal das regras operacionais;
-- manter entidades, enums, validacoes e casos de uso independentes de framework.
+- manter entidades, enums, validacoes e casos de uso independentes de framework;
+- inclui `OrderStatusEngine` (PRD-05) com regras de precedência de status e `OrderOperationalStatus` enum.
 
 ### `packages/integration-sienge`
 
@@ -248,7 +256,8 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 
 - processo standalone em Node.js + TypeScript;
 - usar `pg-boss` sobre PostgreSQL;
-- concentrar polling, follow-up, retries, reconciliacao e expire-check.
+- concentrar polling, follow-up, retries, reconciliacao, expire-check e recalculo de status de pedido (PRD-05);
+- inclui utilitário `order-status-recalc.ts` com sinalização de follow-up.
 
 ---
 

@@ -55,7 +55,13 @@ describe('Quotations Backoffice API', () => {
   describe('GET /api/quotations', () => {
     it('should return paginated list on success', async () => {
       const mockData = [
-        { id: 1, quotation_date: '2026-04-01', end_at: null, end_date: '2026-04-20', sent_at: null },
+        {
+          id: 1,
+          quotation_date: '2026-04-01',
+          end_at: null,
+          end_date: '2026-04-20',
+          sent_at: null,
+        },
       ];
       const table = ctx.supabase.table('purchase_quotations');
       // The chain is awaited directly — use _mockResolvedValue
@@ -169,7 +175,10 @@ describe('Quotations Backoffice API', () => {
         error: null,
       });
       suppliersTable._mockResolvedValue({
-        data: [{ id: 20, access_status: 'ACTIVE' }, { id: 30, access_status: 'BLOCKED' }],
+        data: [
+          { id: 20, access_status: 'ACTIVE' },
+          { id: 30, access_status: 'BLOCKED' },
+        ],
         error: null,
       });
 

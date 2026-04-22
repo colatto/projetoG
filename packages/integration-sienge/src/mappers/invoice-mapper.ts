@@ -26,9 +26,12 @@ export interface LocalInvoiceItem {
 export interface LocalDelivery {
   purchaseOrderId: number;
   purchaseOrderItemNumber: number;
+  deliveryItemNumber: number | null;
+  attendedNumber: number | null;
   invoiceSequentialNumber: number | null;
   invoiceItemNumber: number | null;
   deliveredQuantity: number | null;
+  deliveryDate: string | null;
   status: string;
 }
 
@@ -81,9 +84,12 @@ export function mapDeliveryAttendedToLocal(source: SiengeDeliveryAttended): Loca
   return {
     purchaseOrderId: source.purchaseOrderId,
     purchaseOrderItemNumber: source.purchaseOrderItemNumber,
+    deliveryItemNumber: source.deliveryItemPurchaseOrderNumber ?? null,
+    attendedNumber: source.purchaseOrderItemAttendedNumber ?? null,
     invoiceSequentialNumber: source.sequentialNumber,
     invoiceItemNumber: source.invoiceItemNumber,
     deliveredQuantity: source.quantity ?? null,
+    deliveryDate: source.deliveryDate ?? null,
     status: 'AGUARDANDO_VALIDACAO',
   };
 }

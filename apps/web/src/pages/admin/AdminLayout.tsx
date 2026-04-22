@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Users, LogOut, LayoutDashboard, ShieldCheck, Cable, FileText } from 'lucide-react';
+import { Users, LogOut, LayoutDashboard, ShieldCheck, Cable, FileText, Package } from 'lucide-react';
 import { UserRole } from '@projetog/domain';
 
 export default function AdminLayout() {
@@ -39,9 +39,21 @@ export default function AdminLayout() {
       roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
     },
     {
+      name: 'Pedidos',
+      path: '/admin/orders',
+      icon: <Package size={20} />,
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS],
+    },
+    {
       name: 'Minhas Cotações',
       path: '/supplier/quotations',
       icon: <FileText size={20} />,
+      roles: [UserRole.FORNECEDOR],
+    },
+    {
+      name: 'Meus Pedidos',
+      path: '/supplier/orders',
+      icon: <Package size={20} />,
       roles: [UserRole.FORNECEDOR],
     },
   ];

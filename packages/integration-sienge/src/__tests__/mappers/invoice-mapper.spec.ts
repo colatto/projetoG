@@ -98,6 +98,9 @@ describe('Invoice Mapper', () => {
         invoiceItemNumber: 40,
         deliveredQuantity: 50,
         status: 'AGUARDANDO_VALIDACAO',
+        attendedNumber: null,
+        deliveryDate: null,
+        deliveryItemNumber: null,
       });
     });
 
@@ -112,6 +115,9 @@ describe('Invoice Mapper', () => {
       const result = mapDeliveryAttendedToLocal(source);
 
       expect(result.deliveredQuantity).toBeNull();
+      expect(result.attendedNumber).toBeNull();
+      expect(result.deliveryDate).toBeNull();
+      expect(result.deliveryItemNumber).toBeNull();
     });
   });
 

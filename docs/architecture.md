@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-19` para refletir o estado real do monorepo.
+Atualizado em `2026-04-21` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -168,17 +168,17 @@ sequenceDiagram
 
 ## 5. Estrutura de diretórios e aderência
 
-| Diretório                     | Papel                    | Aderência observada | Observações                                                                    |
-| ----------------------------- | ------------------------ | ------------------- | ------------------------------------------------------------------------------ |
-| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02 implementado          |
-| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02 implementado com controller robusto      |
-| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils         |
-| `packages/domain`             | domínio                  | média               | entidades centrais existem, mas parte da regra ainda está nos controllers/jobs |
-| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                     |
-| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                  |
-| `supabase`                    | plataforma de dados      | boa                 | 9 migrações versionadas; PRD-02 com respostas versionadas e RLS                |
-| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                |
-| `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional         |
+| Diretório                     | Papel                    | Aderência observada | Observações                                                                                        |
+| ----------------------------- | ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02 implementado                              |
+| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02 e PRD-05 implementados                                       |
+| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils; recálculo de status PRD-05 |
+| `packages/domain`             | domínio                  | média-boa           | entidades centrais, `OrderStatusEngine` (PRD-05) e testes unitários                                |
+| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                         |
+| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                      |
+| `supabase`                    | plataforma de dados      | boa                 | 11 migrações versionadas; PRD-02 e PRD-05 com RLS                                                  |
+| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                    |
+| `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                             |
 
 ## 6. Banco de dados e Supabase
 
@@ -193,17 +193,19 @@ sequenceDiagram
 
 ### 6.2 Migrações existentes
 
-| Migração                                             | Escopo                                  |
-| ---------------------------------------------------- | --------------------------------------- |
-| `20260409202239_initial_schema_v1.sql`               | schema base completo V1                 |
-| `20260409204644_remote_schema.sql`                   | alinhamento remoto                      |
-| `20260409212000_align_auth_to_prd01.sql`             | autenticação/perfis PRD-01              |
-| `20260411010000_integration_tables_prd07.sql`        | tabelas de integração Sienge PRD-07     |
-| `20260414100000_webhook_delivery_metadata.sql`       | metadata de delivery de webhook         |
-| `20260415100000_sienge_missing_tables.sql`           | tabelas complementares Sienge           |
-| `20260415100001_deliveries_unique.sql`               | unicidade de entregas                   |
-| `20260416100000_sienge_sync_cursor_enhancements.sql` | melhorias no cursor de sincronização    |
-| `20260417120000_prd02_quotation_responses.sql`       | respostas de cotação versionadas PRD-02 |
+| Migração                                             | Escopo                                                            |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| `20260409202239_initial_schema_v1.sql`               | schema base completo V1                                           |
+| `20260409204644_remote_schema.sql`                   | alinhamento remoto                                                |
+| `20260409212000_align_auth_to_prd01.sql`             | autenticação/perfis PRD-01                                        |
+| `20260411010000_integration_tables_prd07.sql`        | tabelas de integração Sienge PRD-07                               |
+| `20260414100000_webhook_delivery_metadata.sql`       | metadata de delivery de webhook                                   |
+| `20260415100000_sienge_missing_tables.sql`           | tabelas complementares Sienge                                     |
+| `20260415100001_deliveries_unique.sql`               | unicidade de entregas                                             |
+| `20260416100000_sienge_sync_cursor_enhancements.sql` | melhorias no cursor de sincronização                              |
+| `20260417120000_prd02_quotation_responses.sql`       | respostas de cotação versionadas PRD-02                           |
+| `20260421130000_prd02_schema_hardening.sql`          | hardening de schema PRD-02                                        |
+| `20260421223710_prd05_delivery_records.sql`          | delivery_records, order_status_history e campos calculados PRD-05 |
 
 ### 6.3 Grupos principais de tabelas
 
@@ -226,10 +228,11 @@ Operação de fornecedores/cotações:
 
 Pedidos e logística:
 
-- `purchase_orders`
+- `purchase_orders` (inclui campos calculados PRD-05: `total_quantity_ordered`, `total_quantity_delivered`, `pending_quantity`, `has_divergence`, `last_delivery_date`)
 - `purchase_order_items`
 - `delivery_schedules`
-- `deliveries`
+- `deliveries` (inclui campos PRD-05: `delivery_item_number`, `attended_number`, `validated_by`, `validated_at`, `validation_notes`, `sienge_synced_at`, coluna `validation_status`)
+- `order_status_history` (PRD-05: histórico append-only de transições de status de pedido com RLS)
 - `purchase_invoices`
 - `invoice_items`
 - `order_quotation_links`
@@ -247,7 +250,7 @@ Integração Sienge:
 
 ### 6.4 RLS e governança
 
-- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items` e `quotation_response_item_deliveries`
+- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries` e `order_status_history`
 - políticas de leitura e inserção para fornecedor usam `public.get_auth_supplier_id()`
 - backend e workers usam `service_role`, então bypassam RLS quando necessário
 - triggers de `updated_at` existem em boa parte das entidades operacionais
@@ -415,9 +418,10 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) com engine de cálculo de status, validação de entrega, cancelamento, auditoria completa e sinalização de follow-up. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
-- testes para o módulo de cotações na API
+- telas do PRD-05 no frontend (backoffice, portal do fornecedor, visualizador de pedidos)
 - implementação real da régua de follow-up (PRD-04)
+- implementação do módulo de avaria e ação corretiva (PRD-06)
 - formalização da estratégia de deploy de produção

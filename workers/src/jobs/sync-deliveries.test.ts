@@ -13,6 +13,28 @@ const invoiceItemsUpsertMock = vi.fn();
 const invoiceOrderLinksUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
 
+const createChainableQuery = (resolvedValue: any) => {
+  const chainable: any = {
+    select: vi.fn(() => chainable),
+    eq: vi.fn(() => chainable),
+    neq: vi.fn(() => chainable),
+    order: vi.fn(() => chainable),
+    limit: vi.fn(() => chainable),
+    in: vi.fn(() => chainable),
+    single: vi.fn().mockResolvedValue(resolvedValue),
+    then: (resolve: any) => resolve(resolvedValue),
+  };
+  return chainable;
+};
+
+// Chainable mock for upsert that supports .select().single()
+const createUpsertChain = (resolvedValue: any) => {
+  const singleMock = vi.fn().mockResolvedValue(resolvedValue);
+  const selectMock = vi.fn(() => ({ single: singleMock }));
+  const upsertFn = vi.fn(() => ({ select: selectMock, error: null }));
+  return upsertFn;
+};
+
 const supabaseMock = {
   from: vi.fn((table: string) => {
     switch (table) {
@@ -30,6 +52,7 @@ const supabaseMock = {
       case 'deliveries':
         return {
           upsert: deliveriesUpsertMock,
+          select: vi.fn(() => createChainableQuery({ data: [] })),
         };
       case 'purchase_invoices':
         return {
@@ -46,6 +69,24 @@ const supabaseMock = {
       case 'integration_events':
         return {
           insert: integrationEventsInsertMock,
+        };
+      case 'purchase_order_items':
+        return {
+          select: vi.fn(() => createChainableQuery({ data: { quantity: 10 } })),
+        };
+      case 'purchase_orders':
+        return {
+          select: vi.fn(() => createChainableQuery({ data: { id: 1, date: '2026-04-10' } })),
+          update: vi.fn(() => ({ eq: vi.fn() })),
+        };
+      case 'delivery_schedules':
+        return {
+          select: vi.fn(() => createChainableQuery({ data: [] })),
+        };
+      case 'order_status_history':
+      case 'audit_logs':
+        return {
+          insert: vi.fn(),
         };
       default:
         throw new Error(`Unexpected table: ${table}`);
@@ -85,7 +126,15 @@ describe('processSyncDeliveries', () => {
     });
     cursorUpdateEqMock.mockResolvedValue({ error: null });
 
-    deliveriesUpsertMock.mockResolvedValue({ error: null });
+    // deliveriesUpsertMock returns a chainable with .select().single()
+    deliveriesUpsertMock.mockImplementation(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'delivery-uuid-1' },
+          error: null,
+        }),
+      })),
+    }));
     purchaseInvoicesUpsertMock.mockResolvedValue({ error: null });
     invoiceItemsUpsertMock.mockResolvedValue({ error: null });
     invoiceOrderLinksUpsertMock.mockResolvedValue({ error: null });

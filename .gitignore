@@ -13,3 +13,6 @@ supabase/.temp/
 .supabase/
 .cursor/
 .vscode/
+setup-admin.mjs
+.setup-admin.mjs.swo
+.setup-admin.mjs.swp

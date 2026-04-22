@@ -24,7 +24,9 @@ function createChainMock() {
   let _resolve: unknown = { data: [], error: null };
   chain.then = (onF?: (v: unknown) => unknown, onR?: (r: unknown) => unknown) =>
     Promise.resolve(_resolve).then(onF, onR);
-  chain._setResolve = (val: unknown) => { _resolve = val; };
+  chain._setResolve = (val: unknown) => {
+    _resolve = val;
+  };
   return chain;
 }
 
@@ -76,9 +78,9 @@ describe('quotation-expire-check', () => {
   });
 
   it('should skip when no expired quotations exist', async () => {
-    const tomorrow = new Date(Date.now() + 86400000).toISOString();
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     purchaseQuotationsChain._setResolve({
-      data: [{ id: 1, end_at: tomorrow, end_date: null, sent_at: '2026-04-01T00:00:00Z' }],
+      data: [{ id: 1, end_date: tomorrow }],
       error: null,
     });
 
@@ -89,10 +91,10 @@ describe('quotation-expire-check', () => {
   });
 
   it('should mark SEM_RESPOSTA for expired quotations without response', async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     purchaseQuotationsChain._setResolve({
-      data: [{ id: 10, end_at: yesterday, end_date: null, sent_at: '2026-04-01T00:00:00Z' }],
+      data: [{ id: 10, end_date: yesterday }],
       error: null,
     });
 
@@ -138,7 +140,7 @@ describe('quotation-expire-check', () => {
 
   it('should handle end_date fallback (date-only field)', async () => {
     purchaseQuotationsChain._setResolve({
-      data: [{ id: 5, end_at: null, end_date: '2026-01-01', sent_at: '2025-12-20T00:00:00Z' }],
+      data: [{ id: 5, end_date: '2026-01-01' }],
       error: null,
     });
 
@@ -157,10 +159,10 @@ describe('quotation-expire-check', () => {
   });
 
   it('should not fail when notifications throw', async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     purchaseQuotationsChain._setResolve({
-      data: [{ id: 10, end_at: yesterday, end_date: null, sent_at: '2026-04-01T00:00:00Z' }],
+      data: [{ id: 10, end_date: yesterday }],
       error: null,
     });
 
@@ -188,10 +190,10 @@ describe('quotation-expire-check', () => {
   });
 
   it('should throw on update failure', async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     purchaseQuotationsChain._setResolve({
-      data: [{ id: 10, end_at: yesterday, end_date: null, sent_at: '2026-04-01T00:00:00Z' }],
+      data: [{ id: 10, end_date: yesterday }],
       error: null,
     });
 

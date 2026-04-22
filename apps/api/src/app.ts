@@ -23,6 +23,9 @@ import {
   quotationsBackofficeRoutes,
   supplierQuotationsRoutes,
 } from './modules/quotations/index.js';
+import { deliveriesRoutes } from './modules/deliveries/index.js';
+import { ordersRoutes } from './modules/orders/index.js';
+
 import type { JobPublisher } from './plugins/pg-boss.js';
 
 interface BuildAppOptions {
@@ -97,6 +100,10 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(quotationsBackofficeRoutes, { prefix: '/api/backoffice/quotations' });
   app.register(supplierQuotationsRoutes, { prefix: '/api/supplier/quotations' });
   app.register(supplierQuotationsRoutes, { prefix: '/api/supplier-portal/quotations' });
+
+  // Deliveries and Orders (PRD-05)
+  app.register(deliveriesRoutes, { prefix: '/api/deliveries' });
+  app.register(ordersRoutes, { prefix: '/api/orders' });
 
   return app;
 }

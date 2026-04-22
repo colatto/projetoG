@@ -11,10 +11,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import sensible from '@fastify/sensible';
 import { vi } from 'vitest';
-import {
-  serializerCompiler,
-  validatorCompiler,
-} from 'fastify-type-provider-zod';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { UserRole } from '@projetog/domain';
 import quotationsBackofficeRoutes from '../modules/quotations/quotations.backoffice.routes.js';
 import supplierQuotationsRoutes from '../modules/quotations/quotations.supplier.routes.js';
@@ -44,12 +41,34 @@ export function createSupabaseChainMock() {
 
     // Every method returns the chain itself for chaining
     const methods = [
-      'select', 'insert', 'update', 'delete', 'upsert',
-      'eq', 'neq', 'in', 'is', 'not', 'or',
-      'order', 'limit', 'range', 'single', 'maybeSingle',
-      'lte', 'gte', 'lt', 'gt', 'like', 'ilike',
-      'filter', 'match', 'contains', 'containedBy',
-      'textSearch', 'csv',
+      'select',
+      'insert',
+      'update',
+      'delete',
+      'upsert',
+      'eq',
+      'neq',
+      'in',
+      'is',
+      'not',
+      'or',
+      'order',
+      'limit',
+      'range',
+      'single',
+      'maybeSingle',
+      'lte',
+      'gte',
+      'lt',
+      'gt',
+      'like',
+      'ilike',
+      'filter',
+      'match',
+      'contains',
+      'containedBy',
+      'textSearch',
+      'csv',
     ];
 
     for (const method of methods) {
@@ -160,7 +179,10 @@ export async function buildTestApp(): Promise<TestAppContext> {
   });
 
   app.decorate('verifyRole', function (allowedRoles: UserRole[]) {
-    return async function (request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply) {
+    return async function (
+      request: import('fastify').FastifyRequest,
+      reply: import('fastify').FastifyReply,
+    ) {
       await request.jwtVerify();
       const role = request.user.role || (request.user.app_metadata?.role as UserRole);
       if (!role || !allowedRoles.includes(role)) {
@@ -180,8 +202,11 @@ export async function buildTestApp(): Promise<TestAppContext> {
   app.register(quotationsBackofficeRoutes, { prefix: '/api/quotations' });
   app.register(supplierQuotationsRoutes, { prefix: '/api/supplier/quotations' });
 
+  // Deliveries and orders (lazy load for test so we don't need imports up top if not needed)
+  app.register((await import('../modules/deliveries/index.js')).deliveriesRoutes, { prefix: '/api/deliveries' });
+  app.register((await import('../modules/orders/index.js')).ordersRoutes, { prefix: '/api/orders' });
+
   await app.ready();
 
   return { app, supabase, bossMock };
 }
-

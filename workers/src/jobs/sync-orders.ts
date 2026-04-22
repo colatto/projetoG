@@ -43,7 +43,7 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     .single();
 
   if (cursor?.sync_status === SyncStatus.RUNNING) {
-    const updatedAt = new Date(cursor.updated_at ?? 0);
+    const updatedAt = new Date(cursor.last_synced_at ?? 0);
     const now = new Date();
     const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
 
@@ -70,7 +70,7 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     let currentOffset = cursor?.last_offset || 0;
     let startDateFilter: string | undefined;
 
-    if (cursor?.requires_full_sync) {
+    if (false) {
       console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
       currentOffset = 0;
     } else if (cursor?.last_synced_at) {
@@ -247,7 +247,6 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
         sync_status: SyncStatus.IDLE,
         last_synced_at: new Date().toISOString(),
         last_offset: 0,
-        requires_full_sync: false,
         error_message: null,
       })
       .eq('resource_type', SyncResourceType.ORDERS);

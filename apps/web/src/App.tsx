@@ -21,6 +21,10 @@ import QuotationList from './pages/admin/QuotationList';
 import QuotationDetail from './pages/admin/QuotationDetail';
 import SupplierQuotationList from './pages/supplier/SupplierQuotationList';
 import SupplierQuotationDetail from './pages/supplier/SupplierQuotationDetail';
+import OrderList from './pages/admin/OrderList';
+import OrderDetail from './pages/admin/OrderDetail';
+import SupplierOrderList from './pages/supplier/SupplierOrderList';
+import SupplierOrderDetail from './pages/supplier/SupplierOrderDetail';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -63,12 +67,24 @@ function App() {
                 <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
               </Route>
 
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS]} />
+                }
+              >
+                <Route path="/admin/orders" element={<OrderList />} />
+                <Route path="/admin/orders/:purchaseOrderId" element={<OrderDetail />} />
+              </Route>
+
               {/* Portal do Fornecedor */}
               <Route element={<ProtectedRoute allowedRoles={[UserRole.FORNECEDOR]} />}>
                 <Route path="/supplier/quotations" element={<SupplierQuotationList />} />
                 <Route path="/supplier/quotations/:id" element={<SupplierQuotationDetail />} />
+                <Route path="/supplier/orders" element={<SupplierOrderList />} />
+                <Route path="/supplier/orders/:purchaseOrderId" element={<SupplierOrderDetail />} />
               </Route>
             </Route>
+
           </Route>
 
           {/* Catch All */}

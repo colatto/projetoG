@@ -6,3 +6,5 @@ export * from './sync-status.js';
 export * from './quotation-status.js';
 export * from './review-status.js';
 export * from './integration-status.js';
+export * from './delivery-validation-status.js';
+export * from './order-operational-status.js';

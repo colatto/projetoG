@@ -78,7 +78,7 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
     .single();
 
   if (cursor?.sync_status === SyncStatus.RUNNING) {
-    const updatedAt = new Date(cursor.updated_at ?? 0);
+    const updatedAt = new Date(cursor.last_synced_at ?? 0);
     const now = new Date();
     const diffMins = (now.getTime() - updatedAt.getTime()) / 60000;
 
@@ -106,7 +106,8 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
   try {
     let currentOffset = cursor?.last_offset || 0;
 
-    if (cursor?.requires_full_sync) {
+    // requires_full_sync was removed from DB. If needed, implement custom logic.
+    if (false) {
       console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
       currentOffset = 0;
     }
@@ -147,7 +148,6 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
               buyer_id: localQuotation.buyerId,
               consistency: localQuotation.consistency,
               sienge_status: localQuotation.siengeStatus,
-              raw_payload: negotiation as unknown as import('@projetog/shared').Json,
             },
             { onConflict: 'id' },
           );
@@ -357,7 +357,6 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
         sync_status: SyncStatus.IDLE,
         last_synced_at: new Date().toISOString(),
         last_offset: 0,
-        requires_full_sync: false,
         error_message: null,
       })
       .eq('resource_type', SyncResourceType.QUOTATIONS);

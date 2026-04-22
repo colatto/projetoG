@@ -142,6 +142,9 @@ export interface SiengeDeliveryAttended {
   purchaseOrderId: number;
   purchaseOrderItemNumber: number;
   quantity: number;
+  deliveryItemPurchaseOrderNumber?: number;
+  purchaseOrderItemAttendedNumber?: number;
+  deliveryDate?: string;
 }
 
 // ============================================================

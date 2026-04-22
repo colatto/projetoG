@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-19`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-21`.
 
 ## Ordem de consulta
 
@@ -29,23 +29,24 @@ Construir uma aplicação web para a GRF com:
 O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
 - SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, listagem e detalhe de cotações (backoffice e portal do fornecedor)
-- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração
-- workers com polling de cotações, pedidos e entregas, reconciliação por webhook, retry de eventos, escrita outbound de negociação, e verificação automática de expiração de cotações
-- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações PRD-07 e PRD-02 (respostas de cotação versionadas)
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05)
+- workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine` e sinalização de follow-up), reconciliação por webhook, retry de eventos, escrita outbound de negociação, e verificação automática de expiração de cotações
+- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações PRD-07, PRD-02 (respostas de cotação versionadas) e PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders)
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
+- pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum e testes unitários
 - infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
 
 ## Módulos reais
 
-| Módulo                        | Estado                    | Responsabilidade principal                                |
-| ----------------------------- | ------------------------- | --------------------------------------------------------- |
-| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users e cotações       |
-| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações e orquestração |
-| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check e jobs        |
-| `packages/domain`             | implementado parcialmente | entidades e enums centrais                                |
-| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                |
-| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                              |
-| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                             |
+| Módulo                        | Estado                    | Responsabilidade principal                                                        |
+| ----------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users e cotações                               |
+| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações, entregas, pedidos e orquestração      |
+| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check, recálculo de status de pedido e jobs |
+| `packages/domain`             | implementado parcialmente | entidades e enums centrais                                                        |
+| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                                        |
+| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                                                      |
+| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                                                     |
 
 ## Capacidades confirmadas no código
 
@@ -109,6 +110,16 @@ Aliases de compatibilidade (PRD-09):
 - `/api/backoffice/quotations/*` → `/api/quotations/*`
 - `/api/supplier-portal/quotations/*` → `/api/supplier/quotations/*`
 
+Entregas e pedidos (PRD-05):
+
+- `GET /api/deliveries/pending` (listar entregas pendentes de validação)
+- `POST /api/deliveries/:id/validate` (validar entrega: OK / DIVERGENCIA)
+- `GET /api/orders` (listar pedidos com status operacional)
+- `GET /api/orders/:purchaseOrderId/deliveries` (entregas de um pedido)
+- `POST /api/orders/:purchaseOrderId/cancel` (cancelamento/devolução total)
+- `GET /api/orders/:purchaseOrderId/status-history` (histórico de status)
+- `POST /api/orders/:purchaseOrderId/avaria` (recepção de status EM_AVARIA / REPOSICAO do módulo 6)
+
 ### `workers`
 
 Jobs registrados:
@@ -169,10 +180,11 @@ Entidades principais:
 - `quotation_responses`
 - `quotation_response_items`
 - `quotation_response_item_deliveries`
-- `purchase_orders`
+- `purchase_orders` (inclui campos calculados PRD-05: `total_quantity_ordered`, `total_quantity_delivered`, `pending_quantity`, `has_divergence`, `last_delivery_date`)
 - `purchase_order_items`
 - `delivery_schedules`
-- `deliveries`
+- `deliveries` (inclui campos PRD-05: `delivery_item_number`, `attended_number`, `validated_by`, `validated_at`, `validation_notes`, `sienge_synced_at`, coluna `validation_status` renomeada de `status`)
+- `order_status_history` (PRD-05: histórico append-only de transições de status de pedido com RLS)
 - `purchase_invoices`
 - `invoice_items`
 - `order_quotation_links`
@@ -245,10 +257,10 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-19`:
+Em `2026-04-21`:
 
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK (40 testes passando em `apps/api`)
+- `pnpm -r run test`: OK (testes passando em `apps/api`, `workers`, `packages/domain`)
 - `pnpm -r run lint`: OK (todos os workspaces passam)
 
 Observação residual de lint:
@@ -314,12 +326,15 @@ Heterogeneidade de versões observada entre workspaces:
 - `2026-04-16` `44669cd`: expansão forte de cobertura de testes, runbooks e melhorias em sync cursor/retries
 - `2026-04-17` `ce3d828`: atualização de banco de dados (migração PRD-02)
 - `2026-04-17` `855e118`: instalação do lint-staged, deploy workflows, K8s manifests, módulo de cotações (PRD-02), templates de PR/issue, plugin de métricas, portal do fornecedor
+- `2026-04-21`: implementação completa do PRD-05 (Entrega, Divergência e Status de Pedido) — migração `20260421223710_prd05_delivery_records.sql`, módulos API `deliveries` e `orders`, `OrderStatusEngine` e `OrderOperationalStatus` no domínio, utilitário `order-status-recalc` nos workers, sinalização de follow-up, testes unitários e de integração Phase 6
 
 ### Working tree atual
 
 Limpa — nenhuma alteração pendente.
 
 > **Nota (2026-04-19):** saneamento de lint em `apps/web` concluído — helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo` para derivação de token e `useCallback` para deps de efeitos. Lint agora passa em todos os workspaces.
+
+> **Nota (2026-04-21):** PRD-05 implementado (Fases 1–6). Inclui: migração de delivery_records e order_status_history, validação de entrega (OK/DIVERGENCIA), engine de cálculo de status com precedência (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), cancelamento de pedido com encerramento de régua de follow-up, recepção de status de avaria (stub para PRD-06), sinalização de follow-up após validação de entrega e recálculo de status no worker, testes de integração Phase 6.
 
 ## Diretriz para alterações futuras
 
