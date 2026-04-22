@@ -1,6 +1,9 @@
 import PgBoss from 'pg-boss';
 import { getSupabase } from '../supabase.js';
-import { notifyComprasAboutOperationalIssue } from '../operational-notifications.js';
+import {
+  notifyComprasAboutOperationalIssue,
+  sendNoResponseEmailAlert,
+} from '../operational-notifications.js';
 
 const JOB_NAME = 'quotation:expire-check';
 
@@ -98,6 +101,8 @@ export async function processQuotationExpireCheck(job: PgBoss.Job): Promise<void
             expired_count: suppliersForQuotation.length,
           },
         });
+        // Also send PRD-03 email alert
+        await sendNoResponseEmailAlert(supabase, quotationId, suppliersForQuotation);
       } catch (notifyError: unknown) {
         const err = notifyError as { message?: string };
         console.warn(

@@ -10,11 +10,14 @@ import {
   userIdParamSchema,
 } from '@projetog/shared';
 
+import { NotificationService } from '../notifications/notification.service.js';
+
 export default async function usersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
   const auditService = new AuditService(fastify);
-  const controller = new UsersController(auditService);
+  const notificationService = new NotificationService(fastify);
+  const controller = new UsersController(auditService, notificationService);
 
   // All endpoints here require authentication and Admin role
   app.addHook('preValidation', fastify.authenticate);

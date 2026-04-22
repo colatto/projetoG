@@ -16,10 +16,13 @@ import {
 import { AuditService } from '../audit/audit.service.js';
 import { QuotationsController } from './quotations.controller.js';
 
+import { NotificationService } from '../notifications/notification.service.js';
+
 export default async function quotationsBackofficeRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
   const audit = new AuditService(fastify);
-  const controller = new QuotationsController(audit);
+  const notificationService = new NotificationService(fastify);
+  const controller = new QuotationsController(audit, notificationService);
 
   app.addHook('preValidation', fastify.authenticate);
   app.addHook('preValidation', fastify.verifyRole([UserRole.COMPRAS, UserRole.ADMINISTRADOR]));

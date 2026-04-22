@@ -407,6 +407,143 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          body_snapshot: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          quotation_id: number | null
+          recipient_email: string
+          recipient_supplier_id: number | null
+          recipient_user_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_status"] | null
+          subject: string
+          template_id: string | null
+          template_version: number | null
+          triggered_by: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          body_snapshot: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          quotation_id?: number | null
+          recipient_email: string
+          recipient_supplier_id?: number | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          subject: string
+          template_id?: string | null
+          template_version?: number | null
+          triggered_by?: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          body_snapshot?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          quotation_id?: number | null
+          recipient_email?: string
+          recipient_supplier_id?: number | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          subject?: string
+          template_id?: string | null
+          template_version?: number | null
+          triggered_by?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_recipient_supplier_id_fkey"
+            columns: ["recipient_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          body_template: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          mandatory_placeholders: Json
+          subject_template: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at: string | null
+          updated_by: string | null
+          version: number | null
+        }
+        Insert: {
+          body_template: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mandatory_placeholders: Json
+          subject_template: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          body_template?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mandatory_placeholders?: Json
+          subject_template?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           cc_email: string | null
@@ -1378,6 +1515,11 @@ export type Database = {
       get_auth_supplier_id: { Args: never; Returns: number }
     }
     Enums: {
+      notification_status: "sent" | "failed" | "bounced"
+      notification_type:
+        | "new_quotation"
+        | "quotation_reminder"
+        | "no_response_alert"
       user_role:
         | "fornecedor"
         | "compras"
@@ -1511,6 +1653,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      notification_status: ["sent", "failed", "bounced"],
+      notification_type: [
+        "new_quotation",
+        "quotation_reminder",
+        "no_response_alert",
+      ],
       user_role: [
         "fornecedor",
         "compras",

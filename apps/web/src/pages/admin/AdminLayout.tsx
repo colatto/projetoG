@@ -45,6 +45,12 @@ export default function AdminLayout() {
       roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS],
     },
     {
+      name: 'Notificações',
+      path: '/admin/notifications',
+      icon: <FileText size={20} />,
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
+    },
+    {
       name: 'Minhas Cotações',
       path: '/supplier/quotations',
       icon: <FileText size={20} />,

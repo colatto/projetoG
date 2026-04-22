@@ -83,9 +83,20 @@ export default function QuotationDetail() {
   const [endDateInput, setEndDateInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: string; msg: string } | null>(null);
 
+  const [notificationLogs, setNotificationLogs] = useState<any[]>([]);
+
   const reload = async () => {
     const res = await api.get(`/quotations/${quotationId}`);
     setData(res.data.data);
+
+    try {
+      const logsRes = await api.get(`/notifications/logs`, {
+        params: { quotation_id: quotationId, limit: 100 },
+      });
+      setNotificationLogs(logsRes.data.data || []);
+    } catch (e) {
+      console.warn('Could not load notification logs', e);
+    }
   };
 
   useEffect(() => {
@@ -294,16 +305,44 @@ export default function QuotationDetail() {
                 <div
                   style={{
                     display: 'flex',
-                    gap: '1rem',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
                     fontSize: '0.8125rem',
                     color: 'var(--color-gray-600)',
                   }}
                 >
-                  <span className="read-indicator">
-                    <span className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`} />
-                    {sn.read_at ? `Lida ${formatDateTime(sn.read_at)}` : 'Não lida'}
-                  </span>
-                  {sn.closed_order_id && <span>Pedido #{sn.closed_order_id}</span>}
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <span className="read-indicator">
+                      <span className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`} />
+                      {sn.read_at ? `Lida ${formatDateTime(sn.read_at)}` : 'Não lida'}
+                    </span>
+                    {sn.closed_order_id && <span>Pedido #{sn.closed_order_id}</span>}
+                  </div>
+
+                  {/* Notification status */}
+                  {(() => {
+                    const supplierNotifications = notificationLogs.filter(log => log.recipient_supplier_id === sn.supplier_id);
+                    return supplierNotifications.length > 0 && (
+                      <div style={{ marginTop: '0.25rem' }}>
+                        {supplierNotifications.map((log: any) => (
+                          <div key={log.id} style={{ fontSize: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                backgroundColor: log.status === 'sent' ? '#22c55e' : log.status === 'failed' ? '#ef4444' : '#9ca3af',
+                              }}
+                            />
+                            <span>
+                              {log.type === 'NEW_QUOTATION' ? 'Convite' : log.type === 'NO_RESPONSE_ALERT' ? 'Alerta' : log.type} e-mail {log.status === 'sent' ? 'enviado' : log.status === 'failed' ? 'falhou' : 'pendente'}
+                              {log.sent_at && ` em ${formatDateTime(log.sent_at)}`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Response history */}

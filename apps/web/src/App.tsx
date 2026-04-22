@@ -25,6 +25,9 @@ import OrderList from './pages/admin/OrderList';
 import OrderDetail from './pages/admin/OrderDetail';
 import SupplierOrderList from './pages/supplier/SupplierOrderList';
 import SupplierOrderDetail from './pages/supplier/SupplierOrderDetail';
+import NotificationsLayout from './pages/admin/NotificationsLayout';
+import NotificationLogs from './pages/admin/NotificationLogs';
+import NotificationTemplates from './pages/admin/NotificationTemplates';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -65,6 +68,10 @@ function App() {
                 <Route path="/admin/integration" element={<IntegrationEvents />} />
                 <Route path="/admin/quotations" element={<QuotationList />} />
                 <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
+                <Route path="/admin/notifications" element={<NotificationsLayout />}>
+                  <Route index element={<NotificationLogs />} />
+                  <Route path="templates" element={<NotificationTemplates />} />
+                </Route>
               </Route>
 
               <Route

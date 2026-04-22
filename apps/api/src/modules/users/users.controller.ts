@@ -3,8 +3,13 @@ import { CreateUserDto, UpdateUserDto, UserQueryDto } from '@projetog/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { UserRole, UserStatus } from '@projetog/domain';
 
+import { NotificationService } from '../notifications/notification.service.js';
+
 export class UsersController {
-  constructor(private auditService: AuditService) {}
+  constructor(
+    private auditService: AuditService,
+    private notificationService: NotificationService,
+  ) {}
 
   async listUsers(request: FastifyRequest<{ Querystring: UserQueryDto }>, reply: FastifyReply) {
     const { role, status, search, page = 1, per_page = 20 } = request.query;
@@ -225,6 +230,19 @@ export class UsersController {
       metadata: { fields_changed: Object.keys(updates).join(', ') },
     });
 
+    // PRD-03: Send late quotation notifications if a supplier was just activated
+    if (
+      updates.status === UserStatus.ATIVO &&
+      updatedProfile &&
+      updatedProfile.role === UserRole.FORNECEDOR &&
+      updatedProfile.supplier_id
+    ) {
+      // Do not block the response
+      this.notificationService
+        .sendPendingQuotationsNotification(updatedProfile.supplier_id, adminId)
+        .catch((err) => request.log.warn({ err }, 'Failed to send late notifications on update'));
+    }
+
     return reply.code(200).send({ data: updatedProfile });
   }
 
@@ -292,6 +310,18 @@ export class UsersController {
       actorId: adminId,
       targetUserId: id,
     });
+
+    // PRD-03: Send late quotation notifications if a supplier was reactivated
+    if (
+      updatedProfile &&
+      updatedProfile.role === UserRole.FORNECEDOR &&
+      updatedProfile.supplier_id
+    ) {
+      // Do not block the response
+      this.notificationService
+        .sendPendingQuotationsNotification(updatedProfile.supplier_id, adminId)
+        .catch((err) => request.log.warn({ err }, 'Failed to send late notifications on reactivate'));
+    }
 
     return reply.code(200).send({ data: updatedProfile });
   }

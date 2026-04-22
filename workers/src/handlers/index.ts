@@ -73,6 +73,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   // Process webhook — async processing of received webhooks (Sprint 5)
   await boss.work<object>('sienge:process-webhook', async (job) => processWebhook(job));
 
+  // Notification Email — sending emails asynchronously
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  await boss.work<any>('notification:send-email', async (job) => {
+    const { processNotificationSendEmail } = await import('../jobs/notification-send-email.js');
+    return processNotificationSendEmail(job);
+  });
+
   // Outbound negotiation — writing approved quotation to Sienge
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   await boss.work<any>('sienge:outbound-negotiation', async (job) =>

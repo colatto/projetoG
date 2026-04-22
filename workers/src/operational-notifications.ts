@@ -73,8 +73,83 @@ export async function notifyComprasAboutOperationalIssue(
     );
   }
 
-  return {
-    recipientCount: recipients.length,
-    recipients,
-  };
+  return { recipientCount: recipients.length, recipients };
+}
+
+import { getBoss } from './boss.js';
+import { NotificationType, NotificationStatus, TemplateRenderer } from '@projetog/domain';
+
+export async function sendNoResponseEmailAlert(
+  supabase: WorkerSupabase,
+  quotationId: number,
+  supplierIds: number[],
+): Promise<void> {
+  try {
+    const { data: template } = await supabase
+      .from('notification_templates')
+      .select('*')
+      .eq('type', NotificationType.NO_RESPONSE_ALERT)
+      .eq('is_active', true)
+      .single();
+
+    if (!template) {
+      console.warn('Template NO_RESPONSE_ALERT not found');
+      return;
+    }
+
+    const { data: suppliers } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .in('id', supplierIds);
+
+    const supplierListHtml = (suppliers || [])
+      .map((s) => `<li>${s.name} (ID: ${s.id})</li>`)
+      .join('');
+
+    const placeholders = {
+      quotationId: quotationId.toString(),
+      supplierList: supplierListHtml || '<li>Nenhum fornecedor identificado</li>',
+    };
+
+    const { valid } = TemplateRenderer.validateTemplatePlaceholders(
+      template.body_template,
+      template.mandatory_placeholders as string[],
+    );
+    if (!valid) {
+      console.warn('Template NO_RESPONSE_ALERT is missing mandatory placeholders');
+      return;
+    }
+
+    const subject = TemplateRenderer.renderTemplate(template.subject_template, placeholders);
+    const body = TemplateRenderer.renderTemplate(template.body_template, placeholders);
+
+    const comprasEmail = process.env.COMPRAS_EMAIL || 'compras@grfincorporadora.com';
+
+    const { data: logEntry } = await supabase
+      .from('notification_logs')
+      .insert({
+        template_id: template.id,
+        template_version: template.version,
+        type: NotificationType.NO_RESPONSE_ALERT,
+        recipient_email: comprasEmail,
+        quotation_id: quotationId,
+        subject: subject,
+        body_snapshot: body,
+        status: NotificationStatus.SENT,
+        triggered_by: null,
+      })
+      .select('id')
+      .single();
+
+    if (logEntry) {
+      await getBoss().send('notification:send-email', {
+        notificationLogId: logEntry.id,
+        recipientEmail: comprasEmail,
+        subject,
+        htmlBody: body,
+      });
+    }
+  } catch (err: any) {
+    console.error(`Failed to send no-response email alert: ${err.message}`);
+  }
 }

@@ -41,18 +41,18 @@ O repositorio ja ultrapassou a fase de scaffold. Possui implementacao funcional 
 - O monorepo foi inicializado com `pnpm`.
 - Existe `package.json` raiz e manifestos em cada submódulo.
 - Existe `pnpm-workspace.yaml` criado e interligando os projetos.
-- O frontend (`apps/web`) possui React/Vite com roteamento, design system (Vanilla CSS), módulo de Autenticação/Backoffice implementado, gestão administrativa de usuários, monitoramento de eventos de integração, e o fluxo de cotações (backoffice e portal do fornecedor) com listagem, detalhe, envio e resposta.
-- O backend (`apps/api`) possui Fastify v5 com JWT, RBAC, CRUD de usuários, webhooks Sienge, endpoints de integração (eventos, credenciais, negociação outbound), o fluxo completo de cotações (backoffice: listagem, detalhe, envio, revisão de resposta, retry de integração; fornecedor: listagem, detalhe, marcação de leitura, resposta), módulo de entregas com validação e listagem pendente (PRD-05) e módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05).
-- O modulo de processamento assincrono (`workers/`) possui pg-boss com jobs especializados de polling (cotações, pedidos, entregas), reconciliação por webhook, processamento de webhook, escrita outbound de negociação, retry de integração, follow-up (stub), verificação automática de expiração de cotações e recálculo automático de status de pedido via `OrderStatusEngine` com sinalização de follow-up (PRD-05).
-- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional inclui 11 migrações cobrindo schema inicial, autenticação, integração Sienge (PRD-07), respostas de cotação versionadas (PRD-02), hardening PRD-02 e PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders).
+- O frontend (`apps/web`) possui React/Vite com roteamento, design system (Vanilla CSS), módulo de Autenticação/Backoffice implementado, gestão administrativa de usuários, monitoramento de eventos de integração, o fluxo de cotações (backoffice e portal do fornecedor) com listagem, detalhe, envio e resposta, e telas de gestão de templates e histórico de notificações (PRD-03).
+- O backend (`apps/api`) possui Fastify v5 com JWT, RBAC, CRUD de usuários, webhooks Sienge, endpoints de integração (eventos, credenciais, negociação outbound), o fluxo completo de cotações (backoffice: listagem, detalhe, envio, revisão de resposta, retry de integração; fornecedor: listagem, detalhe, marcação de leitura, resposta), módulo de entregas com validação e listagem pendente (PRD-05), módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05), e módulo de notificações por e-mail com templates editáveis, logs de envio e provedor Resend (PRD-03).
+- O modulo de processamento assincrono (`workers/`) possui pg-boss com jobs especializados de polling (cotações, pedidos, entregas), reconciliação por webhook, processamento de webhook, escrita outbound de negociação, retry de integração, follow-up (stub), verificação automática de expiração de cotações, recálculo automático de status de pedido via `OrderStatusEngine` com sinalização de follow-up (PRD-05), e job de envio de e-mail de notificação (`notification:send-email`) com alerta de cotação sem resposta (PRD-03).
+- O diretório `supabase/` está inicializado, autenticado e linkado ao projeto real via CLI. O modelo relacional inclui 13 migrações cobrindo schema inicial, autenticação, integração Sienge (PRD-07), respostas de cotação versionadas (PRD-02), hardening PRD-02, PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders) e PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status).
 - Os tipos do Supabase (`database.types.ts`) estão gerados no pacote `packages/shared`.
 - O pacote de integração (`packages/integration-sienge`) possui cliente HTTP com retry, rate limit (bottleneck), paginação, 6 clientes especializados (quotation, creditor, order, invoice, delivery-requirement, negotiation), 5 mapeadores, criptografia AES para credenciais e testes unitários + integração live.
-- O pacote de domínio (`packages/domain`) possui entidades, enums centrais (`OrderOperationalStatus`, `UserRole`, etc.), `OrderStatusEngine` com regras de precedência de status (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), e testes unitários.
+- O pacote de domínio (`packages/domain`) possui entidades, enums centrais (`OrderOperationalStatus`, `NotificationType`, `NotificationStatus`, `UserRole`, etc.), `OrderStatusEngine` com regras de precedência de status, `TemplateRenderer` para renderização e validação de templates de notificação (PRD-03), e testes unitários.
 - Existe infraestrutura de deploy: Dockerfiles para API e workers, manifests Kubernetes em `deploy/k8s/`, e pipelines GitHub Actions para CI, deploy e segurança.
 
 Consequencia pratica:
 
-- o repositorio ja possui implementacao funcional em auth, usuarios, integracao Sienge, fluxo de cotacoes e fluxo de entregas/pedidos (PRD-05);
+- o repositorio ja possui implementacao funcional em auth, usuarios, integracao Sienge, fluxo de cotacoes, fluxo de entregas/pedidos (PRD-05) e notificacoes por e-mail (PRD-03);
 - antes de propor ou escrever codigo, verificar se isso respeita a ordem de setup em `docs/runbooks/setup.md`;
 - consultar `CLAUDE.md` para o inventario completo de rotas, jobs e entidades ja existentes.
 
@@ -154,6 +154,8 @@ Entidades centrais:
 
 > **Nota PRD-05:** o PRD-05 (Entrega, Divergência e Status de Pedido) está implementado (Fases 1–6). Inclui: tabela `order_status_history` (append-only, RLS), campos calculados em `purchase_orders` (`total_quantity_ordered`, `total_quantity_delivered`, `pending_quantity`, `has_divergence`, `last_delivery_date`), validação de entrega (OK/DIVERGENCIA) com auditoria, `OrderStatusEngine` no domínio com precedência formal de status, cancelamento de pedido com encerramento automático de régua de follow-up, stub de recepção de avaria (PRD-06), e sinalização de follow-up tanto na API quanto nos workers.
 
+> **Nota PRD-03:** o PRD-03 (Notificações de Cotação) está implementado (Fases 1–5). Inclui: tabelas `notification_templates` e `notification_logs` com enums `notification_type`/`notification_status` e RLS service_role-only, seed de 3 templates default (`new_quotation`, `quotation_reminder`, `no_response_alert`), enums `NotificationType`/`NotificationStatus` e `TemplateRenderer` no domínio, `NotificationService` na API com envio de nova cotação (`sendQuotationNotification`), envio tardio (`sendPendingQuotationsNotification`) e alerta de sem resposta (`sendNoResponseAlert`), `ResendEmailProvider` com plugin Fastify `email.ts`, worker job `notification:send-email` com retry, schemas Zod no shared, integração no `QuotationsController.sendQuotation`, hook de envio tardio em `UsersController.reactivate`, alerta de sem resposta via `sendNoResponseEmailAlert` no `quotation-expire-check`, telas frontend (NotificationTemplates, NotificationLogs, NotificationsLayout), e testes unitários e de integração.
+
 Identificadores minimos persistidos:
 
 - `purchaseQuotationId`
@@ -206,7 +208,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - consumir contratos filtrados pelo backend;
 - nao conter regra critica nem integracao direta com Sienge;
 - usar branding e paleta definidos em `docs/identidade_visual.md` e `docs/paleta_de_cores.md`;
-- paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail), supplier (quotation list/detail).
+- paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail, notification templates, notification logs), supplier (quotation list/detail).
 
 > **Nota:** as telas de pedidos e entregas do PRD-05 (backoffice, portal do fornecedor e visualizador de pedidos) ainda não foram implementadas no frontend. Os endpoints de API já estão disponíveis.
 
@@ -223,7 +225,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
   ├── server.ts       # bootstrap do servidor
   ├── app.ts          # factory exportável para testes
   ├── routes/         # rotas gerais (health)
-  ├── plugins/        # auth, supabase, pg-boss, metrics
+  ├── plugins/        # auth, supabase, pg-boss, metrics, email
   ├── modules/
   │   ├── auth/       # login, logout, forgot/reset password, me
   │   ├── users/      # CRUD administrativo
@@ -232,7 +234,8 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
   │   ├── integration/# eventos, credenciais, negociação outbound
   │   ├── quotations/ # backoffice e fornecedor (PRD-02)
   │   ├── deliveries/ # validação de entrega e listagem pendente (PRD-05)
-  │   └── orders/     # listagem, detalhes, cancelamento, histórico de status e avaria (PRD-05)
+  │   ├── orders/     # listagem, detalhes, cancelamento, histórico de status e avaria (PRD-05)
+  │   └── notifications/ # templates, logs, envio de e-mail e NotificationService (PRD-03)
   └── test/           # setup de testes
   ```
 
@@ -241,6 +244,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - fonte principal das regras operacionais;
 - manter entidades, enums, validacoes e casos de uso independentes de framework;
 - inclui `OrderStatusEngine` (PRD-05) com regras de precedência de status e `OrderOperationalStatus` enum.
+- inclui `NotificationType`, `NotificationStatus` enums e `TemplateRenderer` service (PRD-03) com testes unitários.
 
 ### `packages/integration-sienge`
 
@@ -256,8 +260,9 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 
 - processo standalone em Node.js + TypeScript;
 - usar `pg-boss` sobre PostgreSQL;
-- concentrar polling, follow-up, retries, reconciliacao, expire-check e recalculo de status de pedido (PRD-05);
+- concentrar polling, follow-up, retries, reconciliacao, expire-check, recalculo de status de pedido (PRD-05) e envio de e-mail de notificacao (PRD-03);
 - inclui utilitário `order-status-recalc.ts` com sinalização de follow-up.
+- inclui função `sendNoResponseEmailAlert` em `operational-notifications.ts` para alerta de cotação sem resposta (PRD-03).
 
 ---
 

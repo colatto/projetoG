@@ -37,8 +37,13 @@ async function getProfileSupplierId(supabase: Supabase, profileId: string): Prom
   return (data?.supplier_id as number | null) ?? null;
 }
 
+import { NotificationService } from '../notifications/notification.service.js';
+
 export class QuotationsController {
-  constructor(private audit: AuditService) {}
+  constructor(
+    private audit: AuditService,
+    private notificationService: NotificationService,
+  ) {}
 
   // ─────────────────────────────────────────────────────────────
   // Backoffice
@@ -251,7 +256,20 @@ export class QuotationsController {
       },
     });
 
+    // PRD-03: Enqueue notification emails for eligible suppliers
+    try {
+      await this.notificationService.sendQuotationNotification(
+        quotationId,
+        eligibleSupplierIds,
+        actorId,
+      );
+    } catch (notifyError) {
+      request.log.warn({ err: notifyError }, 'Failed to enqueue quotation notifications');
+      // Non-blocking: notification failure must not block quotation send
+    }
+
     return reply.code(200).send({
+      message: 'Cotação enviada com sucesso',
       sent_at: nowIso,
       suppliers_sent: eligibleSupplierIds.length,
       suppliers_skipped: supplierIds.length - eligibleSupplierIds.length,

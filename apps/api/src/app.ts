@@ -25,6 +25,7 @@ import {
 } from './modules/quotations/index.js';
 import { deliveriesRoutes } from './modules/deliveries/index.js';
 import { ordersRoutes } from './modules/orders/index.js';
+import { notificationsRoutes } from './modules/notifications/index.js';
 
 import type { JobPublisher } from './plugins/pg-boss.js';
 
@@ -104,6 +105,9 @@ export function buildApp(options: BuildAppOptions = {}) {
   // Deliveries and Orders (PRD-05)
   app.register(deliveriesRoutes, { prefix: '/api/deliveries' });
   app.register(ordersRoutes, { prefix: '/api/orders' });
+
+  // Notifications (PRD-03)
+  app.register(notificationsRoutes, { prefix: '/api/notifications' });
 
   return app;
 }
