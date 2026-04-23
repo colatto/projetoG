@@ -18,6 +18,10 @@ Servir o backend dedicado do projeto com Fastify 5.
 - fluxo completo de cotações para backoffice (listagem, detalhe, envio, revisão de resposta, retry de integração)
 - portal do fornecedor (listagem, detalhe, marcação de leitura, resposta com itens e entregas)
 - aliases de compatibilidade PRD-09 para rotas de cotação
+- módulo de entregas com validação e listagem pendente (PRD-05)
+- módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05)
+- módulo de notificações por e-mail com templates editáveis, logs de envio e provedor Resend (PRD-03)
+- módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04)
 - documentação Swagger em `/docs`
 - métricas via `prom-client`
 
@@ -32,20 +36,25 @@ Servir o backend dedicado do projeto com Fastify 5.
 - `authPlugin` (JWT + `authenticate` + `verifyRole`)
 - `pgBossPlugin` quando `DATABASE_URL` está presente
 - `metricsPlugin` (`prom-client`)
+- `emailPlugin` (provedor Resend para envio de e-mail — PRD-03)
 - `helmet`, `cors`, `sensible`
 - `swagger` + `swagger-ui`
 
 ## Módulos de rotas reais
 
-| Módulo          | Prefixo                                                       | Rotas                                                               |
-| --------------- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
-| health          | `/`                                                           | `GET /health`                                                       |
-| auth            | `/api/auth`                                                   | login, logout, forgot-password, reset-password, me                  |
-| users           | `/api/users`                                                  | CRUD completo + block/reactivate/reset-password                     |
-| webhooks        | `/webhooks`                                                   | `POST /webhooks/sienge`                                             |
-| integration     | `/api/integration`                                            | events, events/:id/retry, credentials (GET/PUT), negotiations/write |
-| quotations (bo) | `/api/quotations`, `/api/backoffice/quotations`               | listagem, detalhe, send, review, retry-integration                  |
-| quotations (sp) | `/api/supplier/quotations`, `/api/supplier-portal/quotations` | listagem, detalhe, read, respond                                    |
+| Módulo          | Prefixo                                                       | Rotas                                                                                          |
+| --------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| health          | `/`                                                           | `GET /health`                                                                                  |
+| auth            | `/api/auth`                                                   | login, logout, forgot-password, reset-password, me                                             |
+| users           | `/api/users`                                                  | CRUD completo + block/reactivate/reset-password                                                |
+| webhooks        | `/webhooks`                                                   | `POST /webhooks/sienge`                                                                        |
+| integration     | `/api/integration`                                            | events, events/:id/retry, credentials (GET/PUT), negotiations/write                            |
+| quotations (bo) | `/api/quotations`, `/api/backoffice/quotations`               | listagem, detalhe, send, review, retry-integration                                             |
+| quotations (sp) | `/api/supplier/quotations`, `/api/supplier-portal/quotations` | listagem, detalhe, read, respond                                                               |
+| deliveries      | `/api/deliveries`                                             | validação de entrega, listagem pendente (PRD-05)                                               |
+| orders          | `/api/orders`                                                 | listagem, detalhe, cancelamento, histórico de status (PRD-05)                                  |
+| notifications   | `/api/notifications`                                          | templates (CRUD), logs (listagem) (PRD-03)                                                     |
+| followup        | `/api/followup`                                               | orders list/detail, confirm, suggest-date, date-changes approve/reject, notifications (PRD-04) |
 
 ## Dependências principais
 
@@ -71,14 +80,17 @@ Servir o backend dedicado do projeto com Fastify 5.
 - `PORT`
 - `NODE_ENV`
 - `DATABASE_URL` opcional
+- `EMAIL_PROVIDER_API_KEY` (Resend API key — PRD-03)
+- `COMPRAS_EMAIL` (endereço de e-mail para notificações de Compras)
 
 ## Estado de qualidade
 
-- testes: 40 passando (6 suítes)
+- testes: 88 passando (14 suítes)
 - build: passa
 - lint: passa
 
 ## Funcionalidades ainda não implementadas
 
-- testes para o módulo de cotações
-- endpoints de pedidos, entregas, follow-up, avarias e dashboard
+- endpoints de avarias e dashboard
+- portal completo do Visualizador de Pedidos
+- expansão de testes para sugestão/aprovação de datas de follow-up

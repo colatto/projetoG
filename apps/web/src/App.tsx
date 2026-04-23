@@ -28,6 +28,10 @@ import SupplierOrderDetail from './pages/supplier/SupplierOrderDetail';
 import NotificationsLayout from './pages/admin/NotificationsLayout';
 import NotificationLogs from './pages/admin/NotificationLogs';
 import NotificationTemplates from './pages/admin/NotificationTemplates';
+import FollowUpList from './pages/admin/FollowUpList';
+import FollowUpDetail from './pages/admin/FollowUpDetail';
+import SupplierFollowUpList from './pages/supplier/SupplierFollowUpList';
+import SupplierFollowUpDetail from './pages/supplier/SupplierFollowUpDetail';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -81,6 +85,8 @@ function App() {
               >
                 <Route path="/admin/orders" element={<OrderList />} />
                 <Route path="/admin/orders/:purchaseOrderId" element={<OrderDetail />} />
+                <Route path="/admin/followup" element={<FollowUpList />} />
+                <Route path="/admin/followup/:purchaseOrderId" element={<FollowUpDetail />} />
               </Route>
 
               {/* Portal do Fornecedor */}
@@ -89,6 +95,11 @@ function App() {
                 <Route path="/supplier/quotations/:id" element={<SupplierQuotationDetail />} />
                 <Route path="/supplier/orders" element={<SupplierOrderList />} />
                 <Route path="/supplier/orders/:purchaseOrderId" element={<SupplierOrderDetail />} />
+                <Route path="/supplier/followup" element={<SupplierFollowUpList />} />
+                <Route
+                  path="/supplier/followup/:purchaseOrderId"
+                  element={<SupplierFollowUpDetail />}
+                />
               </Route>
             </Route>
 

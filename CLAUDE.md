@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-22`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-23`.
 
 ## Ordem de consulta
 
@@ -28,25 +28,25 @@ Construir uma aplicação web para a GRF com:
 
 O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
-- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, listagem e detalhe de cotações (backoffice e portal do fornecedor), e gestão de templates e histórico de notificações (PRD-03)
-- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05), e módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03)
-- workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine` e sinalização de follow-up), reconciliação por webhook, retry de eventos, escrita outbound de negociação, verificação automática de expiração de cotações, e job de envio de e-mail de notificação (`notification:send-email`) com alerta de sem resposta (PRD-03)
-- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders) e PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status)
+- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, listagem e detalhe de cotações (backoffice e portal do fornecedor), gestão de templates e histórico de notificações (PRD-03), listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05), e follow-up logístico com listagem, detalhe, aprovação de datas e ações de fornecedor (PRD-04)
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05), módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), e módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04)
+- workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine` e sinalização de follow-up), reconciliação por webhook, retry de eventos, escrita outbound de negociação, verificação automática de expiração de cotações, job de envio de e-mail de notificação (`notification:send-email`) com alerta de sem resposta (PRD-03), e follow-up scheduler diário com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04)
+- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, 15 migrações cobrindo PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders), PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status) e PRD-04 (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed)
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
-- pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums, `TemplateRenderer` service e testes unitários
+- pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service e testes unitários
 - infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
 
 ## Módulos reais
 
-| Módulo                        | Estado                    | Responsabilidade principal                                                                         |
-| ----------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
-| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users, cotações e notificações                                  |
-| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações, entregas, pedidos, notificações e orquestração         |
-| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check, recálculo de status de pedido, envio de e-mail e jobs |
-| `packages/domain`             | implementado parcialmente | entidades, enums centrais e serviços (TemplateRenderer, OrderStatusEngine)                         |
-| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                                                         |
-| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                                                                       |
-| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                                                                      |
+| Módulo                        | Estado                    | Responsabilidade principal                                                                                    |
+| ----------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users, cotações, pedidos, notificações e follow-up                         |
+| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações, entregas, pedidos, notificações, follow-up e orquestração         |
+| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check, recálculo de status, follow-up scheduler, envio de e-mail e jobs |
+| `packages/domain`             | implementado parcialmente | entidades, enums centrais e serviços (TemplateRenderer, OrderStatusEngine)                                    |
+| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                                                                    |
+| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                                                                                  |
+| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                                                                                 |
 
 ## Capacidades confirmadas no código
 
@@ -70,8 +70,16 @@ Rotas protegidas (layout administrativo):
 - `/admin/notifications` (Administrador, Compras) — layout com sub-rotas
 - `/admin/notifications/templates` (Administrador, Compras) — gestão de templates
 - `/admin/notifications/logs` (Administrador, Compras) — histórico de notificações
+- `/admin/orders` (Administrador, Compras, Visualizador de Pedidos) — listagem de pedidos
+- `/admin/orders/:purchaseOrderId` (Administrador, Compras, Visualizador de Pedidos) — detalhe de pedido
+- `/admin/followup` (Administrador, Compras, Visualizador de Pedidos) — listagem de follow-up logístico
+- `/admin/followup/:purchaseOrderId` (Administrador, Compras, Visualizador de Pedidos) — detalhe com aprovação/reprovação de datas
 - `/supplier/quotations` (Fornecedor)
 - `/supplier/quotations/:id` (Fornecedor)
+- `/supplier/orders` (Fornecedor) — listagem de pedidos do fornecedor
+- `/supplier/orders/:purchaseOrderId` (Fornecedor) — detalhe de pedido do fornecedor
+- `/supplier/followup` (Fornecedor) — listagem de follow-ups do fornecedor
+- `/supplier/followup/:purchaseOrderId` (Fornecedor) — detalhe com ações de confirmação e sugestão de data
 
 Componentes:
 
@@ -129,6 +137,16 @@ Notificações (PRD-03):
 - `GET /api/notifications/templates` (listar templates ativos)
 - `PUT /api/notifications/templates/:id` (atualizar template com validação de placeholders)
 
+Follow-up logístico (PRD-04):
+
+- `GET /api/followup/orders` (listar pedidos em follow-up com filtros e paginação)
+- `GET /api/followup/orders/:purchaseOrderId` (detalhe com date_changes e notifications)
+- `POST /api/followup/orders/:purchaseOrderId/confirm` (fornecedor confirma entrega no prazo)
+- `POST /api/followup/orders/:purchaseOrderId/suggest-date` (fornecedor sugere nova data)
+- `POST /api/followup/date-changes/:dateChangeId/approve` (Compras aprova nova data)
+- `POST /api/followup/date-changes/:dateChangeId/reject` (Compras reprova nova data)
+- `GET /api/followup/orders/:purchaseOrderId/notifications` (histórico de notificações do follow-up)
+
 ### `workers`
 
 Jobs registrados:
@@ -156,6 +174,8 @@ Infraestrutura de suporte:
 - `logger.ts`: logging estruturado
 - `observability.ts`: métricas e monitoramento
 - `operational-notifications.ts`: notificações operacionais para `Compras` e envio de alerta por e-mail de cotação sem resposta (PRD-03)
+- `utils/business-days.ts`: cálculo de dias úteis (addBusinessDays, countBusinessDays) com suporte a feriados (PRD-04)
+- `utils/order-status-recalc.ts`: recálculo de status de pedido com sinalização de follow-up (PRD-05)
 - `test-utils/`: fixtures, mocks de pg-boss e supabase
 
 ## Regras obrigatórias
@@ -199,7 +219,9 @@ Entidades principais:
 - `invoice_items`
 - `order_quotation_links`
 - `invoice_order_links`
-- `follow_up_trackers`
+- `follow_up_trackers` (PRD-04: extensão com supplier_id, order_date, promised_date_original, promised_date_current, notification tracking, supplier response, approval fields, building_id, paused_at, completed_reason)
+- `follow_up_date_changes` (PRD-04: histórico de sugestões de nova data com decisão e auditoria)
+- `business_days_holidays` (PRD-04: feriados para cálculo de dias úteis)
 - `damages`
 - `notifications`
 - `notification_templates` (PRD-03: templates editáveis com placeholders obrigatórios, índice parcial único por tipo ativo)
@@ -259,6 +281,7 @@ Identificadores mínimos persistidos:
 - `NODE_ENV`
 - `EMAIL_PROVIDER_API_KEY`
 - `EMAIL_FROM_ADDRESS`
+- `COMPRAS_EMAIL`
 
 ## Convenções observadas
 
@@ -274,10 +297,10 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-22`:
+Em `2026-04-23`:
 
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK (testes passando em `apps/api`, `workers`, `packages/domain`)
+- `pnpm -r run test`: OK — `apps/api`: 88 testes (14 arquivos), `workers`: 33 testes (9 arquivos), `packages/domain`: 16 testes (2 arquivos)
 - `pnpm -r run lint`: OK (todos os workspaces passam)
 
 Observação residual de lint:
@@ -345,6 +368,7 @@ Heterogeneidade de versões observada entre workspaces:
 - `2026-04-17` `855e118`: instalação do lint-staged, deploy workflows, K8s manifests, módulo de cotações (PRD-02), templates de PR/issue, plugin de métricas, portal do fornecedor
 - `2026-04-21`: implementação completa do PRD-05 (Entrega, Divergência e Status de Pedido) — migração `20260421223710_prd05_delivery_records.sql`, módulos API `deliveries` e `orders`, `OrderStatusEngine` e `OrderOperationalStatus` no domínio, utilitário `order-status-recalc` nos workers, sinalização de follow-up, testes unitários e de integração Phase 6
 - `2026-04-22`: implementação do PRD-03 (Notificações de Cotação) — migração `20260422145434_prd03_notification_templates_and_logs.sql`, enums `NotificationType`/`NotificationStatus` e `TemplateRenderer` no domínio, módulo API `notifications` (service, controller, routes, email-provider), plugin Fastify `email.ts` com Resend, worker job `notification:send-email`, integração no `QuotationsController.sendQuotation`, hook de envio tardio em `users.reactivate`, alerta de sem resposta via `sendNoResponseEmailAlert` no expire-check, schemas Zod no shared, telas frontend (NotificationTemplates, NotificationLogs, NotificationsLayout, AdminLayout atualizado), testes unitários e de integração
+- `2026-04-23`: implementação do PRD-04 (Follow-up Logístico, Fases 1–4) — migração `20260423110000_prd04_followup_logistico.sql` (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), NotificationType PRD-04 enums no domínio, schemas Zod de follow-up no shared, módulo API `followup` (controller, routes com 7 endpoints, RBAC, isolamento de fornecedor, auditoria, notificações), worker `follow-up.ts` completo (ensureTrackers, processTracker, régua de notificações, detecção de atraso, encerramento automático, integração com notification:send-email), utilitário `business-days.ts`, telas frontend (FollowUpList, FollowUpDetail no backoffice; SupplierFollowUpList, SupplierFollowUpDetail no portal do fornecedor), e telas de pedidos PRD-05 (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail com navegação no AdminLayout)
 
 ### Working tree atual
 
@@ -355,6 +379,18 @@ Limpa — nenhuma alteração pendente.
 > **Nota (2026-04-21):** PRD-05 implementado (Fases 1–6). Inclui: migração de delivery_records e order_status_history, validação de entrega (OK/DIVERGENCIA), engine de cálculo de status com precedência (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), cancelamento de pedido com encerramento de régua de follow-up, recepção de status de avaria (stub para PRD-06), sinalização de follow-up após validação de entrega e recálculo de status no worker, testes de integração Phase 6.
 
 > **Nota (2026-04-22):** PRD-03 implementado (Fases 1–5). Inclui: tabelas `notification_templates` e `notification_logs` com enums `notification_type`/`notification_status`, RLS service_role-only, seed de 3 templates default, enums e `TemplateRenderer` no domínio, `NotificationService` na API com envio de nova cotação, envio tardio e alerta de sem resposta, `ResendEmailProvider` com plugin Fastify, worker `notification:send-email` com retry, schemas Zod para validação de rotas, integração com `QuotationsController.sendQuotation`, hook de envio tardio em `UsersController.reactivate`, alerta de sem resposta via `sendNoResponseEmailAlert` no `quotation-expire-check`, telas de templates e logs no frontend, testes unitários e de integração.
+
+> **Nota (2026-04-23):** PRD-04 implementado (Fases 1–4). Inclui: 2 migrações de banco (`20260423110000` + `20260423110001`) com extensão de `follow_up_trackers` (supplier_id, promised dates, notification tracking, supplier response, approval, paused_at, completed_reason), tabelas `follow_up_date_changes` e `business_days_holidays`, 4 novos tipos de notificação (`followup_reminder`, `overdue_alert`, `confirmation_received`, `new_date_pending`) com templates seed, enums PRD-04 no domínio, schemas Zod no shared, módulo API `followup` com 7 endpoints (listagem, detalhe, confirmação, sugestão/aprovação/reprovação de datas, histórico de notificações), RBAC e isolamento de fornecedor, auditoria completa, worker `follow-up` scheduler diário com régua de notificações sequenciais (1 por dia útil, Compras em cópia da 2ª em diante), detecção de atraso (D+1 útil), encerramento automático por entrega/cancelamento, utilitário de dias úteis com feriados, e telas frontend (backoffice: FollowUpList/FollowUpDetail com aprovação; fornecedor: SupplierFollowUpList/SupplierFollowUpDetail com confirmação e sugestão de data). Adicionalmente, as telas de pedidos PRD-05 foram implementadas no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail).
+>
+> Testes existentes (14 testes): API 4 (followup.routes.test.ts), worker 3 (follow-up.test.ts), utils 5 (business-days.test.ts), frontend 2 (FollowUpList.test.tsx, SupplierFollowUpDetail.test.tsx). Cenários não cobertos: sugestão de data, aprovação/reprovação, reinício de régua, cópia Compras Notificação 2+, entrega parcial.
+>
+> Gaps conhecidos de lógica (não bloqueantes para V1.0):
+>
+> - **RN-13/14**: após confirmação do fornecedor (tracker `CONCLUIDO`), se a data prometida vencer sem entrega confirmada, o tracker não é reativado automaticamente para monitoramento de atraso;
+> - **decideDateChange('approved')** calcula `nextNotificationDate` com dias corridos em vez de dias úteis (inconsistente com `ensureTrackers()` que usa `countBusinessDays`);
+> - Listas frontend faltam campos do PRD: obra, saldo pendente, cotação vinculada (backoffice), data do pedido e indicação de avaria/reposição (portal do fornecedor).
+
+> **Nota (2026-04-23):** PRD-05 frontend implementado. As telas de pedidos e entregas — anteriormente listadas como pendentes — agora estão presentes: `/admin/orders`, `/admin/orders/:purchaseOrderId`, `/supplier/orders`, `/supplier/orders/:purchaseOrderId` com navegação no AdminLayout.
 
 ## Diretriz para alterações futuras
 

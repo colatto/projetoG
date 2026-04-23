@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-21` para refletir o estado real do monorepo.
+Atualizado em `2026-04-23` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -176,7 +176,7 @@ sequenceDiagram
 | `packages/domain`             | domínio                  | média-boa           | entidades centrais, `OrderStatusEngine` (PRD-05) e testes unitários                                |
 | `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                         |
 | `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                      |
-| `supabase`                    | plataforma de dados      | boa                 | 11 migrações versionadas; PRD-02 e PRD-05 com RLS                                                  |
+| `supabase`                    | plataforma de dados      | boa                 | 15 migrações versionadas; PRD-02, PRD-05, PRD-03 e PRD-04 com RLS                                  |
 | `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                    |
 | `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                             |
 
@@ -193,19 +193,23 @@ sequenceDiagram
 
 ### 6.2 Migrações existentes
 
-| Migração                                             | Escopo                                                            |
-| ---------------------------------------------------- | ----------------------------------------------------------------- |
-| `20260409202239_initial_schema_v1.sql`               | schema base completo V1                                           |
-| `20260409204644_remote_schema.sql`                   | alinhamento remoto                                                |
-| `20260409212000_align_auth_to_prd01.sql`             | autenticação/perfis PRD-01                                        |
-| `20260411010000_integration_tables_prd07.sql`        | tabelas de integração Sienge PRD-07                               |
-| `20260414100000_webhook_delivery_metadata.sql`       | metadata de delivery de webhook                                   |
-| `20260415100000_sienge_missing_tables.sql`           | tabelas complementares Sienge                                     |
-| `20260415100001_deliveries_unique.sql`               | unicidade de entregas                                             |
-| `20260416100000_sienge_sync_cursor_enhancements.sql` | melhorias no cursor de sincronização                              |
-| `20260417120000_prd02_quotation_responses.sql`       | respostas de cotação versionadas PRD-02                           |
-| `20260421130000_prd02_schema_hardening.sql`          | hardening de schema PRD-02                                        |
-| `20260421223710_prd05_delivery_records.sql`          | delivery_records, order_status_history e campos calculados PRD-05 |
+| Migração                                                   | Escopo                                                                                                                |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `20260409202239_initial_schema_v1.sql`                     | schema base completo V1                                                                                               |
+| `20260409204644_remote_schema.sql`                         | alinhamento remoto                                                                                                    |
+| `20260409212000_align_auth_to_prd01.sql`                   | autenticação/perfis PRD-01                                                                                            |
+| `20260411010000_integration_tables_prd07.sql`              | tabelas de integração Sienge PRD-07                                                                                   |
+| `20260414100000_webhook_delivery_metadata.sql`             | metadata de delivery de webhook                                                                                       |
+| `20260415100000_sienge_missing_tables.sql`                 | tabelas complementares Sienge                                                                                         |
+| `20260415100001_deliveries_unique.sql`                     | unicidade de entregas                                                                                                 |
+| `20260416100000_sienge_sync_cursor_enhancements.sql`       | melhorias no cursor de sincronização                                                                                  |
+| `20260417120000_prd02_quotation_responses.sql`             | respostas de cotação versionadas PRD-02                                                                               |
+| `20260421130000_prd02_schema_hardening.sql`                | hardening de schema PRD-02                                                                                            |
+| `20260421223710_prd05_delivery_records.sql`                | delivery_records, order_status_history e campos calculados PRD-05                                                     |
+| `20260422014205_remote_schema.sql`                         | alinhamento remoto                                                                                                    |
+| `20260422145434_prd03_notification_templates_and_logs.sql` | templates e logs de notificação PRD-03                                                                                |
+| `20260423110000_prd04_followup_logistico.sql`              | follow_up_trackers extensão, follow_up_date_changes, business_days_holidays, 4 tipos de notificação PRD-04            |
+| `20260423110001_prd04_followup_notification_templates.sql` | seed de 4 templates de notificação PRD-04 (followup_reminder, overdue_alert, confirmation_received, new_date_pending) |
 
 ### 6.3 Grupos principais de tabelas
 
@@ -237,9 +241,13 @@ Pedidos e logística:
 - `invoice_items`
 - `order_quotation_links`
 - `invoice_order_links`
-- `follow_up_trackers`
+- `follow_up_trackers` (PRD-04: extensão com supplier_id, order_date, promised_date_original, promised_date_current, notification tracking, supplier response, approval fields, building_id, paused_at, completed_reason)
+- `follow_up_date_changes` (PRD-04: histórico de sugestões de nova data com decisão e auditoria)
+- `business_days_holidays` (PRD-04: feriados para cálculo de dias úteis)
 - `damages`
 - `notifications`
+- `notification_templates` (PRD-03: templates editáveis com placeholders obrigatórios)
+- `notification_logs` (PRD-03: registro de e-mails com snapshot, status e auditoria; PRD-04: colunas `purchase_order_id`, `follow_up_tracker_id`, `metadata`)
 
 Integração Sienge:
 
@@ -250,8 +258,9 @@ Integração Sienge:
 
 ### 6.4 RLS e governança
 
-- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries` e `order_status_history`
+- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries`, `order_status_history`, `notification_templates` e `notification_logs`
 - políticas de leitura e inserção para fornecedor usam `public.get_auth_supplier_id()`
+- `follow_up_trackers` possui políticas de leitura e atualização por fornecedor via `purchase_orders.supplier_id`
 - backend e workers usam `service_role`, então bypassam RLS quando necessário
 - triggers de `updated_at` existem em boa parte das entidades operacionais
 
@@ -418,10 +427,12 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) com engine de cálculo de status, validação de entrega, cancelamento, auditoria completa e sinalização de follow-up. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com régua de notificações, detecção de atraso, encerramento automático, gestão de datas e telas frontend; possui 14 testes automatizados (API: 4, worker: 3, utils: 5, frontend: 2), com gaps de cobertura em sugestão/aprovação de datas e entrega parcial. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
-- telas do PRD-05 no frontend (backoffice, portal do fornecedor, visualizador de pedidos)
-- implementação real da régua de follow-up (PRD-04)
+- expansão da cobertura de testes do módulo follow-up (sugestão/aprovação de datas, reinício de régua, entrega parcial)
+- correção de recálculo de `nextNotificationDate` em `decideDateChange('approved')` para usar dias úteis
+- reativação de tracker `CONCLUIDO` quando data prometida vence sem entrega (RN-13/14)
+- complemento de campos nas listas de follow-up (obra, saldo pendente, cotação vinculada)
 - implementação do módulo de avaria e ação corretiva (PRD-06)
 - formalização da estratégia de deploy de produção

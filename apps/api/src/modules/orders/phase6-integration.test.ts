@@ -211,6 +211,13 @@ describe('Phase 6 — Cross-module Integration', () => {
       const shouldCloseFollowUp = orderStatus === 'ENTREGUE' && pendingQuantity === 0;
       expect(shouldCloseFollowUp).toBe(true);
     });
+
+    it('ENTREGUE with pending quantity should keep follow-up active', () => {
+      const orderStatus = 'ENTREGUE';
+      const pendingQuantity = 2;
+      const shouldCloseFollowUp = orderStatus === 'ENTREGUE' && pendingQuantity === 0;
+      expect(shouldCloseFollowUp).toBe(false);
+    });
   });
 
   // ── §6.2 Damage Reception Stub ────────────────────────────────

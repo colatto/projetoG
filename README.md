@@ -6,13 +6,13 @@ Monorepo da aplicação da GRF para portal do fornecedor, backoffice interno e i
 
 O repositório já está operacional como monorepo `pnpm` e contém:
 
-- `apps/web`: SPA React 19 + Vite 8 para login, recuperação de senha, gestão de usuários, monitoramento de integração e fluxo de cotações (backoffice e portal do fornecedor).
-- `apps/api`: API Fastify 5 com autenticação, RBAC, auditoria, webhooks Sienge, orquestração de jobs, fluxo completo de cotações (envio, resposta, revisão) e métricas.
-- `workers`: runtime Node.js + `pg-boss` para polling, reconciliação, retries, escrita outbound no Sienge e verificação de expiração de cotações.
-- `packages/domain`: enums e entidades centrais de usuários, webhooks, integração e cursores de sincronização.
+- `apps/web`: SPA React 19 + Vite 8 para login, recuperação de senha, gestão de usuários, monitoramento de integração, fluxo de cotações (backoffice e portal do fornecedor), notificações (PRD-03), pedidos (PRD-05) e follow-up logístico (PRD-04).
+- `apps/api`: API Fastify 5 com autenticação, RBAC, auditoria, webhooks Sienge, orquestração de jobs, fluxo completo de cotações (envio, resposta, revisão), entregas e pedidos (PRD-05), notificações por e-mail (PRD-03), follow-up logístico (PRD-04) e métricas.
+- `workers`: runtime Node.js + `pg-boss` para polling, reconciliação, retries, escrita outbound no Sienge, verificação de expiração de cotações, recálculo de status de pedido (PRD-05), envio de e-mail (PRD-03) e follow-up scheduler diário (PRD-04).
+- `packages/domain`: enums centrais, `OrderStatusEngine` (PRD-05), `TemplateRenderer` (PRD-03), `NotificationType` com enums PRD-04 e testes unitários.
 - `packages/integration-sienge`: cliente HTTP resiliente, 6 clientes especializados, mapeadores e criptografia para credenciais Sienge.
-- `packages/shared`: schemas Zod (auth, users, integration, quotations), tipos do Supabase e utilitários compartilhados.
-- `supabase`: 9 migrações, seed e configuração local/remota do projeto `dbGRF`.
+- `packages/shared`: schemas Zod (auth, users, integration, quotations, followup), tipos do Supabase e utilitários compartilhados.
+- `supabase`: 15 migrações (PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-07), seed e configuração local/remota do projeto `dbGRF`.
 
 ## Topologia do repositório
 
@@ -115,10 +115,10 @@ Referência operacional: `docs/runbooks/setup.md`
 
 - Manifests em `deploy/k8s/` com Kustomization
 
-## Situação dos checks em 2026-04-19
+## Situação dos checks em 2026-04-23
 
-- `pnpm -r run build`: passa
-- `pnpm -r run test`: passa (40 testes)
+- `pnpm -r run build`: passa (6 workspaces)
+- `pnpm -r run test`: passa — `apps/api`: 88 testes (14 arquivos), `workers`: 33 testes (9 arquivos), `packages/domain`: 16 testes (2 arquivos)
 - `pnpm -r run lint`: passa (1 warning residual em `apps/web` — `react-hooks/incompatible-library`, não acionável)
 
 ## Auditoria de dependências em 2026-04-19

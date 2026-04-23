@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { processNotificationSendEmail } from './notification-send-email.js';
 
 vi.mock('../supabase.js', () => ({
-  supabase: {
+  getSupabase: vi.fn(() => ({
     from: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
-  },
+  })),
 }));
 
 vi.mock('resend', () => ({

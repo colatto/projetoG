@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -61,6 +86,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      business_days_holidays: {
+        Row: {
+          created_at: string | null
+          holiday_date: string
+          id: string
+          name: string
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          holiday_date: string
+          id?: string
+          name: string
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          holiday_date?: string
+          id?: string
+          name?: string
+          year?: number
+        }
+        Relationships: []
       }
       damages: {
         Row: {
@@ -226,46 +275,166 @@ export type Database = {
           },
         ]
       }
+      follow_up_date_changes: {
+        Row: {
+          created_at: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          follow_up_tracker_id: string
+          id: string
+          previous_date: string
+          reason: string | null
+          suggested_at: string
+          suggested_by: string
+          suggested_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          follow_up_tracker_id: string
+          id?: string
+          previous_date: string
+          reason?: string | null
+          suggested_at?: string
+          suggested_by: string
+          suggested_date: string
+        }
+        Update: {
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          follow_up_tracker_id?: string
+          id?: string
+          previous_date?: string
+          reason?: string | null
+          suggested_at?: string
+          suggested_by?: string
+          suggested_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_date_changes_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_date_changes_follow_up_tracker_id_fkey"
+            columns: ["follow_up_tracker_id"]
+            isOneToOne: false
+            referencedRelation: "follow_up_trackers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_date_changes_suggested_by_fkey"
+            columns: ["suggested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_up_trackers: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           base_date: string
+          building_id: number | null
+          completed_reason: string | null
           created_at: string | null
           current_delivery_date: string
+          current_notification_number: number
           id: string
           item_number: number
+          last_notification_sent_at: string | null
+          next_notification_date: string | null
+          order_date: string
+          paused_at: string | null
+          promised_date_current: string
+          promised_date_original: string
           purchase_order_id: number
           status: string
           suggested_date: string | null
+          suggested_date_status: string | null
+          supplier_id: number | null
+          supplier_response_type: string | null
           updated_at: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           base_date: string
+          building_id?: number | null
+          completed_reason?: string | null
           created_at?: string | null
           current_delivery_date: string
+          current_notification_number?: number
           id?: string
           item_number: number
+          last_notification_sent_at?: string | null
+          next_notification_date?: string | null
+          order_date: string
+          paused_at?: string | null
+          promised_date_current: string
+          promised_date_original: string
           purchase_order_id: number
           status?: string
           suggested_date?: string | null
+          suggested_date_status?: string | null
+          supplier_id?: number | null
+          supplier_response_type?: string | null
           updated_at?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           base_date?: string
+          building_id?: number | null
+          completed_reason?: string | null
           created_at?: string | null
           current_delivery_date?: string
+          current_notification_number?: number
           id?: string
           item_number?: number
+          last_notification_sent_at?: string | null
+          next_notification_date?: string | null
+          order_date?: string
+          paused_at?: string | null
+          promised_date_current?: string
+          promised_date_original?: string
           purchase_order_id?: number
           status?: string
           suggested_date?: string | null
+          suggested_date_status?: string | null
+          supplier_id?: number | null
+          supplier_response_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "follow_up_trackers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "follow_up_trackers_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_trackers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -412,7 +581,10 @@ export type Database = {
           body_snapshot: string
           created_at: string | null
           error_message: string | null
+          follow_up_tracker_id: string | null
           id: string
+          metadata: Json | null
+          purchase_order_id: number | null
           quotation_id: number | null
           recipient_email: string
           recipient_supplier_id: number | null
@@ -429,7 +601,10 @@ export type Database = {
           body_snapshot: string
           created_at?: string | null
           error_message?: string | null
+          follow_up_tracker_id?: string | null
           id?: string
+          metadata?: Json | null
+          purchase_order_id?: number | null
           quotation_id?: number | null
           recipient_email: string
           recipient_supplier_id?: number | null
@@ -446,7 +621,10 @@ export type Database = {
           body_snapshot?: string
           created_at?: string | null
           error_message?: string | null
+          follow_up_tracker_id?: string | null
           id?: string
+          metadata?: Json | null
+          purchase_order_id?: number | null
           quotation_id?: number | null
           recipient_email?: string
           recipient_supplier_id?: number | null
@@ -460,6 +638,20 @@ export type Database = {
           type?: Database["public"]["Enums"]["notification_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_logs_follow_up_tracker_id_fkey"
+            columns: ["follow_up_tracker_id"]
+            isOneToOne: false
+            referencedRelation: "follow_up_trackers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_logs_quotation_id_fkey"
             columns: ["quotation_id"]
@@ -1520,6 +1712,10 @@ export type Database = {
         | "new_quotation"
         | "quotation_reminder"
         | "no_response_alert"
+        | "followup_reminder"
+        | "overdue_alert"
+        | "confirmation_received"
+        | "new_date_pending"
       user_role:
         | "fornecedor"
         | "compras"
@@ -1651,6 +1847,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       notification_status: ["sent", "failed", "bounced"],
@@ -1658,6 +1857,10 @@ export const Constants = {
         "new_quotation",
         "quotation_reminder",
         "no_response_alert",
+        "followup_reminder",
+        "overdue_alert",
+        "confirmation_received",
+        "new_date_pending",
       ],
       user_role: [
         "fornecedor",

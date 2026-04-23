@@ -11,7 +11,6 @@ export async function recalculateOrderStatus(
     .select(
       'id, local_status, last_delivery_date, total_quantity_ordered, total_quantity_delivered, pending_quantity, has_divergence, date',
     ) // We assume 'date' is promisedDate or there's a deliveryDate
-    // The promised date is usually 'date' or we can fetch it from delivery_schedules.
     .eq('id', purchaseOrderId)
     .single();
 
@@ -20,16 +19,15 @@ export async function recalculateOrderStatus(
     return;
   }
 
-  // PRD says the promised date could come from schedules or we use 'date'.
-  // Let's get the schedule date:
+  // Follow-up V1 uses the latest consolidated promised schedule date per order (RN-20).
   const { data: schedules } = await supabase
     .from('delivery_schedules')
-    .select('delivery_date')
+    .select('scheduled_date')
     .eq('purchase_order_id', purchaseOrderId)
-    .order('delivery_date', { ascending: false })
+    .order('scheduled_date', { ascending: false })
     .limit(1);
 
-  const promisedDate = schedules && schedules.length > 0 ? schedules[0].delivery_date : order.date;
+  const promisedDate = schedules && schedules.length > 0 ? schedules[0].scheduled_date : order.date;
 
   // 2. Fetch order items to sum total ordered
   const { data: items } = await supabase

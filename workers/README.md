@@ -9,7 +9,10 @@ Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 - reconciliação de divergências
 - retry de eventos `retry_scheduled`
 - escrita outbound de negociação aprovada
-- follow-up diário ainda em stub
+- recálculo automático de status de pedido com sinalização de follow-up (PRD-05)
+- follow-up logístico diário com régua de notificações, detecção de atraso e encerramento automático (PRD-04)
+- verificação de expiração de cotações com alerta de sem resposta (PRD-02)
+- envio de e-mail de notificação (PRD-03)
 
 ## Jobs registrados
 
@@ -19,8 +22,10 @@ Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 - `sienge:reconcile`
 - `sienge:process-webhook`
 - `sienge:outbound-negotiation`
+- `notification:send-email`
 - `integration:retry`
 - `follow-up`
+- `quotation:expire-check`
 
 ## Schedules configurados
 
@@ -29,6 +34,7 @@ Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 - `*/15 * * * *`: `sienge:sync-deliveries`
 - `0 * * * *`: `integration:retry`
 - `0 11 * * *`: `follow-up`
+- `15 11 * * *`: `quotation:expire-check`
 
 ## Dependências principais
 
@@ -64,5 +70,6 @@ pnpm --filter @projetog/workers lint
 
 - `DATABASE_URL` é obrigatória
 - o worker lê credenciais ativas em `sienge_credentials` e usa fallback de env apenas em `development`
-- `follow-up.ts` ainda é stub e não implementa a régua completa do PRD-04
-- os testes passam, mas o lint ainda falha por resíduos de tipagem e variáveis não usadas
+- o follow-up scheduler é completo e implementa a régua do PRD-04 (notificações em dias úteis, detecção de atraso, encerramento automático)
+- testes: 33 passando (9 suítes)
+- build e lint passam

@@ -5,3 +5,4 @@ export * from './schemas/quotations.js';
 export * from './utils/log-sanitizer.js';
 export * from './schemas/integration.js';
 export * from './schemas/notifications.js';
+export * from './schemas/followup.js';

@@ -1,6 +1,6 @@
 import { Job } from 'pg-boss';
 import { Resend } from 'resend';
-import { supabase } from '../supabase.js';
+import { getSupabase } from '../supabase.js';
 
 export interface SendEmailJobData {
   notificationLogId: string;
@@ -14,6 +14,7 @@ const fromAddress = process.env.EMAIL_FROM_ADDRESS || 'cotacoes@grfincorporadora
 
 
 export async function processNotificationSendEmail(job: Job<SendEmailJobData>): Promise<void> {
+  const supabase = getSupabase();
   const { notificationLogId, recipientEmail, subject, htmlBody } = job.data;
 
   try {
@@ -35,10 +36,11 @@ export async function processNotificationSendEmail(job: Job<SendEmailJobData>): 
 
       // Audit Log
       await supabase.from('audit_logs').insert({
+        event_type: 'notification.sent',
+        actor_id: null,
         entity_type: 'notification_logs',
         entity_id: notificationLogId,
-        action: 'notification.sent',
-        details: { recipient_email: recipientEmail, subject },
+        metadata: { recipient_email: recipientEmail, subject },
       });
     } else {
       await supabase
@@ -50,10 +52,11 @@ export async function processNotificationSendEmail(job: Job<SendEmailJobData>): 
         .eq('id', notificationLogId);
 
       await supabase.from('audit_logs').insert({
+        event_type: 'notification.failed',
+        actor_id: null,
         entity_type: 'notification_logs',
         entity_id: notificationLogId,
-        action: 'notification.failed',
-        details: { recipient_email: recipientEmail, error: error.message },
+        metadata: { recipient_email: recipientEmail, error: error.message },
       });
 
       throw new Error(`Email sending failed: ${error.message}`);
