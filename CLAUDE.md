@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-23`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-24`.
 
 ## Ordem de consulta
 
@@ -297,10 +297,10 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-23`:
+Em `2026-04-24`:
 
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 88 testes (14 arquivos), `workers`: 33 testes (9 arquivos), `packages/domain`: 16 testes (2 arquivos)
+- `pnpm -r run test`: OK — `apps/api`: 100 testes (15 arquivos), `workers`: 33 testes (9 arquivos), `packages/domain`: 16 testes (2 arquivos)
 - `pnpm -r run lint`: OK (todos os workspaces passam)
 
 Observação residual de lint:
@@ -380,15 +380,22 @@ Limpa — nenhuma alteração pendente.
 
 > **Nota (2026-04-22):** PRD-03 implementado (Fases 1–5). Inclui: tabelas `notification_templates` e `notification_logs` com enums `notification_type`/`notification_status`, RLS service_role-only, seed de 3 templates default, enums e `TemplateRenderer` no domínio, `NotificationService` na API com envio de nova cotação, envio tardio e alerta de sem resposta, `ResendEmailProvider` com plugin Fastify, worker `notification:send-email` com retry, schemas Zod para validação de rotas, integração com `QuotationsController.sendQuotation`, hook de envio tardio em `UsersController.reactivate`, alerta de sem resposta via `sendNoResponseEmailAlert` no `quotation-expire-check`, telas de templates e logs no frontend, testes unitários e de integração.
 
-> **Nota (2026-04-23):** PRD-04 implementado (Fases 1–4). Inclui: 2 migrações de banco (`20260423110000` + `20260423110001`) com extensão de `follow_up_trackers` (supplier_id, promised dates, notification tracking, supplier response, approval, paused_at, completed_reason), tabelas `follow_up_date_changes` e `business_days_holidays`, 4 novos tipos de notificação (`followup_reminder`, `overdue_alert`, `confirmation_received`, `new_date_pending`) com templates seed, enums PRD-04 no domínio, schemas Zod no shared, módulo API `followup` com 7 endpoints (listagem, detalhe, confirmação, sugestão/aprovação/reprovação de datas, histórico de notificações), RBAC e isolamento de fornecedor, auditoria completa, worker `follow-up` scheduler diário com régua de notificações sequenciais (1 por dia útil, Compras em cópia da 2ª em diante), detecção de atraso (D+1 útil), encerramento automático por entrega/cancelamento, utilitário de dias úteis com feriados, e telas frontend (backoffice: FollowUpList/FollowUpDetail com aprovação; fornecedor: SupplierFollowUpList/SupplierFollowUpDetail com confirmação e sugestão de data). Adicionalmente, as telas de pedidos PRD-05 foram implementadas no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail).
+> **Nota (2026-04-24 — auditoria completa PRD-04):** PRD-04 implementado (Fases 1–4). Todas as 25 regras de negócio (RN-01 a RN-25) estão implementadas e verificadas. Inclui: 2 migrações de banco (`20260423110000` + `20260423110001`) com extensão de `follow_up_trackers` (supplier_id, promised dates, notification tracking, supplier response, approval, paused_at, completed_reason), tabelas `follow_up_date_changes` e `business_days_holidays`, 4 novos tipos de notificação (`followup_reminder`, `overdue_alert`, `confirmation_received`, `new_date_pending`) com templates seed, enums PRD-04 no domínio, schemas Zod no shared, módulo API `followup` com 7 endpoints (listagem, detalhe, confirmação, sugestão/aprovação/reprovação de datas, histórico de notificações), RBAC e isolamento de fornecedor, auditoria completa de todos os 8 eventos do PRD, worker `follow-up` scheduler diário com régua de notificações sequenciais (1 por dia útil, Compras em cópia da 2ª em diante), detecção de atraso (D+1 útil), encerramento automático por entrega/cancelamento, utilitário de dias úteis com feriados, e telas frontend (backoffice: FollowUpList com filtros de status/fornecedor/obra e FollowUpDetail com timeline de notificações e aprovação de datas; fornecedor: SupplierFollowUpList com indicação de avaria/reposição e SupplierFollowUpDetail com histórico de notificações, confirmação e sugestão de data). Adicionalmente, as telas de pedidos PRD-05 foram implementadas no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail).
 >
-> Testes existentes (14 testes): API 4 (followup.routes.test.ts), worker 3 (follow-up.test.ts), utils 5 (business-days.test.ts), frontend 2 (FollowUpList.test.tsx, SupplierFollowUpDetail.test.tsx). Cenários não cobertos: sugestão de data, aprovação/reprovação, reinício de régua, cópia Compras Notificação 2+, entrega parcial.
+> Testes existentes (27 total): API 11 (followup.routes.test.ts), worker 5 (follow-up.test.ts), utils business-days 5 (business-days.test.ts), utils order-status-recalc 1 (order-status-recalc.test.ts — encerramento de tracker por entrega), frontend 5 (FollowUpList.test.tsx ×2, FollowUpDetail.test.tsx ×1, SupplierFollowUpList.test.tsx ×1, SupplierFollowUpDetail.test.tsx ×1). Cenários sem cobertura de teste: cópia Compras Notificação 2+ (lógica existe, teste não valida), reinício end-to-end da régua após aprovação, integração de entrega parcial com PRD-05, concorrência scheduler/resposta, falha de e-mail, isolamento de supplier em `listNotifications`.
 >
-> Gaps conhecidos de lógica (não bloqueantes para V1.0):
+> **Correção (2026-04-24):** quatro gaps anteriormente documentados foram verificados como falsos na auditoria de código:
 >
-> - **RN-13/14**: após confirmação do fornecedor (tracker `CONCLUIDO`), se a data prometida vencer sem entrega confirmada, o tracker não é reativado automaticamente para monitoramento de atraso;
-> - **decideDateChange('approved')** calcula `nextNotificationDate` com dias corridos em vez de dias úteis (inconsistente com `ensureTrackers()` que usa `countBusinessDays`);
-> - Listas frontend faltam campos do PRD: obra, saldo pendente, cotação vinculada (backoffice), data do pedido e indicação de avaria/reposição (portal do fornecedor).
+> - ~~RN-13/14: tracker CONCLUIDO não é reativado~~ → **Falso.** O worker `processTracker()` verifica overdue **antes** de checar status CONCLUIDO, marcando como ATRASADO corretamente. Teste `marks confirmed tracker as overdue` valida isso.
+> - ~~decideDateChange('approved') usa dias corridos~~ → **Falso.** O controller usa `this.countBusinessDays()` e `this.addBusinessDays()` com suporte a feriados e fins de semana.
+> - ~~Frontend não exibe histórico de notificações~~ → **Falso.** `FollowUpDetail.tsx` (L119-155) renderiza "Timeline de Notificações" e `SupplierFollowUpDetail.tsx` (L118-152) renderiza "Histórico de Notificações" com dados do endpoint de detalhe.
+> - ~~Frontend backoffice sem filtros de fornecedor e obra~~ → **Falso.** `FollowUpList.tsx` (L83-110) possui inputs para `Fornecedor (ID)` e `Obra (ID)` que parametrizam a chamada à API com `supplier_id` e `building_id`.
+>
+> Gaps reais remanescentes (não bloqueantes para V1.0):
+>
+> - **Migração — coluna `suggested_date`**: a migração PRD-04 não declara `ADD COLUMN suggested_date` em `follow_up_trackers`, mas a coluna existe no schema inicial (V1 linha 205). O controller faz update com ela corretamente — a funcionalidade opera sem problemas, mas a coluna carece de ownership formal na migração PRD-04;
+> - **Fase 5 (integração com Módulo 5)**: lógica de entrega parcial/encerramento existe (testada em `order-status-recalc.test.ts`), mas sem testes integrados end-to-end entre follow-up e fluxo de delivery;
+> - **Teste — isolamento supplier em listNotifications**: não há teste verificando que `FORNECEDOR` recebe `403` ao consultar notificações de outro fornecedor.
 
 > **Nota (2026-04-23):** PRD-05 frontend implementado. As telas de pedidos e entregas — anteriormente listadas como pendentes — agora estão presentes: `/admin/orders`, `/admin/orders/:purchaseOrderId`, `/supplier/orders`, `/supplier/orders/:purchaseOrderId` com navegação no AdminLayout.
 

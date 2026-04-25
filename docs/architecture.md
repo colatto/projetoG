@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-23` para refletir o estado real do monorepo.
+Atualizado em `2026-04-24` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -427,12 +427,10 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com régua de notificações, detecção de atraso, encerramento automático, gestão de datas e telas frontend; possui 14 testes automatizados (API: 4, worker: 3, utils: 5, frontend: 2), com gaps de cobertura em sugestão/aprovação de datas e entrega parcial. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas na auditoria de 2026-04-24; possui 23 testes automatizados (API: 7, worker: 5, utils: 6, frontend: 5) e telas completas (backoffice com filtros e timeline de notificações; fornecedor com indicação de avaria e histórico). A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
-- expansão da cobertura de testes do módulo follow-up (sugestão/aprovação de datas, reinício de régua, entrega parcial)
-- correção de recálculo de `nextNotificationDate` em `decideDateChange('approved')` para usar dias úteis
-- reativação de tracker `CONCLUIDO` quando data prometida vence sem entrega (RN-13/14)
-- complemento de campos nas listas de follow-up (obra, saldo pendente, cotação vinculada)
+- expansão da cobertura de testes do módulo follow-up (cópia Compras Notificação 2+, reinício end-to-end da régua, integração end-to-end com fluxo de entrega parcial, isolamento de supplier em listNotifications)
+- verificação da coluna `suggested_date` no schema remoto de `follow_up_trackers` (presente no schema inicial V1 mas sem ownership formal na migração PRD-04)
 - implementação do módulo de avaria e ação corretiva (PRD-06)
 - formalização da estratégia de deploy de produção

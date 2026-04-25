@@ -4,13 +4,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    // Avoid tinypool recursion issues seen in CI/local with threads.
+    // Use process forks for API integration tests; per-suite app.close() now
+    // handles teardown explicitly and keeps shutdown stable.
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
     fileParallelism: false,
     maxConcurrency: 1,
     setupFiles: ['src/test/setup.ts'],

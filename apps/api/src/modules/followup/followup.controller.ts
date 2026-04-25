@@ -16,6 +16,17 @@ type FollowupListRow = {
   purchase_orders?: { local_status?: string | null } | null;
 };
 
+function toDateOnly(date: Date): Date {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function isWeekend(date: Date): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
 export class FollowupController {
   constructor(private app: FastifyInstance) {}
 
@@ -76,6 +87,44 @@ export class FollowupController {
     return (data || []).map((profile) => profile.email).filter((email) => email.length > 0);
   }
 
+  private async resolveHolidays(): Promise<Set<string>> {
+    const { data } = await this.app.supabase.from('business_days_holidays').select('holiday_date');
+    return new Set((data || []).map((row: { holiday_date: string }) => row.holiday_date));
+  }
+
+  private countBusinessDays(startDate: Date, endDate: Date, holidays: Set<string>): number {
+    const start = toDateOnly(startDate);
+    const end = toDateOnly(endDate);
+    if (end < start) return 0;
+
+    let count = 0;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = cursor.toISOString().slice(0, 10);
+      if (!isWeekend(cursor) && !holidays.has(key)) {
+        count += 1;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return count;
+  }
+
+  private addBusinessDays(startDate: Date, businessDays: number, holidays: Set<string>): Date {
+    const result = toDateOnly(startDate);
+    let remaining = Math.max(0, businessDays);
+
+    while (remaining > 0) {
+      result.setDate(result.getDate() + 1);
+      const key = result.toISOString().slice(0, 10);
+      if (!isWeekend(result) && !holidays.has(key)) {
+        remaining -= 1;
+      }
+    }
+
+    return result;
+  }
+
   async listOrders(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
     const { status, supplier_id, building_id, page = 1, limit = 20 } =
@@ -83,7 +132,7 @@ export class FollowupController {
 
     let query = this.app.supabase
       .from('follow_up_trackers')
-      .select('*, purchase_orders(id, order_number, local_status), suppliers(id, name)');
+      .select('*, purchase_orders(id, order_number, local_status, pending_quantity, building_id), suppliers(id, name)');
 
     if (status) {
       query = query.eq('status', status);
@@ -109,7 +158,30 @@ export class FollowupController {
       return reply.internalServerError('Erro ao listar follow-up');
     }
 
-    const sortedRows = this.sortByOperationalPriority(data || []);
+    const rows = data || [];
+    const orderIds = rows.map((row) => row.purchase_order_id).filter((id) => Number.isFinite(id));
+    const linkedQuotationByOrderId = new Map<number, number>();
+    if (orderIds.length > 0) {
+      const { data: links } = await this.app.supabase
+        .from('order_quotation_links')
+        .select('purchase_order_id, purchase_quotation_id')
+        .in('purchase_order_id', orderIds);
+
+      for (const link of links || []) {
+        const purchaseOrderId = Number(link.purchase_order_id);
+        const purchaseQuotationId = Number(link.purchase_quotation_id);
+        if (!Number.isFinite(purchaseOrderId) || !Number.isFinite(purchaseQuotationId)) continue;
+        if (!linkedQuotationByOrderId.has(purchaseOrderId)) {
+          linkedQuotationByOrderId.set(purchaseOrderId, purchaseQuotationId);
+        }
+      }
+    }
+
+    const enrichedRows = rows.map((row) => ({
+      ...row,
+      linked_quotation_id: linkedQuotationByOrderId.get(Number(row.purchase_order_id)) ?? null,
+    }));
+    const sortedRows = this.sortByOperationalPriority(enrichedRows);
     const total = sortedRows.length;
     const from = (page - 1) * limit;
     const to = from + limit;
@@ -408,12 +480,12 @@ export class FollowupController {
     }
 
     if (decision === 'approved') {
+      const holidays = await this.resolveHolidays();
       const orderDate = new Date(tracker.order_date);
       const promisedDate = new Date(dateChange.suggested_date);
-      const days = Math.max(1, Math.ceil((promisedDate.getTime() - orderDate.getTime()) / 86400000));
-      const half = Math.max(1, Math.floor(days / 2));
-      const nextNotificationDate = new Date(orderDate);
-      nextNotificationDate.setDate(orderDate.getDate() + half);
+      const totalBusinessDays = Math.max(1, this.countBusinessDays(orderDate, promisedDate, holidays));
+      const firstReminderDay = Math.max(1, Math.floor(totalBusinessDays / 2));
+      const nextNotificationDate = this.addBusinessDays(orderDate, firstReminderDay, holidays);
 
       await this.app.supabase
         .from('follow_up_trackers')

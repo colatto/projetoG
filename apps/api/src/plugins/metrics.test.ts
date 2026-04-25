@@ -1,17 +1,23 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
+import { FastifyInstance } from 'fastify';
 
 describe('Metrics plugin', () => {
+  let app: FastifyInstance;
+
   beforeEach(() => {
     process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
     process.env.SUPABASE_SERVICE_ROLE_KEY =
       process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+    app = buildApp();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('deve expor metricas sem quebrar o bootstrap da aplicacao', async () => {
-    const app = buildApp();
-
     const response = await app.inject({
       method: 'GET',
       url: '/metrics',

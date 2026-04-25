@@ -8,6 +8,8 @@ const followUpTrackersMaybeSingleMock = vi.fn().mockResolvedValue({ data: null, 
 const notificationLogsSingleMock = vi.fn().mockResolvedValue({ data: { id: 'log-1' }, error: null });
 const notificationLogsSelectMock = vi.fn(() => ({ single: notificationLogsSingleMock }));
 const notificationLogsInsertMock = vi.fn(() => ({ select: notificationLogsSelectMock }));
+const notificationLogsUpdateEqMock = vi.fn().mockResolvedValue({ error: null });
+const notificationLogsUpdateMock = vi.fn(() => ({ eq: notificationLogsUpdateEqMock }));
 
 const supplierContactsLimitMock = vi
   .fn()
@@ -96,7 +98,7 @@ const supabaseMock = {
       case 'supplier_contacts':
         return { select: supplierContactsSelectMock };
       case 'notification_logs':
-        return { insert: notificationLogsInsertMock };
+        return { insert: notificationLogsInsertMock, update: notificationLogsUpdateMock };
       default:
         throw new Error(`Unexpected table ${table}`);
     }
@@ -141,7 +143,13 @@ describe('processFollowUp', () => {
     await processFollowUp({ id: 'job-followup' } as never);
 
     expect(followUpTrackersUpdateEqMock).toHaveBeenCalled();
-    expect(notificationLogsInsertMock).toHaveBeenCalled();
+    expect(notificationLogsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          copied_to_compras: true,
+        }),
+      }),
+    );
     expect(bossSendMock).toHaveBeenCalledWith(
       'notification:send-email',
       expect.objectContaining({
@@ -192,5 +200,72 @@ describe('processFollowUp', () => {
         current_delivery_date: '2026-04-20',
       }),
     );
+  });
+
+  it('marks confirmed tracker as overdue after promised date expiration', async () => {
+    trackersInMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'trk-confirmed',
+          purchase_order_id: 1,
+          supplier_id: 10,
+          order_date: '2026-04-01',
+          promised_date_current: '2026-04-01',
+          status: 'CONCLUIDO',
+          current_notification_number: 2,
+          supplier_response_type: 'confirmed_on_time',
+          next_notification_date: '2026-04-01',
+        },
+      ],
+      error: null,
+    });
+
+    await processFollowUp({ id: 'job-followup' } as never);
+
+    expect(trackersUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'ATRASADO',
+        next_notification_date: null,
+      }),
+    );
+    expect(notificationLogsInsertMock).toHaveBeenCalled();
+  });
+
+  it('keeps confirmed tracker silent before overdue threshold', async () => {
+    trackersInMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'trk-confirmed-future',
+          purchase_order_id: 1,
+          supplier_id: 10,
+          order_date: '2026-04-01',
+          promised_date_current: '2999-12-31',
+          status: 'CONCLUIDO',
+          current_notification_number: 2,
+          supplier_response_type: 'confirmed_on_time',
+          next_notification_date: '2026-04-01',
+        },
+      ],
+      error: null,
+    });
+
+    await processFollowUp({ id: 'job-followup' } as never);
+
+    expect(notificationLogsInsertMock).not.toHaveBeenCalled();
+    expect(bossSendMock).not.toHaveBeenCalled();
+  });
+
+  it('marks notification log as failed when queueing email fails', async () => {
+    bossSendMock.mockRejectedValueOnce(new Error('queue unavailable'));
+
+    await expect(processFollowUp({ id: 'job-followup' } as never)).rejects.toThrow('queue unavailable');
+
+    expect(notificationLogsUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        error_message: 'queue unavailable',
+      }),
+    );
+    expect(notificationLogsUpdateEqMock).toHaveBeenCalledWith('id', 'log-1');
   });
 });

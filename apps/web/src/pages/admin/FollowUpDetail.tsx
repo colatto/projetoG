@@ -22,6 +22,13 @@ type FollowUpDetailData = {
   promised_date_current: string;
   current_notification_number: number;
   date_changes: DateChange[];
+  notifications?: Array<{
+    id: string;
+    created_at?: string | null;
+    subject?: string | null;
+    recipient_email?: string | null;
+    status?: string | null;
+  }>;
   purchase_orders?: { local_status?: string } | null;
 };
 
@@ -106,6 +113,45 @@ export default function FollowUpDetail() {
             <div className="label">Notificação atual</div>
             <div className="value">{data.current_notification_number}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="o-detail-section">
+        <div className="o-detail-header">
+          <h2 style={{ fontSize: '1.125rem' }}>Timeline de Notificações</h2>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Assunto</th>
+                <th>Destinatário</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.notifications || []).map((notification) => (
+                <tr key={notification.id}>
+                  <td>
+                    {notification.created_at
+                      ? new Date(notification.created_at).toLocaleString('pt-BR')
+                      : '—'}
+                  </td>
+                  <td>{notification.subject || '—'}</td>
+                  <td>{notification.recipient_email || '—'}</td>
+                  <td>{notification.status || '—'}</td>
+                </tr>
+              ))}
+              {(data.notifications || []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="o-empty">
+                    Nenhuma notificação registrada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

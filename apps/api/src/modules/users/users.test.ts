@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { buildApp } from '../../app.js';
 import { UserRole, UserStatus } from '@projetog/domain';
 
@@ -88,6 +88,10 @@ describe('Users Routes — RBAC & Lifecycle', () => {
     vi.clearAllMocks();
     app = buildTestApp();
     await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   // ── RBAC ─────────────────────────────────────────────────────────

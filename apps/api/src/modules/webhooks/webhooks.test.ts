@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../app.js';
 import { IntegrationEventType, WebhookType } from '@projetog/domain';
+import { FastifyInstance } from 'fastify';
 
 const mockFrom = vi.fn();
 const mockBossSend = vi.fn();
@@ -33,8 +34,16 @@ function buildTestApp() {
 }
 
 describe('Webhook Routes', () => {
-  beforeEach(() => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    app = buildTestApp();
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('should accept a valid Sienge webhook, persist it and enqueue async processing', async () => {
@@ -71,9 +80,6 @@ describe('Webhook Routes', () => {
 
       throw new Error(`Unexpected table ${table}`);
     });
-
-    const app = buildTestApp();
-    await app.ready();
 
     const response = await app.inject({
       method: 'POST',
@@ -136,9 +142,6 @@ describe('Webhook Routes', () => {
   });
 
   it('should reject webhook requests without the required Sienge headers', async () => {
-    const app = buildTestApp();
-    await app.ready();
-
     const response = await app.inject({
       method: 'POST',
       url: '/webhooks/sienge',
@@ -154,9 +157,6 @@ describe('Webhook Routes', () => {
   });
 
   it('should reject webhook requests when an optional secret is provided with the wrong value', async () => {
-    const app = buildTestApp();
-    await app.ready();
-
     const response = await app.inject({
       method: 'POST',
       url: '/webhooks/sienge',
@@ -202,9 +202,6 @@ describe('Webhook Routes', () => {
 
       throw new Error(`Unexpected table ${table}`);
     });
-
-    const app = buildTestApp();
-    await app.ready();
 
     const response = await app.inject({
       method: 'POST',

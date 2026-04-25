@@ -1,18 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { buildApp } from '../app.js';
+import { FastifyInstance } from 'fastify';
 
 describe('Health Route', () => {
+  let app: FastifyInstance;
+
   beforeEach(() => {
     // Ensure env vars needed by plugins are set for test
     process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
     process.env.SUPABASE_SERVICE_ROLE_KEY =
       process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+    app = buildApp();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('deve retornar HTTP 200 e payload válido no endpoint de saúde rotineira', async () => {
-    const app = buildApp();
-
     // .inject simula um request completo de rede pelo framework, sem subir listeners reais
     const response = await app.inject({
       method: 'GET',

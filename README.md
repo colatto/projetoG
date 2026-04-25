@@ -115,7 +115,7 @@ Referência operacional: `docs/runbooks/setup.md`
 
 - Manifests em `deploy/k8s/` com Kustomization
 
-## Situação dos checks em 2026-04-23
+## Situação dos checks em 2026-04-24
 
 - `pnpm -r run build`: passa (6 workspaces)
 - `pnpm -r run test`: passa — `apps/api`: 88 testes (14 arquivos), `workers`: 33 testes (9 arquivos), `packages/domain`: 16 testes (2 arquivos)

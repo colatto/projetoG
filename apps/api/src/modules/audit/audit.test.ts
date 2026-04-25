@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { buildApp } from '../../app.js';
 import { AuditService } from './audit.service.js';
 
@@ -40,6 +40,10 @@ describe('AuditService', () => {
     app = buildTestApp();
     await app.ready();
     auditService = new AuditService(app);
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('should persist audit log with event_type, actor_id, target_user_id and metadata', async () => {

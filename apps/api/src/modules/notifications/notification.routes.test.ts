@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FastifyInstance } from 'fastify';
 import { buildApp } from '../../app.js';
 import { UserRole, UserStatus } from '@projetog/domain';
@@ -17,8 +17,16 @@ describe('Notification Routes', () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
+    process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
+    process.env.SUPABASE_SERVICE_ROLE_KEY =
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
     app = buildApp({ boss: null as any });
     await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   describe('GET /api/notifications/templates', () => {

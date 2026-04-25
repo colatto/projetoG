@@ -11,6 +11,12 @@ type FollowUpDetailData = {
   order_date: string;
   promised_date_current: string;
   suggested_date_status: string | null;
+  notifications?: Array<{
+    id: string;
+    created_at?: string | null;
+    subject?: string | null;
+    status?: string | null;
+  }>;
   purchase_orders?: { local_status?: string } | null;
 };
 
@@ -106,6 +112,43 @@ export default function SupplierFollowUpDetail() {
             <div className="label">Status da sugestão</div>
             <div className="value">{data.suggested_date_status || '—'}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="o-detail-section">
+        <div className="o-detail-header">
+          <h2 style={{ fontSize: '1.125rem' }}>Histórico de Notificações</h2>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Assunto</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.notifications || []).map((notification) => (
+                <tr key={notification.id}>
+                  <td>
+                    {notification.created_at
+                      ? new Date(notification.created_at).toLocaleString('pt-BR')
+                      : '—'}
+                  </td>
+                  <td>{notification.subject || '—'}</td>
+                  <td>{notification.status || '—'}</td>
+                </tr>
+              ))}
+              {(data.notifications || []).length === 0 && (
+                <tr>
+                  <td colSpan={3} className="o-empty">
+                    Nenhuma notificação recebida até o momento.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

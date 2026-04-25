@@ -30,6 +30,14 @@ describe('SupplierFollowUpDetail', () => {
           order_date: '2026-04-01',
           promised_date_current: '2026-04-15',
           suggested_date_status: null,
+          notifications: [
+            {
+              id: 'n-1',
+              created_at: '2026-04-10T08:00:00.000Z',
+              subject: 'Notificação 1',
+              status: 'sent',
+            },
+          ],
         },
       })
       .mockResolvedValueOnce({
@@ -39,6 +47,7 @@ describe('SupplierFollowUpDetail', () => {
           order_date: '2026-04-01',
           promised_date_current: '2026-04-15',
           suggested_date_status: null,
+          notifications: [],
         },
       });
 
@@ -53,6 +62,8 @@ describe('SupplierFollowUpDetail', () => {
     );
 
     expect(await screen.findByText('Follow-up do Pedido #123')).toBeInTheDocument();
+    expect(screen.getByText('Histórico de Notificações')).toBeInTheDocument();
+    expect(screen.getByText('Notificação 1')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Confirmarei entrega no prazo'));
 

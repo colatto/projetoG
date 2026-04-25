@@ -85,12 +85,12 @@ Servir o backend dedicado do projeto com Fastify 5.
 
 ## Estado de qualidade
 
-- testes: 88 passando (14 suítes)
+- testes: 100 passando (15 suítes)
 - build: passa
 - lint: passa
+- vitest runner: estável — todas as suítes fazem teardown com `app.close()`, `pool: 'forks'` sem warnings de `MaxListeners` ou `tinypool`
 
 ## Funcionalidades ainda não implementadas
 
 - endpoints de avarias e dashboard
 - portal completo do Visualizador de Pedidos
-- expansão de testes para sugestão/aprovação de datas de follow-up

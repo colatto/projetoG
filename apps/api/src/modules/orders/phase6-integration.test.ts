@@ -6,7 +6,7 @@
  * - §6.2 Damage reception stub: reportAvaria updates order status correctly
  * - §6.3 All 6 audit events coverage via API interactions
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
@@ -16,6 +16,10 @@ describe('Phase 6 — Cross-module Integration', () => {
   beforeEach(async () => {
     context = await buildTestApp();
     vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await context.app.close();
   });
 
   // ── §6.3 Audit Event Coverage ──────────────────────────────────

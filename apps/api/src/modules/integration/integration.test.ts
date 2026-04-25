@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../app.js';
 import { IntegrationEventType, UserRole, UserStatus, WebhookType } from '@projetog/domain';
+import { FastifyInstance } from 'fastify';
 
 const mockFrom = vi.fn();
 const mockBossSend = vi.fn();
@@ -55,8 +56,16 @@ function createAwaitableBuilder<T extends object>(result: T) {
 }
 
 describe('Integration Routes', () => {
-  beforeEach(() => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    app = buildTestApp();
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('should list integration events for Compras with filters and pagination', async () => {
@@ -82,8 +91,6 @@ describe('Integration Routes', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const app = buildTestApp();
-    await app.ready();
     const token = await getAuthToken(app, UserRole.COMPRAS);
 
     const response = await app.inject({
@@ -115,8 +122,6 @@ describe('Integration Routes', () => {
   });
 
   it('should forbid retry for non-Compras roles', async () => {
-    const app = buildTestApp();
-    await app.ready();
     const token = await getAuthToken(app, UserRole.ADMINISTRADOR);
 
     const response = await app.inject({
@@ -202,8 +207,6 @@ describe('Integration Routes', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const app = buildTestApp();
-    await app.ready();
     const token = await getAuthToken(app, UserRole.COMPRAS);
 
     const response = await app.inject({
@@ -261,8 +264,6 @@ describe('Integration Routes', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const app = buildTestApp();
-    await app.ready();
     const token = await getAuthToken(app, UserRole.COMPRAS);
 
     const response = await app.inject({

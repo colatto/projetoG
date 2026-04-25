@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
@@ -8,6 +8,10 @@ describe('Orders Module', () => {
   beforeEach(async () => {
     context = await buildTestApp();
     vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await context.app.close();
   });
 
   it('GET /api/orders should list orders for ADMIN', async () => {

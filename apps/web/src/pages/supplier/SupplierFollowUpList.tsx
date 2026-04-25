@@ -9,6 +9,8 @@ type FollowUpRow = {
   id: string;
   purchase_order_id: number;
   status: string;
+  order_date: string;
+  building_id?: number | null;
   promised_date_current: string;
   current_notification_number: number;
   purchase_orders?: { local_status?: string } | null;
@@ -55,7 +57,10 @@ export default function SupplierFollowUpList() {
               <tr>
                 <th>Pedido</th>
                 <th>Status</th>
+                <th>Data Pedido</th>
                 <th>Data Prometida</th>
+                <th>Obra</th>
+                <th>Avaria/Reposição</th>
                 <th>Notificação Atual</th>
               </tr>
             </thead>
@@ -72,13 +77,18 @@ export default function SupplierFollowUpList() {
                       {getOrderStatusLabel(row.purchase_orders?.local_status || row.status)}
                     </span>
                   </td>
+                  <td>{new Date(row.order_date).toLocaleDateString('pt-BR')}</td>
                   <td>{new Date(row.promised_date_current).toLocaleDateString('pt-BR')}</td>
+                  <td>{row.building_id || '—'}</td>
+                  <td>
+                    {['EM_AVARIA', 'REPOSICAO'].includes(row.purchase_orders?.local_status || '') ? 'Sim' : 'Não'}
+                  </td>
                   <td>{row.current_notification_number}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="o-empty">
+                  <td colSpan={7} className="o-empty">
                     Nenhum follow-up ativo no momento.
                   </td>
                 </tr>

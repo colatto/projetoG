@@ -42,7 +42,7 @@ export async function processFollowUp(job: PgBoss.Job): Promise<void> {
   const { data: trackers, error: trackersError } = await (supabase as any)
     .from('follow_up_trackers')
     .select('*')
-    .in('status', [...ACTIVE_STATUSES, 'PAUSADO', 'ATRASADO']);
+    .in('status', [...ACTIVE_STATUSES, 'PAUSADO', 'ATRASADO', 'CONCLUIDO']);
 
   if (trackersError) {
     throw new Error(`Failed to list follow-up trackers: ${trackersError.message}`);
@@ -98,7 +98,14 @@ async function ensureTrackers(supabase: any, holidays: Set<string>) {
       .select('id, status')
       .eq('purchase_order_id', order.id)
       .eq('supplier_id', order.supplier_id)
-      .in('status', ['ATIVO', 'PAUSADO', 'NOVA_DATA_APROVADA', 'NOVA_DATA_SUGERIDA'])
+      .in('status', [
+        'ATIVO',
+        'PAUSADO',
+        'NOVA_DATA_APROVADA',
+        'NOVA_DATA_SUGERIDA',
+        'CONCLUIDO',
+        'ATRASADO',
+      ])
       .maybeSingle();
 
     if (existing) continue;
@@ -157,12 +164,17 @@ async function processTracker(supabase: any, tracker: FollowUpTracker, holidays:
   }
 
   const overdueThreshold = addBusinessDays(promised, 1, holidays);
-  if (today >= overdueThreshold && tracker.supplier_response_type !== 'confirmed_on_time') {
+  if (today >= overdueThreshold) {
     await supabase
       .from('follow_up_trackers')
       .update({ status: 'ATRASADO', next_notification_date: null })
       .eq('id', tracker.id);
     await sendReminderNotification(supabase, tracker, NotificationType.OVERDUE_ALERT, true);
+    return;
+  }
+
+  // Confirmed trackers stay silent until overdue threshold.
+  if (tracker.status === 'CONCLUIDO' || tracker.supplier_response_type === 'confirmed_on_time') {
     return;
   }
 
@@ -182,7 +194,9 @@ async function processTracker(supabase: any, tracker: FollowUpTracker, holidays:
       last_notification_sent_at: new Date().toISOString(),
       next_notification_date: nextDate,
     })
-    .eq('id', tracker.id);
+    .eq('id', tracker.id)
+    .eq('current_notification_number', tracker.current_notification_number)
+    .in('status', [...ACTIVE_STATUSES, 'ATRASADO', 'CONCLUIDO']);
 }
 
 async function sendReminderNotification(
@@ -243,11 +257,22 @@ async function sendReminderNotification(
     .single();
 
   if (logEntry) {
-    await getBoss().send('notification:send-email', {
-      notificationLogId: logEntry.id,
-      recipientEmail: supplierEmail,
-      subject: finalSubject,
-      htmlBody: finalBody,
-    });
+    try {
+      await getBoss().send('notification:send-email', {
+        notificationLogId: logEntry.id,
+        recipientEmail: supplierEmail,
+        subject: finalSubject,
+        htmlBody: finalBody,
+      });
+    } catch (error: any) {
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: 'failed',
+          error_message: error?.message || 'Failed to enqueue email notification',
+        })
+        .eq('id', logEntry.id);
+      throw error;
+    }
   }
 }
