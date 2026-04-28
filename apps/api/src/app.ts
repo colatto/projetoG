@@ -27,6 +27,7 @@ import { deliveriesRoutes } from './modules/deliveries/index.js';
 import { ordersRoutes } from './modules/orders/index.js';
 import { notificationsRoutes } from './modules/notifications/index.js';
 import { followupRoutes } from './modules/followup/index.js';
+import { damagesRoutes } from './modules/damages/index.js';
 
 import type { JobPublisher } from './plugins/pg-boss.js';
 
@@ -111,6 +112,8 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(notificationsRoutes, { prefix: '/api/notifications' });
   // Follow-up (PRD-04)
   app.register(followupRoutes, { prefix: '/api/followup' });
+  // Damages and corrective actions (PRD-06)
+  app.register(damagesRoutes, { prefix: '/api/damages' });
 
   return app;
 }

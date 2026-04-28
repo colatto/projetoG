@@ -10,3 +10,7 @@ export * from './delivery-validation-status.js';
 export * from './order-operational-status.js';
 export * from './notification-type.js';
 export * from './notification-status.js';
+export * from './damage-status.js';
+export * from './damage-action.js';
+export * from './damage-replacement-status.js';
+export * from './damage-replacement-scope.js';

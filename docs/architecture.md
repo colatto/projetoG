@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-24` para refletir o estado real do monorepo.
+Atualizado em `2026-04-28` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -170,13 +170,13 @@ sequenceDiagram
 
 | Diretório                     | Papel                    | Aderência observada | Observações                                                                                        |
 | ----------------------------- | ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------- |
-| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02 implementado                              |
-| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02 e PRD-05 implementados                                       |
+| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02, PRD-05, PRD-04 e PRD-06 implementados    |
+| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02, PRD-05 e PRD-06 implementados                               |
 | `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils; recálculo de status PRD-05 |
 | `packages/domain`             | domínio                  | média-boa           | entidades centrais, `OrderStatusEngine` (PRD-05) e testes unitários                                |
 | `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                         |
 | `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                      |
-| `supabase`                    | plataforma de dados      | boa                 | 15 migrações versionadas; PRD-02, PRD-05, PRD-03 e PRD-04 com RLS                                  |
+| `supabase`                    | plataforma de dados      | boa                 | 16 migrações versionadas; PRD-02, PRD-05, PRD-03, PRD-04 e PRD-06 com RLS                          |
 | `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                    |
 | `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                             |
 
@@ -210,6 +210,7 @@ sequenceDiagram
 | `20260422145434_prd03_notification_templates_and_logs.sql` | templates e logs de notificação PRD-03                                                                                |
 | `20260423110000_prd04_followup_logistico.sql`              | follow_up_trackers extensão, follow_up_date_changes, business_days_holidays, 4 tipos de notificação PRD-04            |
 | `20260423110001_prd04_followup_notification_templates.sql` | seed de 4 templates de notificação PRD-04 (followup_reminder, overdue_alert, confirmation_received, new_date_pending) |
+| `20260428150000_prd06_damages_and_corrective_actions.sql`  | extensão de damages, damage_replacements, damage_audit_logs, RLS, constraints e índices PRD-06                        |
 
 ### 6.3 Grupos principais de tabelas
 
@@ -244,7 +245,9 @@ Pedidos e logística:
 - `follow_up_trackers` (PRD-04: extensão com supplier_id, order_date, promised_date_original, promised_date_current, notification tracking, supplier response, approval fields, building_id, paused_at, completed_reason)
 - `follow_up_date_changes` (PRD-04: histórico de sugestões de nova data com decisão e auditoria)
 - `business_days_holidays` (PRD-04: feriados para cálculo de dias úteis)
-- `damages`
+- `damages` (PRD-06: extensão com reported_by_profile, suggested_action_notes, final_action, decided_by/at, affected_quantity, supplier_id, building_id)
+- `damage_replacements` (PRD-06: reposição de avaria com replacement_status, replacement_scope, new_promised_date; trigger updated_at)
+- `damage_audit_logs` (PRD-06: trilha de auditoria específica de avaria com 11 tipos de evento)
 - `notifications`
 - `notification_templates` (PRD-03: templates editáveis com placeholders obrigatórios)
 - `notification_logs` (PRD-03: registro de e-mails com snapshot, status e auditoria; PRD-04: colunas `purchase_order_id`, `follow_up_tracker_id`, `metadata`)
@@ -258,7 +261,7 @@ Integração Sienge:
 
 ### 6.4 RLS e governança
 
-- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries`, `order_status_history`, `notification_templates` e `notification_logs`
+- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries`, `order_status_history`, `notification_templates`, `notification_logs`, `damages`, `damage_replacements` e `damage_audit_logs`
 - políticas de leitura e inserção para fornecedor usam `public.get_auth_supplier_id()`
 - `follow_up_trackers` possui políticas de leitura e atualização por fornecedor via `purchase_orders.supplier_id`
 - backend e workers usam `service_role`, então bypassam RLS quando necessário
@@ -427,10 +430,9 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas na auditoria de 2026-04-24; possui 23 testes automatizados (API: 7, worker: 5, utils: 6, frontend: 5) e telas completas (backoffice com filtros e timeline de notificações; fornecedor com indicação de avaria e histórico). A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas. O módulo de avarias e ação corretiva (PRD-06) está implementado (Fases 1–6) com todas as 21 regras de negócio verificadas, 8 endpoints de API, auditoria completa com 11 eventos, integração worker para confirmação automática de reposição, e telas frontend completas com badges e timeline de auditoria. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
 - expansão da cobertura de testes do módulo follow-up (cópia Compras Notificação 2+, reinício end-to-end da régua, integração end-to-end com fluxo de entrega parcial, isolamento de supplier em listNotifications)
 - verificação da coluna `suggested_date` no schema remoto de `follow_up_trackers` (presente no schema inicial V1 mas sem ownership formal na migração PRD-04)
-- implementação do módulo de avaria e ação corretiva (PRD-06)
 - formalização da estratégia de deploy de produção

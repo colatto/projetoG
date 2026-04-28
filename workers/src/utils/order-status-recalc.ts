@@ -67,11 +67,19 @@ export async function recalculateOrderStatus(
     }
   }
 
-  // 4. Calculate new status
-  // For 'hasAvaria' and 'hasReposicao', we would check flags if they exist. PRD-06 handles avaria.
-  // For now, we assume false or keep existing status if it is EM_AVARIA / REPOSICAO
-  const hasAvaria = order.local_status === 'EM_AVARIA';
-  const hasReposicao = order.local_status === 'REPOSICAO';
+  // 4. Calculate new status based on active damage facts (PRD-06).
+  const { data: activeDamages } = await supabase
+    .from('damages')
+    .select('status, final_action')
+    .eq('purchase_order_id', purchaseOrderId)
+    .in('status', ['REGISTRADA', 'SUGESTAO_PENDENTE', 'ACAO_DEFINIDA', 'EM_REPOSICAO']);
+
+  const hasReposicao = (activeDamages || []).some(
+    (damage) => damage.final_action === 'REPOSICAO' || damage.status === 'EM_REPOSICAO',
+  );
+  const hasAvaria = (activeDamages || []).some(
+    (damage) => damage.status !== 'RESOLVIDA' && damage.status !== 'CANCELAMENTO_APLICADO',
+  );
   const isCancelled = order.local_status === 'CANCELADO';
 
   const newStatus = OrderStatusEngine.calculateStatus({
@@ -85,7 +93,7 @@ export async function recalculateOrderStatus(
   });
 
   // 5. Update purchase_orders if anything changed
-  const updates: any = {};
+  const updates: Record<string, unknown> = {};
   if (order.total_quantity_ordered !== totalQuantityOrdered)
     updates.total_quantity_ordered = totalQuantityOrdered;
   if (order.total_quantity_delivered !== totalQuantityDelivered)

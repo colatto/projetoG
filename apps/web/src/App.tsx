@@ -32,6 +32,11 @@ import FollowUpList from './pages/admin/FollowUpList';
 import FollowUpDetail from './pages/admin/FollowUpDetail';
 import SupplierFollowUpList from './pages/supplier/SupplierFollowUpList';
 import SupplierFollowUpDetail from './pages/supplier/SupplierFollowUpDetail';
+import DamageList from './pages/admin/DamageList';
+import DamageDetail from './pages/admin/DamageDetail';
+import SupplierDamageList from './pages/supplier/SupplierDamageList';
+import SupplierDamageDetail from './pages/supplier/SupplierDamageDetail';
+import DamageCreate from './pages/damages/DamageCreate';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -87,6 +92,9 @@ function App() {
                 <Route path="/admin/orders/:purchaseOrderId" element={<OrderDetail />} />
                 <Route path="/admin/followup" element={<FollowUpList />} />
                 <Route path="/admin/followup/:purchaseOrderId" element={<FollowUpDetail />} />
+                <Route path="/admin/damages" element={<DamageList />} />
+                <Route path="/admin/damages/new" element={<DamageCreate />} />
+                <Route path="/admin/damages/:damageId" element={<DamageDetail />} />
               </Route>
 
               {/* Portal do Fornecedor */}
@@ -100,6 +108,9 @@ function App() {
                   path="/supplier/followup/:purchaseOrderId"
                   element={<SupplierFollowUpDetail />}
                 />
+                <Route path="/supplier/damages" element={<SupplierDamageList />} />
+                <Route path="/supplier/damages/new" element={<DamageCreate />} />
+                <Route path="/supplier/damages/:damageId" element={<SupplierDamageDetail />} />
               </Route>
             </Route>
 

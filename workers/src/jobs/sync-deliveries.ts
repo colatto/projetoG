@@ -14,7 +14,6 @@ import {
   SyncStatus,
 } from '@projetog/domain';
 import { sanitizeForLog } from '@projetog/shared';
-import { OrderStatusEngine } from '@projetog/domain';
 import { getSupabase } from '../supabase.js';
 import { getSiengeClient } from '../sienge.js';
 import { recalculateOrderStatus } from '../utils/order-status-recalc.js';
@@ -74,10 +73,7 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     let currentOffset = cursor?.last_offset || 0;
     let startDateFilter: string | undefined;
 
-    if (false) {
-      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
-      currentOffset = 0;
-    } else if (cursor?.last_synced_at) {
+    if (cursor?.last_synced_at) {
       const lastSynced = new Date(cursor.last_synced_at);
       if (lastSynced.getTime() > 0) {
         const startDate = new Date(lastSynced.getTime() - 60 * 60 * 1000);
@@ -190,6 +186,45 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
                 entity_id: upsertedDelivery.id.toString(),
                 metadata: { purchaseOrderId: localDelivery.purchaseOrderId, quantity: localDelivery.deliveredQuantity },
               });
+            }
+
+            // PRD-06: if the order item had a replacement in progress, mark it as delivered.
+            const { data: replacementRows } = await supabase
+              .from('damage_replacements')
+              .select('id, damage_id')
+              .eq('replacement_status', 'EM_ANDAMENTO')
+              .in(
+                'damage_id',
+                (
+                  await supabase
+                    .from('damages')
+                    .select('id')
+                    .eq('purchase_order_id', localDelivery.purchaseOrderId)
+                    .eq('item_number', localDelivery.purchaseOrderItemNumber)
+                    .eq('status', 'EM_REPOSICAO')
+                ).data?.map((row) => row.id) ?? ['00000000-0000-0000-0000-000000000000'],
+              );
+
+            if ((replacementRows || []).length > 0) {
+              const replacementIds = replacementRows!.map((row) => row.id);
+              const damageIds = replacementRows!.map((row) => row.damage_id);
+              await supabase
+                .from('damage_replacements')
+                .update({ replacement_status: 'ENTREGUE' })
+                .in('id', replacementIds);
+              await supabase
+                .from('damages')
+                .update({ status: 'RESOLVIDA' })
+                .in('id', damageIds);
+
+              for (const damageId of damageIds) {
+                await supabase.from('damage_audit_logs').insert({
+                  damage_id: damageId,
+                  event_type: 'reposicao_entregue',
+                  actor_profile: 'sistema',
+                  purchase_order_id: localDelivery.purchaseOrderId,
+                });
+              }
             }
           }
 
@@ -314,9 +349,10 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
     for (const orderId of updatedOrderIds) {
       try {
         await recalculateOrderStatus(supabase, orderId);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const error = err as Error;
         console.error(
-          `[${JOB_NAME}] Failed to recalculate order status for order ${orderId}: ${err.message}`,
+          `[${JOB_NAME}] Failed to recalculate order status for order ${orderId}: ${error.message}`,
         );
       }
     }

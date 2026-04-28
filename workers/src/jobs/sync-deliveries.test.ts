@@ -12,6 +12,11 @@ const purchaseInvoicesUpsertMock = vi.fn();
 const invoiceItemsUpsertMock = vi.fn();
 const invoiceOrderLinksUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
+let damageReplacementsSelectResult: any = { data: [], error: null };
+const damageReplacementsUpdateInMock = vi.fn();
+let damagesSelectResult: any = { data: [], error: null };
+const damagesUpdateInMock = vi.fn();
+const damageAuditInsertMock = vi.fn();
 
 const createChainableQuery = (resolvedValue: any) => {
   const chainable: any = {
@@ -69,6 +74,24 @@ const supabaseMock = {
       case 'integration_events':
         return {
           insert: integrationEventsInsertMock,
+        };
+      case 'damage_replacements':
+        return {
+          select: vi.fn(() => createChainableQuery(damageReplacementsSelectResult)),
+          update: vi.fn(() => ({
+            in: damageReplacementsUpdateInMock,
+          })),
+        };
+      case 'damages':
+        return {
+          select: vi.fn(() => createChainableQuery(damagesSelectResult)),
+          update: vi.fn(() => ({
+            in: damagesUpdateInMock,
+          })),
+        };
+      case 'damage_audit_logs':
+        return {
+          insert: damageAuditInsertMock,
         };
       case 'purchase_order_items':
         return {
@@ -139,6 +162,11 @@ describe('processSyncDeliveries', () => {
     invoiceItemsUpsertMock.mockResolvedValue({ error: null });
     invoiceOrderLinksUpsertMock.mockResolvedValue({ error: null });
     integrationEventsInsertMock.mockResolvedValue({ error: null });
+    damageReplacementsSelectResult = { data: [], error: null };
+    damageReplacementsUpdateInMock.mockResolvedValue({ data: null, error: null });
+    damagesSelectResult = { data: [], error: null };
+    damagesUpdateInMock.mockResolvedValue({ data: null, error: null });
+    damageAuditInsertMock.mockResolvedValue({ error: null });
   });
 
   it('should process sync deliveries successfully', async () => {
@@ -237,5 +265,48 @@ describe('processSyncDeliveries', () => {
 
     // Assert cursor is set to error
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.DELIVERIES);
+  });
+
+  it('marks replacement as delivered and audits reposicao_entregue', async () => {
+    getDeliveriesAttendedPagedMock.mockResolvedValueOnce({
+      results: [
+        {
+          purchaseOrderId: 1,
+          purchaseOrderItemNumber: 2,
+          sequentialNumber: 10,
+          invoiceItemNumber: 20,
+          quantity: 5,
+        },
+      ],
+      resultSetMetadata: { count: 1 },
+    });
+
+    getByIdMock.mockResolvedValue({
+      sequentialNumber: 10,
+      supplierId: 100,
+    });
+    getItemsMock.mockResolvedValue([{ invoiceItemNumber: 20, quantity: 5 }]);
+
+    damagesSelectResult = {
+      data: [{ id: 'damage-1' }],
+      error: null,
+    };
+    damageReplacementsSelectResult = {
+      data: [{ id: 'replacement-1', damage_id: 'damage-1' }],
+      error: null,
+    };
+
+    await processSyncDeliveries({ id: 'job-4' } as never);
+
+    expect(damageReplacementsUpdateInMock).toHaveBeenCalledWith('id', ['replacement-1']);
+    expect(damagesUpdateInMock).toHaveBeenCalledWith('id', ['damage-1']);
+    expect(damageAuditInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        damage_id: 'damage-1',
+        event_type: 'reposicao_entregue',
+        actor_profile: 'sistema',
+        purchase_order_id: 1,
+      }),
+    );
   });
 });

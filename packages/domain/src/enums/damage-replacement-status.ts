@@ -1,0 +1,6 @@
+export enum DamageReplacementStatus {
+  AGUARDANDO_DATA = 'AGUARDANDO_DATA',
+  EM_ANDAMENTO = 'EM_ANDAMENTO',
+  ENTREGUE = 'ENTREGUE',
+  CANCELADO = 'CANCELADO',
+}

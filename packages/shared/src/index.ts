@@ -6,3 +6,4 @@ export * from './utils/log-sanitizer.js';
 export * from './schemas/integration.js';
 export * from './schemas/notifications.js';
 export * from './schemas/followup.js';
+export * from './schemas/damages.js';
