@@ -70,10 +70,7 @@ export async function processSyncOrders(job: PgBoss.Job): Promise<void> {
     let currentOffset = cursor?.last_offset || 0;
     let startDateFilter: string | undefined;
 
-    if (false) {
-      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
-      currentOffset = 0;
-    } else if (cursor?.last_synced_at) {
+    if (cursor?.last_synced_at) {
       const lastSynced = new Date(cursor.last_synced_at);
       if (lastSynced.getTime() > 0) {
         const startDate = new Date(lastSynced.getTime() - 60 * 60 * 1000);

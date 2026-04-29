@@ -320,7 +320,9 @@ export class UsersController {
       // Do not block the response
       this.notificationService
         .sendPendingQuotationsNotification(updatedProfile.supplier_id, adminId)
-        .catch((err) => request.log.warn({ err }, 'Failed to send late notifications on reactivate'));
+        .catch((err) =>
+          request.log.warn({ err }, 'Failed to send late notifications on reactivate'),
+        );
     }
 
     return reply.code(200).send({ data: updatedProfile });

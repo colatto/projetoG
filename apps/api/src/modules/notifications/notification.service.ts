@@ -172,7 +172,10 @@ export class NotificationService {
         .in('status', ['AGUARDANDO_RESPOSTA', 'AGUARDANDO_REVISAO', 'CORRECAO_SOLICITADA']);
 
       if (error || !negotiations) {
-        this.fastify.log.error({ err: error, supplierId }, 'Failed to fetch pending negotiations for supplier');
+        this.fastify.log.error(
+          { err: error, supplierId },
+          'Failed to fetch pending negotiations for supplier',
+        );
         return;
       }
 
@@ -185,17 +188,17 @@ export class NotificationService {
         );
       }
     } catch (err) {
-      this.fastify.log.error({ err, supplierId }, 'Failed to process pending quotations notification');
+      this.fastify.log.error(
+        { err, supplierId },
+        'Failed to process pending quotations notification',
+      );
     }
   }
 
   /**
    * Sends an alert to Compras when a quotation expires with suppliers who didn't respond.
    */
-  public async sendNoResponseAlert(
-    quotationId: number,
-    supplierIds: number[],
-  ): Promise<void> {
+  public async sendNoResponseAlert(quotationId: number, supplierIds: number[]): Promise<void> {
     try {
       const template = await this.getActiveTemplate(NotificationType.NO_RESPONSE_ALERT);
 
@@ -219,7 +222,10 @@ export class NotificationService {
         template.mandatory_placeholders as string[],
       );
       if (!valid) {
-        this.fastify.log.error({ missing }, 'Template NO_RESPONSE_ALERT is missing mandatory placeholders');
+        this.fastify.log.error(
+          { missing },
+          'Template NO_RESPONSE_ALERT is missing mandatory placeholders',
+        );
         return;
       }
 

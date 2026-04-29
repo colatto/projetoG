@@ -21,7 +21,7 @@ describe('Notification Routes', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY =
       process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
-    app = buildApp({ boss: null as any });
+    app = buildApp({ boss: null });
     await app.ready();
   });
 
@@ -40,13 +40,13 @@ describe('Notification Routes', () => {
 
     it('should block FORNECEDOR', async () => {
       const token = await getFornecedorToken(app);
-      
+
       const response = await app.inject({
         method: 'GET',
         url: '/api/notifications/templates',
         headers: { authorization: `Bearer ${token}` },
       });
-      
+
       expect(response.statusCode).toBe(403);
     });
   });

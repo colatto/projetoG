@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -15,7 +16,7 @@
     "@projetog/domain": "workspace:*",
     "@projetog/integration-sienge": "workspace:*",
     "@projetog/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.105.1",
     "dotenv": "^16.4.5",
     "pg": "^8.11.3",
     "pg-boss": "^9.0.3",

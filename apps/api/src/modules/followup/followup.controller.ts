@@ -127,12 +127,19 @@ export class FollowupController {
 
   async listOrders(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
-    const { status, supplier_id, building_id, page = 1, limit = 20 } =
-      followupOrdersQuerySchemaRuntime.parse(request.query);
+    const {
+      status,
+      supplier_id,
+      building_id,
+      page = 1,
+      limit = 20,
+    } = followupOrdersQuerySchemaRuntime.parse(request.query);
 
     let query = this.app.supabase
       .from('follow_up_trackers')
-      .select('*, purchase_orders(id, order_number, local_status, pending_quantity, building_id), suppliers(id, name)');
+      .select(
+        '*, purchase_orders(id, formatted_purchase_order_id, local_status, pending_quantity, building_id), suppliers(id, name)',
+      );
 
     if (status) {
       query = query.eq('status', status);
@@ -483,7 +490,10 @@ export class FollowupController {
       const holidays = await this.resolveHolidays();
       const orderDate = new Date(tracker.order_date);
       const promisedDate = new Date(dateChange.suggested_date);
-      const totalBusinessDays = Math.max(1, this.countBusinessDays(orderDate, promisedDate, holidays));
+      const totalBusinessDays = Math.max(
+        1,
+        this.countBusinessDays(orderDate, promisedDate, holidays),
+      );
       const firstReminderDay = Math.max(1, Math.floor(totalBusinessDays / 2));
       const nextNotificationDate = this.addBusinessDays(orderDate, firstReminderDay, holidays);
 
@@ -507,7 +517,11 @@ export class FollowupController {
         actor_id: user.sub,
         entity_type: 'follow_up_tracker',
         entity_id: tracker.id,
-        metadata: { previousDate: dateChange.previous_date, newDate: dateChange.suggested_date, reason: reason || null },
+        metadata: {
+          previousDate: dateChange.previous_date,
+          newDate: dateChange.suggested_date,
+          reason: reason || null,
+        },
       });
 
       return reply.send({ status: 'approved', new_promised_date: dateChange.suggested_date });
@@ -527,7 +541,11 @@ export class FollowupController {
       actor_id: user.sub,
       entity_type: 'follow_up_tracker',
       entity_id: tracker.id,
-      metadata: { previousDate: dateChange.previous_date, rejectedDate: dateChange.suggested_date, reason: reason || null },
+      metadata: {
+        previousDate: dateChange.previous_date,
+        rejectedDate: dateChange.suggested_date,
+        reason: reason || null,
+      },
     });
 
     return reply.send({ status: 'rejected' });

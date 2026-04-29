@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
+import {
+  buildTestApp,
+  generateTestToken,
+  TestAppContext,
+} from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
 describe('Deliveries Module', () => {
@@ -47,8 +51,14 @@ describe('Deliveries Module', () => {
   });
 
   it('POST /api/deliveries/:id/validate should validate delivery', async () => {
-    context.supabase.table('deliveries').single.mockResolvedValueOnce({ data: { id: 1, validation_status: 'AGUARDANDO_VALIDACAO', purchase_order_id: 100 }, error: null });
-    context.supabase.table('purchase_orders').single.mockResolvedValue({ data: { id: 100, local_status: 'PARCIALMENTE_ENTREGUE' }, error: null });
+    context.supabase.table('deliveries').single.mockResolvedValueOnce({
+      data: { id: 1, validation_status: 'AGUARDANDO_VALIDACAO', purchase_order_id: 100 },
+      error: null,
+    });
+    context.supabase.table('purchase_orders').single.mockResolvedValue({
+      data: { id: 100, local_status: 'PARCIALMENTE_ENTREGUE' },
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.ADMINISTRADOR });
     const response = await context.app.inject({

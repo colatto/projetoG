@@ -1,18 +1,16 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { OrderStatusEngine } from '@projetog/domain';
+import type { Database } from '@projetog/shared';
 
 export class DeliveriesController {
   constructor(private app: FastifyInstance) {}
 
-  async listPending(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
+  async listPending(request: FastifyRequest, reply: FastifyReply) {
     const { status } = (request.query || {}) as { status?: string };
 
     let query = this.app.supabase
       .from('deliveries')
-      .select('*, purchase_orders(id, local_status, order_number)')
+      .select('*, purchase_orders(id, local_status, formatted_purchase_order_id)')
       .in('validation_status', ['AGUARDANDO_VALIDACAO', 'DIVERGENCIA']);
 
     if (status) {
@@ -29,12 +27,9 @@ export class DeliveriesController {
     return reply.send(data);
   }
 
-  async validateDelivery(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
-    const deliveryId = (request.params as any).id;
-    const { status, notes } = (request.body as any);
+  async validateDelivery(request: FastifyRequest, reply: FastifyReply) {
+    const deliveryId = (request.params as { id: string }).id;
+    const { status, notes } = request.body as { status: string; notes?: string };
     const user = request.user!;
 
     // 1. Fetch delivery to ensure it exists and we have the purchase_order_id
@@ -83,7 +78,9 @@ export class DeliveriesController {
       await this.recalculateOrder(delivery.purchase_order_id);
     } catch (err: unknown) {
       const error = err as Error;
-      request.log.error(`Failed to recalculate order ${delivery.purchase_order_id}: ${error.message}`);
+      request.log.error(
+        `Failed to recalculate order ${delivery.purchase_order_id}: ${error.message}`,
+      );
     }
 
     // 5. Follow-up signaling (Phase 6 §6.1)
@@ -91,7 +88,9 @@ export class DeliveriesController {
       await this.handleFollowUpSignaling(delivery.purchase_order_id);
     } catch (err: unknown) {
       const error = err as Error;
-      request.log.error(`Failed follow-up signaling for order ${delivery.purchase_order_id}: ${error.message}`);
+      request.log.error(
+        `Failed follow-up signaling for order ${delivery.purchase_order_id}: ${error.message}`,
+      );
     }
 
     return reply.send({ success: true, message: `Delivery updated to ${status}` });
@@ -158,28 +157,42 @@ export class DeliveriesController {
       .order('scheduled_date', { ascending: false })
       .limit(1);
 
-    const promisedDate = schedules && schedules.length > 0 ? schedules[0].scheduled_date : order.date;
+    const promisedDate =
+      schedules && schedules.length > 0 ? schedules[0].scheduled_date : order.date;
 
     const { data: items } = await supabase
       .from('purchase_order_items')
       .select('quantity')
       .eq('purchase_order_id', purchaseOrderId);
-    const totalQuantityOrdered = (items || []).reduce((acc, item) => acc + Number(item.quantity || 0), 0);
+    const totalQuantityOrdered = (items || []).reduce(
+      (acc, item) => acc + Number(item.quantity || 0),
+      0,
+    );
 
     const { data: deliveries } = await supabase
       .from('deliveries')
       .select('delivered_quantity, validation_status, delivery_date')
       .eq('purchase_order_id', purchaseOrderId);
 
-    const hasDivergence = (deliveries || []).some((d: { validation_status: string | null }) => d.validation_status === 'DIVERGENCIA');
-    const validDeliveries = (deliveries || []).filter((d: { validation_status: string | null }) => d.validation_status !== 'DIVERGENCIA');
+    const hasDivergence = (deliveries || []).some(
+      (d: { validation_status: string | null }) => d.validation_status === 'DIVERGENCIA',
+    );
+    const validDeliveries = (deliveries || []).filter(
+      (d: { validation_status: string | null }) => d.validation_status !== 'DIVERGENCIA',
+    );
 
-    const totalQuantityDelivered = validDeliveries.reduce((acc, d) => acc + Number(d.delivered_quantity || 0), 0);
+    const totalQuantityDelivered = validDeliveries.reduce(
+      (acc, d) => acc + Number(d.delivered_quantity || 0),
+      0,
+    );
     const pendingQuantity = Math.max(0, totalQuantityOrdered - totalQuantityDelivered);
 
     let lastDeliveryDate = order.last_delivery_date;
     if (deliveries && deliveries.length > 0) {
-      const dates = deliveries.map((d: { delivery_date: string | null }) => d.delivery_date).filter(Boolean).sort();
+      const dates = deliveries
+        .map((d: { delivery_date: string | null }) => d.delivery_date)
+        .filter(Boolean)
+        .sort();
       if (dates.length > 0) {
         lastDeliveryDate = dates[dates.length - 1];
       }
@@ -199,7 +212,7 @@ export class DeliveriesController {
       promisedDate,
     });
 
-    const updates: any = {};
+    const updates: Database['public']['Tables']['purchase_orders']['Update'] = {};
 
     updates.total_quantity_ordered = totalQuantityOrdered;
     updates.total_quantity_delivered = totalQuantityDelivered;

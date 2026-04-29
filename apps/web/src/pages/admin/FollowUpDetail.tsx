@@ -60,7 +60,9 @@ export default function FollowUpDetail() {
   const decide = async (dateChangeId: string, action: 'approve' | 'reject') => {
     try {
       setSubmittingId(dateChangeId);
-      await api.post(`/followup/date-changes/${dateChangeId}/${action}`, { reason: reason || undefined });
+      await api.post(`/followup/date-changes/${dateChangeId}/${action}`, {
+        reason: reason || undefined,
+      });
       setReason('');
       await load();
     } catch (err: unknown) {
@@ -107,7 +109,9 @@ export default function FollowUpDetail() {
           </div>
           <div className="o-detail-item">
             <div className="label">Data prometida atual</div>
-            <div className="value">{new Date(data.promised_date_current).toLocaleDateString('pt-BR')}</div>
+            <div className="value">
+              {new Date(data.promised_date_current).toLocaleDateString('pt-BR')}
+            </div>
           </div>
           <div className="o-detail-item">
             <div className="label">Notificação atual</div>

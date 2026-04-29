@@ -36,7 +36,7 @@ export default function OrderList() {
   const [data, setData] = useState<PurchaseOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
 
@@ -66,9 +66,7 @@ export default function OrderList() {
       <div className="o-page-header">
         <div>
           <h1 className="o-page-title">Pedidos</h1>
-          <p className="o-page-subtitle">
-            Gestão e acompanhamento logístico
-          </p>
+          <p className="o-page-subtitle">Gestão e acompanhamento logístico</p>
         </div>
       </div>
 
@@ -90,7 +88,7 @@ export default function OrderList() {
             ))}
           </select>
         </div>
-        
+
         <div className="form-group">
           <label className="form-label" htmlFor="filter-search">
             Busca (Nº)
@@ -104,7 +102,7 @@ export default function OrderList() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        
+
         <button
           className="btn btn-outline btn-sm"
           onClick={() => {

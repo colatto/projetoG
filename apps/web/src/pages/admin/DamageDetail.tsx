@@ -71,6 +71,7 @@ export default function DamageDetail() {
   if (!data) return <div className="o-empty">Avaria não encontrada.</div>;
 
   const canResolve = !data.final_action;
+  const suggestedAction = data.suggested_action ?? undefined;
 
   return (
     <div>
@@ -87,7 +88,9 @@ export default function DamageDetail() {
             Pedido #{data.purchase_order_id} · Item {data.item_number}
           </p>
         </div>
-        <span className={getDamageStatusBadgeClass(data.status)}>{getDamageStatusLabel(data.status)}</span>
+        <span className={getDamageStatusBadgeClass(data.status)}>
+          {getDamageStatusLabel(data.status)}
+        </span>
       </div>
 
       <div className="o-detail-section">
@@ -143,12 +146,12 @@ export default function DamageDetail() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-          {data.suggested_action && (
+          {suggestedAction && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <button
                 className="btn btn-outline"
                 disabled={submitting}
-                onClick={() => resolveDamage(data.suggested_action)}
+                onClick={() => resolveDamage(suggestedAction)}
               >
                 Aceitar sugestão
               </button>

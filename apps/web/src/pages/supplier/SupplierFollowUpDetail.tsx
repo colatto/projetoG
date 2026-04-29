@@ -106,7 +106,9 @@ export default function SupplierFollowUpDetail() {
           </div>
           <div className="o-detail-item">
             <div className="label">Data prometida atual</div>
-            <div className="value">{new Date(data.promised_date_current).toLocaleDateString('pt-BR')}</div>
+            <div className="value">
+              {new Date(data.promised_date_current).toLocaleDateString('pt-BR')}
+            </div>
           </div>
           <div className="o-detail-item">
             <div className="label">Status da sugestão</div>

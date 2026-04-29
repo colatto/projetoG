@@ -321,6 +321,7 @@ Referencia: `docs/runbooks/branching-and-review.md`.
 - `docs/runbooks/sienge-homologation.md`: homologacao Sienge.
 - `docs/runbooks/sienge-inventory.md`: inventario da integracao.
 - `docs/runbooks/branching-and-review.md`: branching e review.
+- `docs/runbooks/typecheck-and-supabase-types.md`: instrucoes para validacao e geracao de tipos Supabase.
 - `docs/prd/`: PRDs por modulo.
 - `deploy/README.md`: deploy.
 - `workers/README.md`: workers.

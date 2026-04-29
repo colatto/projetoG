@@ -35,11 +35,11 @@ type PurchaseOrderRow = {
 
 export default function SupplierOrderDetail() {
   const { purchaseOrderId } = useParams<{ purchaseOrderId: string }>();
-  
+
   const [order, setOrder] = useState<PurchaseOrderRow | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
   const [history, setHistory] = useState<OrderStatusHistory[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export default function SupplierOrderDetail() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const resOrder = await api.get(`/orders`);
       const o = resOrder.data.find((x: PurchaseOrderRow) => x.id === Number(purchaseOrderId));
       if (!o) throw new Error('Pedido não encontrado');
@@ -128,21 +128,29 @@ export default function SupplierOrderDetail() {
               </tr>
             </thead>
             <tbody>
-              {deliveries.map(d => (
+              {deliveries.map((d) => (
                 <tr key={d.id}>
                   <td>{d.invoice_sequential_number}</td>
                   <td>{formatDate(d.delivery_date)}</td>
                   <td>{Number(d.delivered_quantity).toFixed(2)}</td>
                   <td>
-                    {d.validation_status === 'AGUARDANDO_VALIDACAO' && <span className="badge badge-warning">Aguardando Validação</span>}
-                    {d.validation_status === 'DIVERGENCIA' && <span className="badge badge-orange">Divergência</span>}
-                    {d.validation_status === 'OK' && <span className="badge badge-success">OK</span>}
+                    {d.validation_status === 'AGUARDANDO_VALIDACAO' && (
+                      <span className="badge badge-warning">Aguardando Validação</span>
+                    )}
+                    {d.validation_status === 'DIVERGENCIA' && (
+                      <span className="badge badge-orange">Divergência</span>
+                    )}
+                    {d.validation_status === 'OK' && (
+                      <span className="badge badge-success">OK</span>
+                    )}
                   </td>
                 </tr>
               ))}
               {deliveries.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="o-empty">Nenhuma entrega registrada ainda.</td>
+                  <td colSpan={4} className="o-empty">
+                    Nenhuma entrega registrada ainda.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -163,7 +171,7 @@ export default function SupplierOrderDetail() {
               </tr>
             </thead>
             <tbody>
-              {history.map(h => (
+              {history.map((h) => (
                 <tr key={h.id}>
                   <td>{new Date(h.created_at).toLocaleString('pt-BR')}</td>
                   <td>
@@ -175,7 +183,9 @@ export default function SupplierOrderDetail() {
               ))}
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={2} className="o-empty">Sem histórico.</td>
+                  <td colSpan={2} className="o-empty">
+                    Sem histórico.
+                  </td>
                 </tr>
               )}
             </tbody>

@@ -39,9 +39,7 @@ export async function processQuotationExpireCheck(job: PgBoss.Job): Promise<void
   const expiredIds =
     expiredQuotations
       ?.filter((q) => {
-        const endAt = q.end_date
-            ? new Date(`${q.end_date}T23:59:59.999Z`)
-            : null;
+        const endAt = q.end_date ? new Date(`${q.end_date}T23:59:59.999Z`) : null;
         return endAt ? endAt.getTime() < Date.now() : false;
       })
       .map((q) => q.id as number) ?? [];

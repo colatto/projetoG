@@ -17,9 +17,11 @@ const emailPlugin: FastifyPluginAsync<EmailPluginOptions> = async (fastify, opti
   if (!options.apiKey) {
     fastify.log.warn('EMAIL_PROVIDER_API_KEY is not defined. Email sending will fail.');
   }
-  
+
   if (!options.fromAddress) {
-    fastify.log.warn('EMAIL_FROM_ADDRESS is not defined. Using default noreply@grfincorporadora.com');
+    fastify.log.warn(
+      'EMAIL_FROM_ADDRESS is not defined. Using default noreply@grfincorporadora.com',
+    );
   }
 
   const fromAddress = options.fromAddress || 'GRF Cotações <cotacoes@grfincorporadora.com>';

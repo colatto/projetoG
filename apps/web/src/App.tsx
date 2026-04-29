@@ -37,6 +37,12 @@ import DamageDetail from './pages/admin/DamageDetail';
 import SupplierDamageList from './pages/supplier/SupplierDamageList';
 import SupplierDamageDetail from './pages/supplier/SupplierDamageDetail';
 import DamageCreate from './pages/damages/DamageCreate';
+import DashboardHome from './pages/admin/DashboardHome';
+import DashboardLeadTime from './pages/admin/DashboardLeadTime';
+import DashboardAtrasos from './pages/admin/DashboardAtrasos';
+import DashboardCriticidade from './pages/admin/DashboardCriticidade';
+import DashboardRankingFornecedores from './pages/admin/DashboardRankingFornecedores';
+import DashboardAvarias from './pages/admin/DashboardAvarias';
 
 const PlaceholderDashboard = () => (
   <div style={{ padding: '2rem', textAlign: 'center', marginTop: '10vh' }}>
@@ -74,6 +80,15 @@ function App() {
                   <ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR, UserRole.COMPRAS]} />
                 }
               >
+                <Route path="/admin/dashboard" element={<DashboardHome />} />
+                <Route path="/admin/dashboard/lead-time" element={<DashboardLeadTime />} />
+                <Route path="/admin/dashboard/atrasos" element={<DashboardAtrasos />} />
+                <Route path="/admin/dashboard/criticidade" element={<DashboardCriticidade />} />
+                <Route
+                  path="/admin/dashboard/ranking-fornecedores"
+                  element={<DashboardRankingFornecedores />}
+                />
+                <Route path="/admin/dashboard/avarias" element={<DashboardAvarias />} />
                 <Route path="/admin/integration" element={<IntegrationEvents />} />
                 <Route path="/admin/quotations" element={<QuotationList />} />
                 <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
@@ -85,7 +100,13 @@ function App() {
 
               <Route
                 element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS]} />
+                  <ProtectedRoute
+                    allowedRoles={[
+                      UserRole.ADMINISTRADOR,
+                      UserRole.COMPRAS,
+                      UserRole.VISUALIZADOR_PEDIDOS,
+                    ]}
+                  />
                 }
               >
                 <Route path="/admin/orders" element={<OrderList />} />
@@ -113,7 +134,6 @@ function App() {
                 <Route path="/supplier/damages/:damageId" element={<SupplierDamageDetail />} />
               </Route>
             </Route>
-
           </Route>
 
           {/* Catch All */}

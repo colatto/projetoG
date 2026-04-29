@@ -68,12 +68,19 @@ export default function SupplierFollowUpList() {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <Link to={`/supplier/followup/${row.purchase_order_id}`} style={{ fontWeight: 600 }}>
+                    <Link
+                      to={`/supplier/followup/${row.purchase_order_id}`}
+                      style={{ fontWeight: 600 }}
+                    >
                       #{row.purchase_order_id}
                     </Link>
                   </td>
                   <td>
-                    <span className={getOrderStatusBadgeClass(row.purchase_orders?.local_status || row.status)}>
+                    <span
+                      className={getOrderStatusBadgeClass(
+                        row.purchase_orders?.local_status || row.status,
+                      )}
+                    >
                       {getOrderStatusLabel(row.purchase_orders?.local_status || row.status)}
                     </span>
                   </td>
@@ -81,7 +88,9 @@ export default function SupplierFollowUpList() {
                   <td>{new Date(row.promised_date_current).toLocaleDateString('pt-BR')}</td>
                   <td>{row.building_id || '—'}</td>
                   <td>
-                    {['EM_AVARIA', 'REPOSICAO'].includes(row.purchase_orders?.local_status || '') ? 'Sim' : 'Não'}
+                    {['EM_AVARIA', 'REPOSICAO'].includes(row.purchase_orders?.local_status || '')
+                      ? 'Sim'
+                      : 'Não'}
                   </td>
                   <td>{row.current_notification_number}</td>
                 </tr>

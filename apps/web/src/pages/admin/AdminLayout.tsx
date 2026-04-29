@@ -1,7 +1,17 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Users, LogOut, LayoutDashboard, ShieldCheck, Cable, FileText, Package, BellRing, AlertTriangle } from 'lucide-react';
+import {
+  Users,
+  LogOut,
+  LayoutDashboard,
+  ShieldCheck,
+  Cable,
+  FileText,
+  Package,
+  BellRing,
+  AlertTriangle,
+} from 'lucide-react';
 import { UserRole } from '@projetog/domain';
 
 export default function AdminLayout() {
@@ -16,9 +26,9 @@ export default function AdminLayout() {
   const navItems = [
     {
       name: 'Dashboard',
-      path: '/',
+      path: '/admin/dashboard',
       icon: <LayoutDashboard size={20} />,
-      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR],
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
     },
     {
       name: 'Gestão de Usuários',

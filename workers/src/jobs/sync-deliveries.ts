@@ -156,24 +156,28 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
           const isNewDelivery = !existingCheck;
 
           // Upsert the delivery record
-          const { data: upsertedDelivery, error: upsertError } = await supabase.from('deliveries').upsert(
-            {
-              purchase_order_id: localDelivery.purchaseOrderId,
-              purchase_order_item_number: localDelivery.purchaseOrderItemNumber,
-              delivery_item_number: localDelivery.deliveryItemNumber,
-              attended_number: localDelivery.attendedNumber,
-              invoice_sequential_number: localDelivery.invoiceSequentialNumber,
-              invoice_item_number: localDelivery.invoiceItemNumber,
-              delivered_quantity: localDelivery.deliveredQuantity,
-              delivery_date: localDelivery.deliveryDate,
-              validation_status: validationStatus,
-              sienge_synced_at: new Date().toISOString(),
-            },
-            {
-              onConflict:
-                'purchase_order_id,purchase_order_item_number,delivery_item_number,attended_number,invoice_sequential_number,invoice_item_number',
-            },
-          ).select('id').single();
+          const { data: upsertedDelivery, error: upsertError } = await supabase
+            .from('deliveries')
+            .upsert(
+              {
+                purchase_order_id: localDelivery.purchaseOrderId,
+                purchase_order_item_number: localDelivery.purchaseOrderItemNumber,
+                delivery_item_number: localDelivery.deliveryItemNumber,
+                attended_number: localDelivery.attendedNumber,
+                invoice_sequential_number: localDelivery.invoiceSequentialNumber,
+                invoice_item_number: localDelivery.invoiceItemNumber,
+                delivered_quantity: localDelivery.deliveredQuantity,
+                delivery_date: localDelivery.deliveryDate,
+                validation_status: validationStatus,
+                sienge_synced_at: new Date().toISOString(),
+              },
+              {
+                onConflict:
+                  'purchase_order_id,purchase_order_item_number,delivery_item_number,attended_number,invoice_sequential_number,invoice_item_number',
+              },
+            )
+            .select('id')
+            .single();
 
           if (upsertError) {
             console.warn(`[${JOB_NAME}] Delivery upsert warning: ${upsertError.message}`);
@@ -184,7 +188,10 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
                 event_type: 'delivery_identified',
                 entity_type: 'delivery',
                 entity_id: upsertedDelivery.id.toString(),
-                metadata: { purchaseOrderId: localDelivery.purchaseOrderId, quantity: localDelivery.deliveredQuantity },
+                metadata: {
+                  purchaseOrderId: localDelivery.purchaseOrderId,
+                  quantity: localDelivery.deliveredQuantity,
+                },
               });
             }
 
@@ -212,10 +219,7 @@ export async function processSyncDeliveries(job: PgBoss.Job): Promise<void> {
                 .from('damage_replacements')
                 .update({ replacement_status: 'ENTREGUE' })
                 .in('id', replacementIds);
-              await supabase
-                .from('damages')
-                .update({ status: 'RESOLVIDA' })
-                .in('id', damageIds);
+              await supabase.from('damages').update({ status: 'RESOLVIDA' }).in('id', damageIds);
 
               for (const damageId of damageIds) {
                 await supabase.from('damage_audit_logs').insert({

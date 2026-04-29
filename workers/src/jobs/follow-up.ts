@@ -17,6 +17,7 @@ type FollowUpTracker = {
 };
 
 const ACTIVE_STATUSES = ['ATIVO', 'NOVA_DATA_APROVADA'] as const;
+type WorkerSupabase = ReturnType<typeof getSupabase>;
 
 /**
  * Follow-up logistics daily worker.
@@ -32,14 +33,12 @@ export async function processFollowUp(job: PgBoss.Job): Promise<void> {
   const correlationId = job.id;
   console.log(`[follow-up] start ${correlationId}`);
 
-  const holidaysResponse = await (supabase as any)
-    .from('business_days_holidays')
-    .select('holiday_date');
+  const holidaysResponse = await supabase.from('business_days_holidays').select('holiday_date');
   const holidaySet = holidaysToSet(holidaysResponse.data || []);
 
-  await ensureTrackers(supabase as any, holidaySet);
+  await ensureTrackers(supabase, holidaySet);
 
-  const { data: trackers, error: trackersError } = await (supabase as any)
+  const { data: trackers, error: trackersError } = await supabase
     .from('follow_up_trackers')
     .select('*')
     .in('status', [...ACTIVE_STATUSES, 'PAUSADO', 'ATRASADO', 'CONCLUIDO']);
@@ -52,17 +51,23 @@ export async function processFollowUp(job: PgBoss.Job): Promise<void> {
     if (tracker.status === 'PAUSADO') {
       continue;
     }
-    await processTracker(supabase as any, tracker, holidaySet);
+    await processTracker(supabase, tracker, holidaySet);
   }
 
   console.log(`[follow-up] finish ${correlationId}`);
 }
 
-async function ensureTrackers(supabase: any, holidays: Set<string>) {
+async function ensureTrackers(supabase: WorkerSupabase, holidays: Set<string>) {
   const { data: orders, error } = await supabase
     .from('purchase_orders')
     .select('id, supplier_id, date, building_id, local_status')
-    .in('local_status', ['PENDENTE', 'PARCIALMENTE_ENTREGUE', 'ATRASADO', 'DIVERGENCIA', 'REPOSICAO']);
+    .in('local_status', [
+      'PENDENTE',
+      'PARCIALMENTE_ENTREGUE',
+      'ATRASADO',
+      'DIVERGENCIA',
+      'REPOSICAO',
+    ]);
 
   if (error) {
     throw new Error(`Failed to list orders for follow-up bootstrap: ${error.message}`);
@@ -77,7 +82,9 @@ async function ensureTrackers(supabase: any, holidays: Set<string>) {
       .in('purchase_order_id', orderIds);
 
     if (schedulesError) {
-      throw new Error(`Failed to list delivery schedules for follow-up bootstrap: ${schedulesError.message}`);
+      throw new Error(
+        `Failed to list delivery schedules for follow-up bootstrap: ${schedulesError.message}`,
+      );
     }
 
     for (const schedule of schedules || []) {
@@ -111,11 +118,16 @@ async function ensureTrackers(supabase: any, holidays: Set<string>) {
     if (existing) continue;
 
     const promisedDateIso = promisedDateByOrderId.get(order.id) || order.date;
+    if (!order.date || !promisedDateIso) {
+      continue;
+    }
     const orderDate = new Date(order.date);
     const promisedDate = new Date(promisedDateIso);
     const totalBusinessDays = Math.max(1, countBusinessDays(orderDate, promisedDate, holidays));
     const firstReminderDay = Math.max(1, Math.floor(totalBusinessDays / 2));
-    const nextNotification = addBusinessDays(orderDate, firstReminderDay, holidays).toISOString().slice(0, 10);
+    const nextNotification = addBusinessDays(orderDate, firstReminderDay, holidays)
+      .toISOString()
+      .slice(0, 10);
 
     await supabase.from('follow_up_trackers').insert({
       purchase_order_id: order.id,
@@ -135,7 +147,11 @@ async function ensureTrackers(supabase: any, holidays: Set<string>) {
   }
 }
 
-async function processTracker(supabase: any, tracker: FollowUpTracker, holidays: Set<string>) {
+async function processTracker(
+  supabase: WorkerSupabase,
+  tracker: FollowUpTracker,
+  holidays: Set<string>,
+) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const promised = new Date(tracker.promised_date_current);
@@ -157,7 +173,8 @@ async function processTracker(supabase: any, tracker: FollowUpTracker, holidays:
       .from('follow_up_trackers')
       .update({
         status: 'ENCERRADO',
-        completed_reason: Number(order.pending_quantity || 0) <= 0 ? 'delivered_total' : 'order_closed',
+        completed_reason:
+          Number(order.pending_quantity || 0) <= 0 ? 'delivered_total' : 'order_closed',
       })
       .eq('id', tracker.id);
     return;
@@ -184,7 +201,13 @@ async function processTracker(supabase: any, tracker: FollowUpTracker, holidays:
   if (today < nextNotification) return;
 
   const nextNumber = (tracker.current_notification_number || 0) + 1;
-  await sendReminderNotification(supabase, tracker, NotificationType.FOLLOWUP_REMINDER, nextNumber >= 2, nextNumber);
+  await sendReminderNotification(
+    supabase,
+    tracker,
+    NotificationType.FOLLOWUP_REMINDER,
+    nextNumber >= 2,
+    nextNumber,
+  );
 
   const nextDate = addBusinessDays(today, 1, holidays).toISOString().slice(0, 10);
   await supabase
@@ -200,7 +223,7 @@ async function processTracker(supabase: any, tracker: FollowUpTracker, holidays:
 }
 
 async function sendReminderNotification(
-  supabase: any,
+  supabase: WorkerSupabase,
   tracker: FollowUpTracker,
   type: NotificationType,
   copyCompras = false,
@@ -264,12 +287,14 @@ async function sendReminderNotification(
         subject: finalSubject,
         htmlBody: finalBody,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to enqueue email notification';
       await supabase
         .from('notification_logs')
         .update({
           status: 'failed',
-          error_message: error?.message || 'Failed to enqueue email notification',
+          error_message: message,
         })
         .eq('id', logEntry.id);
       throw error;

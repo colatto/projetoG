@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { getApiErrorMessage } from '../../lib/error-utils';
 
 interface NotificationTemplate {
   id: string;
@@ -60,9 +61,9 @@ export default function NotificationTemplates() {
       alert('Template atualizado com sucesso!');
       setEditingId(null);
       loadTemplates();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Falha ao salvar template', err);
-      alert(err.response?.data?.message || 'Falha ao salvar template');
+      alert(getApiErrorMessage(err, 'Falha ao salvar template'));
     } finally {
       setIsSaving(false);
     }
@@ -88,7 +89,14 @@ export default function NotificationTemplates() {
       </div>
 
       {error ? (
-        <div style={{ padding: '1.5rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px' }}>
+        <div
+          style={{
+            padding: '1.5rem',
+            backgroundColor: '#fee2e2',
+            color: '#991b1b',
+            borderRadius: '8px',
+          }}
+        >
           {error}
         </div>
       ) : isLoading ? (
@@ -110,7 +118,9 @@ export default function NotificationTemplates() {
                   padding: '1.5rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}
+                >
                   <h2 style={{ fontSize: '1.25rem' }}>{template.type}</h2>
                   {!isEditing && (
                     <button className="btn btn-secondary" onClick={() => handleEditClick(template)}>
@@ -119,7 +129,13 @@ export default function NotificationTemplates() {
                   )}
                 </div>
 
-                <div style={{ marginBottom: '1rem', color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>
+                <div
+                  style={{
+                    marginBottom: '1rem',
+                    color: 'var(--color-gray-500)',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   <strong>Variáveis obrigatórias:</strong>{' '}
                   {template.mandatory_placeholders.map((p) => `{{${p}}}`).join(', ')}
                 </div>
@@ -150,10 +166,18 @@ export default function NotificationTemplates() {
                       />
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button className="btn btn-secondary" onClick={handleCancelEdit} disabled={isSaving}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                      >
                         Cancelar
                       </button>
-                      <button className="btn btn-primary" onClick={() => handleSave(template.id)} disabled={isSaving}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleSave(template.id)}
+                        disabled={isSaving}
+                      >
                         {isSaving ? 'Salvando...' : 'Salvar'}
                       </button>
                     </div>
@@ -161,14 +185,32 @@ export default function NotificationTemplates() {
                 ) : (
                   <div style={{ display: 'grid', gap: '1rem' }}>
                     <div>
-                      <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Assunto:</strong>
-                      <div style={{ padding: '0.75rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '4px' }}>
+                      <strong style={{ display: 'block', marginBottom: '0.25rem' }}>
+                        Assunto:
+                      </strong>
+                      <div
+                        style={{
+                          padding: '0.75rem',
+                          backgroundColor: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '4px',
+                        }}
+                      >
                         {template.subject_template}
                       </div>
                     </div>
                     <div>
                       <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Corpo:</strong>
-                      <div style={{ padding: '0.75rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '4px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                      <div
+                        style={{
+                          padding: '0.75rem',
+                          backgroundColor: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '4px',
+                          whiteSpace: 'pre-wrap',
+                          fontFamily: 'monospace',
+                        }}
+                      >
                         {template.body_template}
                       </div>
                     </div>

@@ -12,9 +12,14 @@ type FollowUpRow = {
   status: string;
   promised_date_current: string;
   order_date: string;
+  building_id?: number | null;
   current_notification_number: number;
   linked_quotation_id?: number | null;
-  purchase_orders?: { local_status?: string; pending_quantity?: number; building_id?: number } | null;
+  purchase_orders?: {
+    local_status?: string;
+    pending_quantity?: number;
+    building_id?: number;
+  } | null;
   suppliers?: { name?: string } | null;
 };
 
@@ -133,7 +138,10 @@ export default function FollowUpList() {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <Link to={`/admin/followup/${row.purchase_order_id}`} style={{ fontWeight: 600 }}>
+                    <Link
+                      to={`/admin/followup/${row.purchase_order_id}`}
+                      style={{ fontWeight: 600 }}
+                    >
                       #{row.purchase_order_id}
                     </Link>
                   </td>
@@ -141,7 +149,11 @@ export default function FollowUpList() {
                   <td>{row.suppliers?.name || `#${row.supplier_id}`}</td>
                   <td>{row.building_id || row.purchase_orders?.building_id || '—'}</td>
                   <td>
-                    <span className={getOrderStatusBadgeClass(row.purchase_orders?.local_status || row.status)}>
+                    <span
+                      className={getOrderStatusBadgeClass(
+                        row.purchase_orders?.local_status || row.status,
+                      )}
+                    >
                       {getOrderStatusLabel(row.purchase_orders?.local_status || row.status)}
                     </span>
                   </td>

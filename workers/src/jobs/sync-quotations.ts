@@ -106,12 +106,6 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
   try {
     let currentOffset = cursor?.last_offset || 0;
 
-    // requires_full_sync was removed from DB. If needed, implement custom logic.
-    if (false) {
-      console.log(`[${JOB_NAME}] Full resync requested. CorrelationId: ${correlationId}`);
-      currentOffset = 0;
-    }
-
     const pageLimit = 50;
     let hasMore = true;
     let totalProcessed = 0;

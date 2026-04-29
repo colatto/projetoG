@@ -28,7 +28,8 @@ Quando houver duvida, consulte os documentos nesta ordem:
 16. `docs/identidade_visual.md`
 17. `docs/paleta_de_cores.md`
 18. `docs/runbooks/setup.md`
-19. `.claude/settings.json`
+19. `docs/runbooks/typecheck-and-supabase-types.md`
+20. `.claude/settings.json`
 
 Se dois documentos parecerem conflitar, nao invente conciliacao. Priorize o de maior precedencia e registre a divergencia na resposta.
 
@@ -406,6 +407,8 @@ O workspace pnpm ja foi inicializado. Os comandos de referencia sao:
 | Gerar tipos Supabase      | `pnpm run db:types`                     |
 | Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
 | Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
+
+Consulte `docs/runbooks/typecheck-and-supabase-types.md` para as regras de manutencao dos tipos Supabase.
 
 ---
 

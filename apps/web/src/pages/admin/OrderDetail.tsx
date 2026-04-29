@@ -40,11 +40,11 @@ type PurchaseOrderRow = {
 
 export default function OrderDetail() {
   const { purchaseOrderId } = useParams<{ purchaseOrderId: string }>();
-  
+
   const [order, setOrder] = useState<PurchaseOrderRow | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
   const [history, setHistory] = useState<OrderStatusHistory[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export default function OrderDetail() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const resOrder = await api.get(`/orders`);
       const o = resOrder.data.find((x: PurchaseOrderRow) => x.id === Number(purchaseOrderId));
       if (!o) throw new Error('Pedido não encontrado');
@@ -119,7 +119,9 @@ export default function OrderDetail() {
       <div className="o-page-header">
         <div>
           <h1 className="o-page-title">Pedido #{order.sienge_purchase_order_id}</h1>
-          <p className="o-page-subtitle">Fornecedor: {order.suppliers?.name ?? `#${order.supplier_id}`}</p>
+          <p className="o-page-subtitle">
+            Fornecedor: {order.suppliers?.name ?? `#${order.supplier_id}`}
+          </p>
         </div>
         <div>
           <span className={getOrderStatusBadgeClass(order.local_status)}>
@@ -168,19 +170,29 @@ export default function OrderDetail() {
               </tr>
             </thead>
             <tbody>
-              {deliveries.map(d => (
+              {deliveries.map((d) => (
                 <tr key={d.id}>
                   <td>{d.invoice_sequential_number}</td>
                   <td>{formatDate(d.delivery_date)}</td>
                   <td>{Number(d.delivered_quantity).toFixed(2)}</td>
                   <td>
-                    {d.validation_status === 'AGUARDANDO_VALIDACAO' && <span className="badge badge-warning">Aguardando Validação</span>}
-                    {d.validation_status === 'DIVERGENCIA' && <span className="badge badge-orange">Divergência</span>}
-                    {d.validation_status === 'OK' && <span className="badge badge-success">OK</span>}
+                    {d.validation_status === 'AGUARDANDO_VALIDACAO' && (
+                      <span className="badge badge-warning">Aguardando Validação</span>
+                    )}
+                    {d.validation_status === 'DIVERGENCIA' && (
+                      <span className="badge badge-orange">Divergência</span>
+                    )}
+                    {d.validation_status === 'OK' && (
+                      <span className="badge badge-success">OK</span>
+                    )}
                   </td>
                   <td>
-                    {(d.validation_status === 'AGUARDANDO_VALIDACAO' || d.validation_status === 'DIVERGENCIA') && (
-                      <button className="btn btn-primary btn-sm" onClick={() => openValidationModal(d)}>
+                    {(d.validation_status === 'AGUARDANDO_VALIDACAO' ||
+                      d.validation_status === 'DIVERGENCIA') && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => openValidationModal(d)}
+                      >
                         Revisar
                       </button>
                     )}
@@ -189,7 +201,9 @@ export default function OrderDetail() {
               ))}
               {deliveries.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="o-empty">Nenhuma entrega registrada ainda.</td>
+                  <td colSpan={5} className="o-empty">
+                    Nenhuma entrega registrada ainda.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -212,7 +226,7 @@ export default function OrderDetail() {
               </tr>
             </thead>
             <tbody>
-              {history.map(h => (
+              {history.map((h) => (
                 <tr key={h.id}>
                   <td>{new Date(h.created_at).toLocaleString('pt-BR')}</td>
                   <td>
@@ -226,7 +240,9 @@ export default function OrderDetail() {
               ))}
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="o-empty">Sem histórico.</td>
+                  <td colSpan={4} className="o-empty">
+                    Sem histórico.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -237,11 +253,17 @@ export default function OrderDetail() {
       {validateModalOpen && validatingDelivery && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3 className="modal-title">Validar Entrega (NF {validatingDelivery.invoice_sequential_number})</h3>
-            
+            <h3 className="modal-title">
+              Validar Entrega (NF {validatingDelivery.invoice_sequential_number})
+            </h3>
+
             <div className="form-group">
               <label className="form-label">Ação</label>
-              <select className="form-input" value={validationStatus} onChange={e => setValidationStatus(e.target.value as 'OK' | 'DIVERGENCIA')}>
+              <select
+                className="form-input"
+                value={validationStatus}
+                onChange={(e) => setValidationStatus(e.target.value as 'OK' | 'DIVERGENCIA')}
+              >
                 <option value="OK">Validar (OK)</option>
                 <option value="DIVERGENCIA">Registrar Divergência</option>
               </select>
@@ -253,22 +275,29 @@ export default function OrderDetail() {
                 className="form-input"
                 rows={3}
                 value={validationNotes}
-                onChange={e => setValidationNotes(e.target.value)}
+                onChange={(e) => setValidationNotes(e.target.value)}
               />
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-outline" disabled={submitting} onClick={() => setValidateModalOpen(false)}>
+              <button
+                className="btn btn-outline"
+                disabled={submitting}
+                onClick={() => setValidateModalOpen(false)}
+              >
                 Cancelar
               </button>
-              <button className="btn btn-primary" disabled={submitting} onClick={handleValidationSubmit}>
+              <button
+                className="btn btn-primary"
+                disabled={submitting}
+                onClick={handleValidationSubmit}
+              >
                 {submitting ? 'Salvando...' : 'Confirmar'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

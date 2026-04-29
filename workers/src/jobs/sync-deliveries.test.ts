@@ -12,14 +12,26 @@ const purchaseInvoicesUpsertMock = vi.fn();
 const invoiceItemsUpsertMock = vi.fn();
 const invoiceOrderLinksUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
-let damageReplacementsSelectResult: any = { data: [], error: null };
+type QueryResult = { data: unknown; error?: unknown };
+type ChainableQuery = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  neq: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  then: (resolve: (value: QueryResult) => unknown) => unknown;
+};
+
+let damageReplacementsSelectResult: QueryResult = { data: [], error: null };
 const damageReplacementsUpdateInMock = vi.fn();
-let damagesSelectResult: any = { data: [], error: null };
+let damagesSelectResult: QueryResult = { data: [], error: null };
 const damagesUpdateInMock = vi.fn();
 const damageAuditInsertMock = vi.fn();
 
-const createChainableQuery = (resolvedValue: any) => {
-  const chainable: any = {
+const createChainableQuery = (resolvedValue: QueryResult): ChainableQuery => {
+  const chainable = {
     select: vi.fn(() => chainable),
     eq: vi.fn(() => chainable),
     neq: vi.fn(() => chainable),
@@ -27,17 +39,9 @@ const createChainableQuery = (resolvedValue: any) => {
     limit: vi.fn(() => chainable),
     in: vi.fn(() => chainable),
     single: vi.fn().mockResolvedValue(resolvedValue),
-    then: (resolve: any) => resolve(resolvedValue),
-  };
+    then: (resolve: (value: QueryResult) => unknown) => resolve(resolvedValue),
+  } as ChainableQuery;
   return chainable;
-};
-
-// Chainable mock for upsert that supports .select().single()
-const createUpsertChain = (resolvedValue: any) => {
-  const singleMock = vi.fn().mockResolvedValue(resolvedValue);
-  const selectMock = vi.fn(() => ({ single: singleMock }));
-  const upsertFn = vi.fn(() => ({ select: selectMock, error: null }));
-  return upsertFn;
 };
 
 const supabaseMock = {

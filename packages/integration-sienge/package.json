@@ -7,6 +7,7 @@
   "types": "src/index.ts",
   "scripts": {
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
     "dotenv": "^16.6.1",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.1",
     "vitest": "^4.1.4"
   },

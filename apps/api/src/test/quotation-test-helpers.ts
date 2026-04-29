@@ -203,9 +203,15 @@ export async function buildTestApp(): Promise<TestAppContext> {
   app.register(supplierQuotationsRoutes, { prefix: '/api/supplier/quotations' });
 
   // Deliveries and orders (lazy load for test so we don't need imports up top if not needed)
-  app.register((await import('../modules/deliveries/index.js')).deliveriesRoutes, { prefix: '/api/deliveries' });
-  app.register((await import('../modules/orders/index.js')).ordersRoutes, { prefix: '/api/orders' });
-  app.register((await import('../modules/damages/index.js')).damagesRoutes, { prefix: '/api/damages' });
+  app.register((await import('../modules/deliveries/index.js')).deliveriesRoutes, {
+    prefix: '/api/deliveries',
+  });
+  app.register((await import('../modules/orders/index.js')).ordersRoutes, {
+    prefix: '/api/orders',
+  });
+  app.register((await import('../modules/damages/index.js')).damagesRoutes, {
+    prefix: '/api/damages',
+  });
 
   await app.ready();
 

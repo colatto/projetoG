@@ -7,7 +7,11 @@ import { UserRole } from '@projetog/domain';
 import { createSupabaseChainMock } from '../../test/quotation-test-helpers.js';
 import { followupRoutes } from './followup.routes.js';
 
-async function getToken(app: FastifyInstance, role: UserRole, sub = '00000000-0000-0000-0000-000000000099') {
+async function getToken(
+  app: FastifyInstance,
+  role: UserRole,
+  sub = '00000000-0000-0000-0000-000000000099',
+) {
   return app.jwt.sign({
     sub,
     email: 'user@grf.com.br',
@@ -104,9 +108,9 @@ describe('FollowUp Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const payload = JSON.parse(response.payload);
-    expect(payload.data.map((row: { purchase_order_id: number }) => row.purchase_order_id)).toEqual([
-      102, 100, 103, 101,
-    ]);
+    expect(payload.data.map((row: { purchase_order_id: number }) => row.purchase_order_id)).toEqual(
+      [102, 100, 103, 101],
+    );
   });
 
   it('applies supplier_id and building_id filters in list query', async () => {
@@ -126,8 +130,12 @@ describe('FollowUp Routes', () => {
   });
 
   it('allows supplier to confirm on-time delivery', async () => {
-    supabase.table('profiles').single.mockResolvedValueOnce({ data: { supplier_id: 77 }, error: null });
-    supabase.table('profiles')._mockResolvedValue({ data: [{ email: 'compras@grf.com' }], error: null });
+    supabase
+      .table('profiles')
+      .single.mockResolvedValueOnce({ data: { supplier_id: 77 }, error: null });
+    supabase
+      .table('profiles')
+      ._mockResolvedValue({ data: [{ email: 'compras@grf.com' }], error: null });
     supabase.table('follow_up_trackers').single.mockResolvedValueOnce({
       data: { id: 'trk-1', purchase_order_id: 123, supplier_id: 77, status: 'ATIVO' },
       error: null,
@@ -156,8 +164,12 @@ describe('FollowUp Routes', () => {
   });
 
   it('allows supplier to suggest new date and pauses tracker', async () => {
-    supabase.table('profiles').single.mockResolvedValueOnce({ data: { supplier_id: 77 }, error: null });
-    supabase.table('profiles')._mockResolvedValue({ data: [{ email: 'compras@grf.com' }], error: null });
+    supabase
+      .table('profiles')
+      .single.mockResolvedValueOnce({ data: { supplier_id: 77 }, error: null });
+    supabase
+      .table('profiles')
+      ._mockResolvedValue({ data: [{ email: 'compras@grf.com' }], error: null });
     supabase.table('follow_up_trackers').single.mockResolvedValueOnce({
       data: {
         id: 'trk-2',

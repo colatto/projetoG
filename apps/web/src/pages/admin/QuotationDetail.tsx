@@ -54,6 +54,14 @@ type SupplierNegotiation = {
   quotation_responses?: QuotationResponse[];
 };
 
+type NotificationLog = {
+  id: string;
+  recipient_supplier_id: number | null;
+  sent_at: string | null;
+  status: string;
+  type: string;
+};
+
 type QuotationDetailDto = {
   id: number;
   public_id: string | null;
@@ -83,7 +91,7 @@ export default function QuotationDetail() {
   const [endDateInput, setEndDateInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: string; msg: string } | null>(null);
 
-  const [notificationLogs, setNotificationLogs] = useState<any[]>([]);
+  const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([]);
 
   const reload = async () => {
     const res = await api.get(`/quotations/${quotationId}`);
@@ -313,7 +321,9 @@ export default function QuotationDetail() {
                 >
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <span className="read-indicator">
-                      <span className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`} />
+                      <span
+                        className={`read-dot ${sn.read_at ? 'read-dot--yes' : 'read-dot--no'}`}
+                      />
                       {sn.read_at ? `Lida ${formatDateTime(sn.read_at)}` : 'Não lida'}
                     </span>
                     {sn.closed_order_id && <span>Pedido #{sn.closed_order_id}</span>}
@@ -321,26 +331,53 @@ export default function QuotationDetail() {
 
                   {/* Notification status */}
                   {(() => {
-                    const supplierNotifications = notificationLogs.filter(log => log.recipient_supplier_id === sn.supplier_id);
-                    return supplierNotifications.length > 0 && (
-                      <div style={{ marginTop: '0.25rem' }}>
-                        {supplierNotifications.map((log: any) => (
-                          <div key={log.id} style={{ fontSize: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <span
+                    const supplierNotifications = notificationLogs.filter(
+                      (log) => log.recipient_supplier_id === sn.supplier_id,
+                    );
+                    return (
+                      supplierNotifications.length > 0 && (
+                        <div style={{ marginTop: '0.25rem' }}>
+                          {supplierNotifications.map((log) => (
+                            <div
+                              key={log.id}
                               style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                backgroundColor: log.status === 'sent' ? '#22c55e' : log.status === 'failed' ? '#ef4444' : '#9ca3af',
+                                fontSize: '0.75rem',
+                                display: 'flex',
+                                gap: '0.5rem',
+                                alignItems: 'center',
                               }}
-                            />
-                            <span>
-                              {log.type === 'NEW_QUOTATION' ? 'Convite' : log.type === 'NO_RESPONSE_ALERT' ? 'Alerta' : log.type} e-mail {log.status === 'sent' ? 'enviado' : log.status === 'failed' ? 'falhou' : 'pendente'}
-                              {log.sent_at && ` em ${formatDateTime(log.sent_at)}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                            >
+                              <span
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  backgroundColor:
+                                    log.status === 'sent'
+                                      ? '#22c55e'
+                                      : log.status === 'failed'
+                                        ? '#ef4444'
+                                        : '#9ca3af',
+                                }}
+                              />
+                              <span>
+                                {log.type === 'NEW_QUOTATION'
+                                  ? 'Convite'
+                                  : log.type === 'NO_RESPONSE_ALERT'
+                                    ? 'Alerta'
+                                    : log.type}{' '}
+                                e-mail{' '}
+                                {log.status === 'sent'
+                                  ? 'enviado'
+                                  : log.status === 'failed'
+                                    ? 'falhou'
+                                    : 'pendente'}
+                                {log.sent_at && ` em ${formatDateTime(log.sent_at)}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )
                     );
                   })()}
                 </div>

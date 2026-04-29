@@ -4,16 +4,11 @@ import { UserRole } from '@projetog/domain';
 export class OrdersController {
   constructor(private app: FastifyInstance) {}
 
-  async listOrders(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
+  async listOrders(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
     const { status, search } = (request.query || {}) as { status?: string; search?: string };
 
-    let query = this.app.supabase
-      .from('purchase_orders')
-      .select('*, purchase_order_items(count)');
+    let query = this.app.supabase.from('purchase_orders').select('*, purchase_order_items(count)');
 
     if (user.role === UserRole.FORNECEDOR) {
       // Must filter by supplier_id
@@ -24,7 +19,7 @@ export class OrdersController {
         .select('supplier_id')
         .eq('id', user.sub)
         .single();
-        
+
       if (!profile || !profile.supplier_id) {
         return reply.forbidden('User has no supplier associated');
       }
@@ -37,7 +32,7 @@ export class OrdersController {
 
     if (search) {
       // Basic search on order number
-      query = query.ilike('order_number', `%${search}%`);
+      query = query.ilike('formatted_purchase_order_id', `%${search}%`);
     }
 
     const { data, error } = await query;
@@ -50,11 +45,11 @@ export class OrdersController {
     return reply.send(data);
   }
 
-  async listOrderDeliveries(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
-    const purchaseOrderId = parseInt((request.params as any).purchaseOrderId, 10);
+  async listOrderDeliveries(request: FastifyRequest, reply: FastifyReply) {
+    const purchaseOrderId = parseInt(
+      (request.params as { purchaseOrderId: string }).purchaseOrderId,
+      10,
+    );
     const user = request.user!;
 
     // Security check
@@ -88,12 +83,12 @@ export class OrdersController {
     return reply.send(data);
   }
 
-  async cancelOrder(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
-    const purchaseOrderId = parseInt((request.params as any).purchaseOrderId, 10);
-    const { reason } = (request.body as any);
+  async cancelOrder(request: FastifyRequest, reply: FastifyReply) {
+    const purchaseOrderId = parseInt(
+      (request.params as { purchaseOrderId: string }).purchaseOrderId,
+      10,
+    );
+    const { reason } = request.body as { reason?: string };
     const user = request.user!;
 
     const { data: order, error: orderError } = await this.app.supabase
@@ -169,12 +164,12 @@ export class OrdersController {
     return reply.send({ success: true, message: 'Order cancelled' });
   }
 
-  async reportAvaria(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
-    const purchaseOrderId = parseInt((request.params as any).purchaseOrderId, 10);
-    const { status, reason } = (request.body as any);
+  async reportAvaria(request: FastifyRequest, reply: FastifyReply) {
+    const purchaseOrderId = parseInt(
+      (request.params as { purchaseOrderId: string }).purchaseOrderId,
+      10,
+    );
+    const { status, reason } = request.body as { status: string; reason?: string };
     const user = request.user!;
 
     const { data: order, error: orderError } = await this.app.supabase
@@ -221,11 +216,11 @@ export class OrdersController {
     return reply.send({ success: true, message: `Order updated to ${status}` });
   }
 
-  async listStatusHistory(
-    request: FastifyRequest<any>,
-    reply: FastifyReply,
-  ) {
-    const purchaseOrderId = parseInt((request.params as any).purchaseOrderId, 10);
+  async listStatusHistory(request: FastifyRequest, reply: FastifyReply) {
+    const purchaseOrderId = parseInt(
+      (request.params as { purchaseOrderId: string }).purchaseOrderId,
+      10,
+    );
     const user = request.user!;
 
     if (user.role === UserRole.FORNECEDOR) {

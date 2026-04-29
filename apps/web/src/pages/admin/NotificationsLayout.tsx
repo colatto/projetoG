@@ -13,8 +13,14 @@ export default function NotificationsLayout() {
           style={{
             padding: '1rem 2rem',
             textDecoration: 'none',
-            color: currentPath === '/admin/notifications' ? 'var(--color-primary)' : 'var(--color-gray-500)',
-            borderBottom: currentPath === '/admin/notifications' ? '2px solid var(--color-primary)' : '2px solid transparent',
+            color:
+              currentPath === '/admin/notifications'
+                ? 'var(--color-primary)'
+                : 'var(--color-gray-500)',
+            borderBottom:
+              currentPath === '/admin/notifications'
+                ? '2px solid var(--color-primary)'
+                : '2px solid transparent',
             fontWeight: currentPath === '/admin/notifications' ? 600 : 400,
           }}
         >
@@ -25,8 +31,14 @@ export default function NotificationsLayout() {
           style={{
             padding: '1rem 2rem',
             textDecoration: 'none',
-            color: currentPath === '/admin/notifications/templates' ? 'var(--color-primary)' : 'var(--color-gray-500)',
-            borderBottom: currentPath === '/admin/notifications/templates' ? '2px solid var(--color-primary)' : '2px solid transparent',
+            color:
+              currentPath === '/admin/notifications/templates'
+                ? 'var(--color-primary)'
+                : 'var(--color-gray-500)',
+            borderBottom:
+              currentPath === '/admin/notifications/templates'
+                ? '2px solid var(--color-primary)'
+                : '2px solid transparent',
             fontWeight: currentPath === '/admin/notifications/templates' ? 600 : 400,
           }}
         >

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
+import {
+  buildTestApp,
+  generateTestToken,
+  TestAppContext,
+} from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
 describe('damages routes', () => {

@@ -9,8 +9,7 @@ function isKnownTinypoolShutdownRangeError(
 
   const err = reason as { name?: string; message?: string; stack?: string };
   return (
-    err.name === 'RangeError' &&
-    err.message?.includes('Maximum call stack size exceeded') === true
+    err.name === 'RangeError' && err.message?.includes('Maximum call stack size exceeded') === true
   );
 }
 

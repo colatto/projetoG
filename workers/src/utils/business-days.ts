@@ -11,7 +11,11 @@ function isWeekend(date: Date): boolean {
   return day === 0 || day === 6;
 }
 
-export function addBusinessDays(startDate: Date, businessDays: number, holidays: Set<string>): Date {
+export function addBusinessDays(
+  startDate: Date,
+  businessDays: number,
+  holidays: Set<string>,
+): Date {
   const result = toDateOnly(startDate);
   let remaining = Math.max(0, businessDays);
 

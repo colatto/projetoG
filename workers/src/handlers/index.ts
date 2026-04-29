@@ -8,6 +8,7 @@ import { processRetryIntegration } from '../jobs/retry-integration.js';
 import { processWebhook } from '../jobs/process-webhook.js';
 import { processOutboundNegotiation } from '../jobs/outbound-negotiation.js';
 import { processQuotationExpireCheck } from '../jobs/quotation-expire-check.js';
+import { processDashboardConsolidation } from '../jobs/dashboard-consolidation.js';
 
 /**
  * Job retry/expiration configuration per fronteira-integracao.md §9.3, Camada 2.
@@ -97,6 +98,10 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     processQuotationExpireCheck(job),
   );
 
+  await boss.work<object>('dashboard:consolidation', async (job) =>
+    processDashboardConsolidation(job),
+  );
+
   // ── Schedule cron jobs ────────────────────────────────────────
   // Uses singletonKey to prevent duplicate runs when cron fires before
   // the previous job completes (fronteira-integracao.md §9.3).
@@ -142,6 +147,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     '15 11 * * *', // Daily at 08:15 BRT (11:15 UTC)
     {},
     { singletonKey: 'quotation:expire-check:singleton', ...SEND_OPTIONS.quotationExpireCheck },
+  );
+
+  await boss.schedule(
+    'dashboard:consolidation',
+    '45 10 * * *', // Daily at 07:45 BRT (10:45 UTC)
+    {},
+    { singletonKey: 'dashboard:consolidation:singleton', ...SEND_OPTIONS.followUp },
   );
 
   console.log('[handlers] All job handlers registered and cron schedules configured.');

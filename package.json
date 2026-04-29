@@ -8,6 +8,7 @@
     "format:check": "prettier --check .",
     "security:secrets": "node scripts/check-no-secrets.mjs",
     "security:audit": "pnpm audit",
+    "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "db:login": "pnpm dlx supabase login",

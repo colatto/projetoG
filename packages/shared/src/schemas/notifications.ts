@@ -14,7 +14,9 @@ export const notificationTemplateUpdateBodySchema = z.object({
   subject_template: z.string().min(1),
   body_template: z.string().min(1),
 });
-export type NotificationTemplateUpdateBodyDto = z.infer<typeof notificationTemplateUpdateBodySchema>;
+export type NotificationTemplateUpdateBodyDto = z.infer<
+  typeof notificationTemplateUpdateBodySchema
+>;
 
 export const notificationTemplateIdParamSchema = z.object({
   id: z.string().uuid(),

@@ -9,7 +9,7 @@ Documento-base para agentes e mantenedores. Atualizado para refletir o estado re
 3. `docs/architecture.md`
 4. `docs/decisions/*.md`
 5. `docs/prd/*.md`
-6. `docs/runbooks/*.md`
+6. `docs/runbooks/*.md` (incluindo `docs/runbooks/typecheck-and-supabase-types.md`)
 7. `apps/*/CLAUDE.md`, `packages/*/CLAUDE.md`, `workers/CLAUDE.md`
 
 ## Objetivo do produto
@@ -313,6 +313,7 @@ Identificadores mínimos persistidos:
 - `kebab-case` para arquivos, `PascalCase` para componentes/classes, `camelCase` para símbolos
 - mensagens de usuário em português; identificadores e mensagens técnicas em inglês
 - convenção de commit observada no histórico: `feat|fix|docs|test|refactor|chore`, mas sem validação automática de commit message
+- manutenção de tipos: seguir o fluxo obrigatório em `docs/runbooks/typecheck-and-supabase-types.md` para manter os contratos alinhados ao Supabase
 
 ## Estado dos checks
 
@@ -431,6 +432,7 @@ Antes de alterar código ou documentação, validar impacto em:
 - isolamento por fornecedor
 - sync assíncrono e reprocessamento
 - fronteira entre web, API, Supabase e workers
+- validação de contratos TypeScript contra banco (ver `docs/runbooks/typecheck-and-supabase-types.md`)
 
 ## Proibições absolutas
 

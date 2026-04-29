@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Job } from 'pg-boss';
 import { processNotificationSendEmail } from './notification-send-email.js';
+import type { SendEmailJobData } from './notification-send-email.js';
 
 const { fromMock, resendSendMock } = vi.hoisted(() => ({
   fromMock: vi.fn().mockReturnThis(),
@@ -36,7 +38,7 @@ describe('processNotificationSendEmail', () => {
       },
     };
 
-    await expect(processNotificationSendEmail(job as any)).resolves.not.toThrow();
+    await expect(processNotificationSendEmail(job as Job<SendEmailJobData>)).resolves.not.toThrow();
   });
 
   it('marks log as failed when provider returns error', async () => {
@@ -52,7 +54,7 @@ describe('processNotificationSendEmail', () => {
       },
     };
 
-    await expect(processNotificationSendEmail(job as any)).rejects.toThrow(
+    await expect(processNotificationSendEmail(job as Job<SendEmailJobData>)).rejects.toThrow(
       'Email sending failed: provider down',
     );
     expect(fromMock).toHaveBeenCalledWith('notification_logs');

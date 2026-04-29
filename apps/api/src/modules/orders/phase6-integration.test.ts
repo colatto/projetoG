@@ -7,7 +7,11 @@
  * - §6.3 All 6 audit events coverage via API interactions
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
+import {
+  buildTestApp,
+  generateTestToken,
+  TestAppContext,
+} from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
 describe('Phase 6 — Cross-module Integration', () => {
@@ -27,11 +31,11 @@ describe('Phase 6 — Cross-module Integration', () => {
   describe('§6.3 Audit Events Coverage', () => {
     it('should list all 6 required audit event types as implemented', () => {
       const requiredEvents = [
-        'delivery_identified',           // worker: sync-deliveries.ts
-        'delivery_validated_ok',         // controller: deliveries.controller.ts
+        'delivery_identified', // worker: sync-deliveries.ts
+        'delivery_validated_ok', // controller: deliveries.controller.ts
         'delivery_validated_divergence', // controller: deliveries.controller.ts
-        'order_status_changed',          // controller: deliveries recalc + orders cancel/avaria
-        'order_cancelled',              // controller: orders.controller.ts cancelOrder
+        'order_status_changed', // controller: deliveries recalc + orders cancel/avaria
+        'order_cancelled', // controller: orders.controller.ts cancelOrder
         'followup_termination_requested', // controller: orders cancel + deliveries follow-up
       ];
 
@@ -63,7 +67,8 @@ describe('Phase 6 — Cross-module Integration', () => {
       // Verify audit_logs.insert was called with delivery_validated_ok event
       const auditInserts = context.supabase.table('audit_logs').insert.mock.calls;
       const okEvent = auditInserts.find(
-        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'delivery_validated_ok',
+        (call: unknown[]) =>
+          (call[0] as Record<string, unknown>).event_type === 'delivery_validated_ok',
       );
       expect(okEvent).toBeTruthy();
       expect((okEvent![0] as Record<string, unknown>).entity_type).toBe('delivery');
@@ -92,7 +97,8 @@ describe('Phase 6 — Cross-module Integration', () => {
 
       const auditInserts = context.supabase.table('audit_logs').insert.mock.calls;
       const divEvent = auditInserts.find(
-        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'delivery_validated_divergence',
+        (call: unknown[]) =>
+          (call[0] as Record<string, unknown>).event_type === 'delivery_validated_divergence',
       );
       expect(divEvent).toBeTruthy();
     });
@@ -118,13 +124,17 @@ describe('Phase 6 — Cross-module Integration', () => {
         (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'order_cancelled',
       );
       const statusEvent = auditInserts.find(
-        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'order_status_changed',
+        (call: unknown[]) =>
+          (call[0] as Record<string, unknown>).event_type === 'order_status_changed',
       );
 
       expect(cancelEvent).toBeTruthy();
       expect((cancelEvent![0] as Record<string, unknown>).entity_id).toBe('300');
       expect(statusEvent).toBeTruthy();
-      expect(((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>).newStatus).toBe('CANCELADO');
+      expect(
+        ((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>)
+          .newStatus,
+      ).toBe('CANCELADO');
     });
 
     it('order_status_changed event should be inserted on reportAvaria', async () => {
@@ -145,11 +155,18 @@ describe('Phase 6 — Cross-module Integration', () => {
 
       const auditInserts = context.supabase.table('audit_logs').insert.mock.calls;
       const statusEvent = auditInserts.find(
-        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'order_status_changed',
+        (call: unknown[]) =>
+          (call[0] as Record<string, unknown>).event_type === 'order_status_changed',
       );
       expect(statusEvent).toBeTruthy();
-      expect(((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>).newStatus).toBe('EM_AVARIA');
-      expect(((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>).previousStatus).toBe('PARCIALMENTE_ENTREGUE');
+      expect(
+        ((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>)
+          .newStatus,
+      ).toBe('EM_AVARIA');
+      expect(
+        ((statusEvent![0] as Record<string, unknown>).metadata as Record<string, unknown>)
+          .previousStatus,
+      ).toBe('PARCIALMENTE_ENTREGUE');
     });
   });
 
@@ -183,10 +200,13 @@ describe('Phase 6 — Cross-module Integration', () => {
       // Verify followup_termination_requested audit event
       const auditInserts = context.supabase.table('audit_logs').insert.mock.calls;
       const terminationEvent = auditInserts.find(
-        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type === 'followup_termination_requested',
+        (call: unknown[]) =>
+          (call[0] as Record<string, unknown>).event_type === 'followup_termination_requested',
       );
       expect(terminationEvent).toBeTruthy();
-      expect((terminationEvent![0] as Record<string, unknown>).entity_type).toBe('follow_up_tracker');
+      expect((terminationEvent![0] as Record<string, unknown>).entity_type).toBe(
+        'follow_up_tracker',
+      );
       expect((terminationEvent![0] as Record<string, unknown>).entity_id).toBe('tracker-1');
     });
 
@@ -334,7 +354,9 @@ describe('Phase 6 — Cross-module Integration', () => {
 
       // Verify all 3 audit events in one cancel flow
       const auditInserts = context.supabase.table('audit_logs').insert.mock.calls;
-      const eventTypes = auditInserts.map((call: unknown[]) => (call[0] as Record<string, unknown>).event_type);
+      const eventTypes = auditInserts.map(
+        (call: unknown[]) => (call[0] as Record<string, unknown>).event_type,
+      );
 
       expect(eventTypes).toContain('order_cancelled');
       expect(eventTypes).toContain('order_status_changed');

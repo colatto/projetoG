@@ -172,7 +172,11 @@ export default function NotificationLogs() {
                                 : '#374151',
                         }}
                       >
-                        {log.status === 'sent' ? 'Enviado' : log.status === 'failed' ? 'Falha' : log.status}
+                        {log.status === 'sent'
+                          ? 'Enviado'
+                          : log.status === 'failed'
+                            ? 'Falha'
+                            : log.status}
                       </span>
                     </td>
                     <td>{new Date(log.created_at).toLocaleString('pt-BR')}</td>

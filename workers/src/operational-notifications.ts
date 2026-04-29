@@ -149,7 +149,8 @@ export async function sendNoResponseEmailAlert(
         htmlBody: body,
       });
     }
-  } catch (err: any) {
-    console.error(`Failed to send no-response email alert: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Failed to send no-response email alert: ${message}`);
   }
 }

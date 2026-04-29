@@ -13,15 +13,25 @@ export class NotificationsController {
     request: FastifyRequest<{ Querystring: NotificationLogsQueryDto }>,
     reply: FastifyReply,
   ) {
-    const { page = 1, limit = 20, quotation_id, supplier_id, status, export: exportFormat } = request.query;
+    const {
+      page = 1,
+      limit = 20,
+      quotation_id,
+      supplier_id,
+      status,
+      export: exportFormat,
+    } = request.query;
     const supabase = request.server.supabase;
 
-    let query = supabase.from('notification_logs').select(`
+    let query = supabase.from('notification_logs').select(
+      `
       *,
       notification_templates ( type ),
       suppliers ( name ),
       profiles ( name )
-    `, { count: 'exact' });
+    `,
+      { count: 'exact' },
+    );
 
     if (quotation_id) {
       query = query.eq('quotation_id', quotation_id);

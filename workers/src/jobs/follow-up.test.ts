@@ -5,7 +5,9 @@ const bossSendMock = vi.fn().mockResolvedValue('job-id');
 const followUpTrackersUpdateEqMock = vi.fn().mockResolvedValue({ error: null });
 const followUpTrackersInsertMock = vi.fn().mockResolvedValue({ error: null });
 const followUpTrackersMaybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
-const notificationLogsSingleMock = vi.fn().mockResolvedValue({ data: { id: 'log-1' }, error: null });
+const notificationLogsSingleMock = vi
+  .fn()
+  .mockResolvedValue({ data: { id: 'log-1' }, error: null });
 const notificationLogsSelectMock = vi.fn(() => ({ single: notificationLogsSingleMock }));
 const notificationLogsInsertMock = vi.fn(() => ({ select: notificationLogsSelectMock }));
 const notificationLogsUpdateEqMock = vi.fn().mockResolvedValue({ error: null });
@@ -32,9 +34,10 @@ const templatesEqFirstMock = vi.fn(() => ({ eq: templatesEqSecondMock }));
 const templatesSelectMock = vi.fn(() => ({ eq: templatesEqFirstMock }));
 
 const purchaseOrdersInMock = vi.fn().mockResolvedValue({ data: [], error: null });
-const purchaseOrdersSingleMock = vi
-  .fn()
-  .mockResolvedValue({ data: { id: 1, local_status: 'PENDENTE', pending_quantity: 5 }, error: null });
+const purchaseOrdersSingleMock = vi.fn().mockResolvedValue({
+  data: { id: 1, local_status: 'PENDENTE', pending_quantity: 5 },
+  error: null,
+});
 const purchaseOrdersEqMock = vi.fn(() => ({ single: purchaseOrdersSingleMock }));
 const purchaseOrdersSelectMock = vi.fn((columns: string) => {
   if (columns.includes('supplier_id')) {
@@ -178,7 +181,9 @@ describe('processFollowUp', () => {
 
   it('bootstraps promised date from latest delivery schedule', async () => {
     purchaseOrdersInMock.mockResolvedValueOnce({
-      data: [{ id: 999, supplier_id: 10, date: '2026-04-01', building_id: 5, local_status: 'PENDENTE' }],
+      data: [
+        { id: 999, supplier_id: 10, date: '2026-04-01', building_id: 5, local_status: 'PENDENTE' },
+      ],
       error: null,
     });
     deliverySchedulesInMock.mockResolvedValueOnce({
@@ -258,7 +263,9 @@ describe('processFollowUp', () => {
   it('marks notification log as failed when queueing email fails', async () => {
     bossSendMock.mockRejectedValueOnce(new Error('queue unavailable'));
 
-    await expect(processFollowUp({ id: 'job-followup' } as never)).rejects.toThrow('queue unavailable');
+    await expect(processFollowUp({ id: 'job-followup' } as never)).rejects.toThrow(
+      'queue unavailable',
+    );
 
     expect(notificationLogsUpdateMock).toHaveBeenCalledWith(
       expect.objectContaining({

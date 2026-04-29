@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildTestApp, generateTestToken, TestAppContext } from '../../test/quotation-test-helpers.js';
+import {
+  buildTestApp,
+  generateTestToken,
+  TestAppContext,
+} from '../../test/quotation-test-helpers.js';
 import { UserRole } from '@projetog/domain';
 
 describe('Orders Module', () => {
@@ -15,7 +19,9 @@ describe('Orders Module', () => {
   });
 
   it('GET /api/orders should list orders for ADMIN', async () => {
-    context.supabase.table('purchase_orders')._mockResolvedValue({ data: [{ id: 100 }], error: null });
+    context.supabase
+      .table('purchase_orders')
+      ._mockResolvedValue({ data: [{ id: 100 }], error: null });
 
     const token = await generateTestToken(context.app, { role: UserRole.ADMINISTRADOR });
     const response = await context.app.inject({
@@ -29,8 +35,12 @@ describe('Orders Module', () => {
   });
 
   it('GET /api/orders should filter by supplier for FORNECEDOR', async () => {
-    context.supabase.table('profiles').single.mockResolvedValue({ data: { supplier_id: 10 }, error: null });
-    context.supabase.table('purchase_orders')._mockResolvedValue({ data: [{ id: 100, supplier_id: 10 }], error: null });
+    context.supabase
+      .table('profiles')
+      .single.mockResolvedValue({ data: { supplier_id: 10 }, error: null });
+    context.supabase
+      .table('purchase_orders')
+      ._mockResolvedValue({ data: [{ id: 100, supplier_id: 10 }], error: null });
 
     const token = await generateTestToken(context.app, { role: UserRole.FORNECEDOR });
     const response = await context.app.inject({
@@ -43,7 +53,9 @@ describe('Orders Module', () => {
   });
 
   it('POST /api/orders/:purchaseOrderId/cancel should cancel order', async () => {
-    context.supabase.table('purchase_orders').single.mockResolvedValue({ data: { local_status: 'EM_ANDAMENTO' }, error: null });
+    context.supabase
+      .table('purchase_orders')
+      .single.mockResolvedValue({ data: { local_status: 'EM_ANDAMENTO' }, error: null });
 
     const token = await generateTestToken(context.app, { role: UserRole.ADMINISTRADOR });
     const response = await context.app.inject({

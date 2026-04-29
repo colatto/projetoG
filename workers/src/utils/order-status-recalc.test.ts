@@ -70,6 +70,17 @@ describe('recalculateOrderStatus', () => {
                 }),
               })),
             };
+          case 'damages':
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  in: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null,
+                  }),
+                })),
+              })),
+            };
           case 'order_status_history':
           case 'audit_logs':
             return { insert: vi.fn().mockResolvedValue({ error: null }) };

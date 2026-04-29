@@ -3,6 +3,7 @@ import {
   CancelReplacementBodyDto,
   CreateDamageBodyDto,
   InformReplacementDateBodyDto,
+  Json,
   ListDamagesQueryDto,
   ResolveDamageBodyDto,
   SuggestDamageActionBodyDto,
@@ -15,12 +16,8 @@ import {
   UserRole,
 } from '@projetog/domain';
 
-type AuthenticatedRequest = FastifyRequest & {
-  user: {
-    sub: string;
-    role: UserRole;
-  };
-};
+type AuthenticatedRequest = FastifyRequest;
+type JsonObject = { [key: string]: Json | undefined };
 
 function mapActionToDb(action?: string | null): DamageAction | null {
   if (!action) return null;
@@ -58,12 +55,12 @@ export class DamagesController {
     return data?.supplier_id ?? null;
   }
 
-  private async notifyCompras(type: string, metadata: Record<string, unknown>) {
+  private async notifyCompras(type: string, metadata: JsonObject) {
     const { data: comprasProfiles } = await this.app.supabase
       .from('profiles')
       .select('email, role, status')
-      .eq('role', 'COMPRAS')
-      .eq('status', 'ATIVO');
+      .eq('role', UserRole.COMPRAS)
+      .eq('status', 'ativo');
 
     const now = new Date().toISOString();
     const rows = (comprasProfiles || []).map((profile) => ({
@@ -90,7 +87,7 @@ export class DamagesController {
     eventType: string;
     actorUserId?: string | null;
     actorProfile?: 'fornecedor' | 'compras' | 'sistema' | null;
-    details?: Record<string, unknown>;
+    details?: JsonObject;
     purchaseOrderId: number;
     supplierId: number;
   }) {
@@ -323,7 +320,7 @@ export class DamagesController {
 
     const { data: damage } = await this.app.supabase
       .from('damages')
-      .select('id, purchase_order_id, supplier_id, final_action')
+      .select('id, purchase_order_id, supplier_id, final_action, suggested_action')
       .eq('id', damageId)
       .single();
     if (!damage) return reply.notFound('Avaria não encontrada');

@@ -17,7 +17,14 @@ export const ordersRoutes: FastifyPluginAsync = async (app) => {
           search: z.string().optional(),
         }),
       },
-      preValidation: [app.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR, UserRole.VISUALIZADOR_PEDIDOS])],
+      preValidation: [
+        app.verifyRole([
+          UserRole.ADMINISTRADOR,
+          UserRole.COMPRAS,
+          UserRole.FORNECEDOR,
+          UserRole.VISUALIZADOR_PEDIDOS,
+        ]),
+      ],
     },
     controller.listOrders.bind(controller),
   );
@@ -30,7 +37,14 @@ export const ordersRoutes: FastifyPluginAsync = async (app) => {
           purchaseOrderId: z.string(),
         }),
       },
-      preValidation: [app.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR, UserRole.VISUALIZADOR_PEDIDOS])],
+      preValidation: [
+        app.verifyRole([
+          UserRole.ADMINISTRADOR,
+          UserRole.COMPRAS,
+          UserRole.FORNECEDOR,
+          UserRole.VISUALIZADOR_PEDIDOS,
+        ]),
+      ],
     },
     controller.listOrderDeliveries.bind(controller),
   );
@@ -59,7 +73,14 @@ export const ordersRoutes: FastifyPluginAsync = async (app) => {
           purchaseOrderId: z.string(),
         }),
       },
-      preValidation: [app.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR, UserRole.VISUALIZADOR_PEDIDOS])],
+      preValidation: [
+        app.verifyRole([
+          UserRole.ADMINISTRADOR,
+          UserRole.COMPRAS,
+          UserRole.FORNECEDOR,
+          UserRole.VISUALIZADOR_PEDIDOS,
+        ]),
+      ],
     },
     controller.listStatusHistory.bind(controller),
   );

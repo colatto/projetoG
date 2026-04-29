@@ -12,13 +12,12 @@ export interface SendEmailJobData {
 const resend = new Resend(process.env.EMAIL_PROVIDER_API_KEY || 'dummy');
 const fromAddress = process.env.EMAIL_FROM_ADDRESS || 'cotacoes@grfincorporadora.com';
 
-
 export async function processNotificationSendEmail(job: Job<SendEmailJobData>): Promise<void> {
   const supabase = getSupabase();
   const { notificationLogId, recipientEmail, subject, htmlBody } = job.data;
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: fromAddress,
       to: recipientEmail,
       subject,
@@ -61,10 +60,11 @@ export async function processNotificationSendEmail(job: Job<SendEmailJobData>): 
 
       throw new Error(`Email sending failed: ${error.message}`);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error('Failed to process notification email job', {
       jobId: job.id,
-      error: err.message,
+      error: message,
     });
     throw err;
   }

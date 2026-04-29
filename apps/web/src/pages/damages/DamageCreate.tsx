@@ -33,7 +33,8 @@ export default function DamageCreate() {
         description,
         affected_quantity: affectedQuantity ? Number(affectedQuantity) : undefined,
         suggested_action: isSupplier && suggestedAction ? suggestedAction : undefined,
-        suggested_action_notes: isSupplier && suggestedActionNotes ? suggestedActionNotes : undefined,
+        suggested_action_notes:
+          isSupplier && suggestedActionNotes ? suggestedActionNotes : undefined,
       });
 
       navigate(backPath);
@@ -55,7 +56,9 @@ export default function DamageCreate() {
       <div className="o-page-header">
         <div>
           <h1 className="o-page-title">Registrar Avaria</h1>
-          <p className="o-page-subtitle">Registre a ocorrência e, se aplicável, a sugestão inicial</p>
+          <p className="o-page-subtitle">
+            Registre a ocorrência e, se aplicável, a sugestão inicial
+          </p>
         </div>
       </div>
 

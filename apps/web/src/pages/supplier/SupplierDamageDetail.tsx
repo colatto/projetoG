@@ -110,7 +110,9 @@ export default function SupplierDamageDetail() {
             Pedido #{data.purchase_order_id} · Item {data.item_number}
           </p>
         </div>
-        <span className={getDamageStatusBadgeClass(data.status)}>{getDamageStatusLabel(data.status)}</span>
+        <span className={getDamageStatusBadgeClass(data.status)}>
+          {getDamageStatusLabel(data.status)}
+        </span>
       </div>
 
       <div className="o-detail-section">
