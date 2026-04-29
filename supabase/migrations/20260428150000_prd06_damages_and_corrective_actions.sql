@@ -37,7 +37,7 @@ SET
     d.reported_by_profile,
     (
       SELECT CASE
-        WHEN p.role = 'fornecedor' THEN 'fornecedor'
+        WHEN lower(p.role::text) = 'fornecedor' THEN 'fornecedor'
         ELSE 'compras'
       END
       FROM public.profiles p
