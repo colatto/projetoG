@@ -25,6 +25,7 @@ export const dashboardAtrasosQuerySchema = dashboardKpisQuerySchema;
 export type DashboardAtrasosQueryDto = z.infer<typeof dashboardAtrasosQuerySchema>;
 
 export const dashboardCriticidadeQuerySchema = z.object({
+  data_referencia: dashboardDateSchema.optional(),
   building_id: z.coerce.number().int().positive().optional(),
   item_identifier: z.string().min(1).max(100).optional(),
 });

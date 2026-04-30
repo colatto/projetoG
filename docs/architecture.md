@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-28` para refletir o estado real do monorepo.
+Atualizado em `2026-04-29` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -95,6 +95,7 @@ flowchart TD
     C --> RI[integration:retry]
     C --> FU[follow-up]
     C --> QE[quotation:expire-check]
+    C --> DC[dashboard:consolidation]
 
     SQ --> SC[(sienge_sync_cursor)]
     SO --> SC
@@ -193,24 +194,25 @@ sequenceDiagram
 
 ### 6.2 Migrações existentes
 
-| Migração                                                   | Escopo                                                                                                                |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `20260409202239_initial_schema_v1.sql`                     | schema base completo V1                                                                                               |
-| `20260409204644_remote_schema.sql`                         | alinhamento remoto                                                                                                    |
-| `20260409212000_align_auth_to_prd01.sql`                   | autenticação/perfis PRD-01                                                                                            |
-| `20260411010000_integration_tables_prd07.sql`              | tabelas de integração Sienge PRD-07                                                                                   |
-| `20260414100000_webhook_delivery_metadata.sql`             | metadata de delivery de webhook                                                                                       |
-| `20260415100000_sienge_missing_tables.sql`                 | tabelas complementares Sienge                                                                                         |
-| `20260415100001_deliveries_unique.sql`                     | unicidade de entregas                                                                                                 |
-| `20260416100000_sienge_sync_cursor_enhancements.sql`       | melhorias no cursor de sincronização                                                                                  |
-| `20260417120000_prd02_quotation_responses.sql`             | respostas de cotação versionadas PRD-02                                                                               |
-| `20260421130000_prd02_schema_hardening.sql`                | hardening de schema PRD-02                                                                                            |
-| `20260421223710_prd05_delivery_records.sql`                | delivery_records, order_status_history e campos calculados PRD-05                                                     |
-| `20260422014205_remote_schema.sql`                         | alinhamento remoto                                                                                                    |
-| `20260422145434_prd03_notification_templates_and_logs.sql` | templates e logs de notificação PRD-03                                                                                |
-| `20260423110000_prd04_followup_logistico.sql`              | follow_up_trackers extensão, follow_up_date_changes, business_days_holidays, 4 tipos de notificação PRD-04            |
-| `20260423110001_prd04_followup_notification_templates.sql` | seed de 4 templates de notificação PRD-04 (followup_reminder, overdue_alert, confirmation_received, new_date_pending) |
-| `20260428150000_prd06_damages_and_corrective_actions.sql`  | extensão de damages, damage_replacements, damage_audit_logs, RLS, constraints e índices PRD-06                        |
+| Migração                                                   | Escopo                                                                                                                                                                 |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260409202239_initial_schema_v1.sql`                     | schema base completo V1                                                                                                                                                |
+| `20260409204644_remote_schema.sql`                         | alinhamento remoto                                                                                                                                                     |
+| `20260409212000_align_auth_to_prd01.sql`                   | autenticação/perfis PRD-01                                                                                                                                             |
+| `20260411010000_integration_tables_prd07.sql`              | tabelas de integração Sienge PRD-07                                                                                                                                    |
+| `20260414100000_webhook_delivery_metadata.sql`             | metadata de delivery de webhook                                                                                                                                        |
+| `20260415100000_sienge_missing_tables.sql`                 | tabelas complementares Sienge                                                                                                                                          |
+| `20260415100001_deliveries_unique.sql`                     | unicidade de entregas                                                                                                                                                  |
+| `20260416100000_sienge_sync_cursor_enhancements.sql`       | melhorias no cursor de sincronização                                                                                                                                   |
+| `20260417120000_prd02_quotation_responses.sql`             | respostas de cotação versionadas PRD-02                                                                                                                                |
+| `20260421130000_prd02_schema_hardening.sql`                | hardening de schema PRD-02                                                                                                                                             |
+| `20260421223710_prd05_delivery_records.sql`                | delivery_records, order_status_history e campos calculados PRD-05                                                                                                      |
+| `20260422014205_remote_schema.sql`                         | alinhamento remoto                                                                                                                                                     |
+| `20260422145434_prd03_notification_templates_and_logs.sql` | templates e logs de notificação PRD-03                                                                                                                                 |
+| `20260423110000_prd04_followup_logistico.sql`              | follow_up_trackers extensão, follow_up_date_changes, business_days_holidays, 4 tipos de notificação PRD-04                                                             |
+| `20260423110001_prd04_followup_notification_templates.sql` | seed de 4 templates de notificação PRD-04 (followup_reminder, overdue_alert, confirmation_received, new_date_pending)                                                  |
+| `20260428150000_prd06_damages_and_corrective_actions.sql`  | extensão de damages, damage_replacements, damage_audit_logs, RLS, constraints e índices PRD-06                                                                         |
+| `20260429153000_prd08_dashboard_indicators.sql`            | snapshots analíticos PRD-08: `dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item` (RLS service_role) |
 
 ### 6.3 Grupos principais de tabelas
 
@@ -259,9 +261,18 @@ Integração Sienge:
 - `sienge_sync_cursor`
 - `sienge_credentials`
 
+Dashboards e indicadores (PRD-08):
+
+- `dashboard_snapshot` — KPIs globais por dia
+- `dashboard_snapshot_por_fornecedor` — métricas e confiabilidade por fornecedor
+- `dashboard_snapshot_por_obra` — métricas por obra
+- `dashboard_criticidade_item` — criticidade por item/linha consolidada
+
+O worker `dashboard:consolidation` (cron diário) lê pedidos, cotações, avarias e integrações, grava o pacote de snapshots em **transação única** via `DATABASE_URL` (`workers/src/jobs/dashboard-snapshot-pg.ts`) e registra `audit_logs` (`dashboard.snapshot_created` / `dashboard.consolidation_error`). A API expõe leitura em `/api/dashboard/*` com agregação por período (última data por fornecedor/obra no intervalo).
+
 ### 6.4 RLS e governança
 
-- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries`, `order_status_history`, `notification_templates`, `notification_logs`, `damages`, `damage_replacements` e `damage_audit_logs`
+- RLS está habilitado nas tabelas principais, incluindo `quotation_responses`, `quotation_response_items`, `quotation_response_item_deliveries`, `order_status_history`, `notification_templates`, `notification_logs`, `damages`, `damage_replacements`, `damage_audit_logs` e tabelas `dashboard_*` (acesso apenas via `service_role`)
 - políticas de leitura e inserção para fornecedor usam `public.get_auth_supplier_id()`
 - `follow_up_trackers` possui políticas de leitura e atualização por fornecedor via `purchase_orders.supplier_id`
 - backend e workers usam `service_role`, então bypassam RLS quando necessário

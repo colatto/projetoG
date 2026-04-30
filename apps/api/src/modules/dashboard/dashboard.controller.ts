@@ -29,6 +29,44 @@ function defaultPeriod(inputStart?: string, inputEnd?: string) {
   return { startDate, endDate };
 }
 
+/** One row per supplier_id: row from the latest snapshot_date in the set. */
+function aggregateLatestPerSupplier<T extends { supplier_id: number; snapshot_date: string }>(
+  rows: T[],
+): T[] {
+  const bySup = new Map<number, T>();
+  for (const row of rows) {
+    const existing = bySup.get(row.supplier_id);
+    if (!existing || String(row.snapshot_date) > String(existing.snapshot_date)) {
+      bySup.set(row.supplier_id, row);
+    }
+  }
+  return Array.from(bySup.values()).sort(
+    (a: any, b: any) => (b.pedidos_atrasados ?? 0) - (a.pedidos_atrasados ?? 0),
+  );
+}
+
+/** One row per building_id: row from the latest snapshot_date in the set. */
+function aggregateLatestPerBuilding<T extends { building_id: number; snapshot_date: string }>(
+  rows: T[],
+): T[] {
+  const byB = new Map<number, T>();
+  for (const row of rows) {
+    const existing = byB.get(row.building_id);
+    if (!existing || String(row.snapshot_date) > String(existing.snapshot_date)) {
+      byB.set(row.building_id, row);
+    }
+  }
+  return Array.from(byB.values()).sort((a: any, b: any) => a.building_id - b.building_id);
+}
+
+/** Latest global snapshot row in range (by snapshot_date). */
+function pickLatestGlobalRow(rows: any[]): any | null {
+  if (!rows.length) return null;
+  return rows.reduce((best: any, row: any) =>
+    String(row.snapshot_date) > String(best.snapshot_date) ? row : best,
+  rows[0]);
+}
+
 export class DashboardController {
   constructor(private app: FastifyInstance) {}
 
@@ -53,6 +91,17 @@ export class DashboardController {
   private safeRate(numerator: number, denominator: number): number {
     if (!denominator) return 0;
     return Number(((numerator / denominator) * 100).toFixed(2));
+  }
+
+  /** Latest snapshot_date that exists in dashboard_snapshot (any row). */
+  private async resolveLatestSnapshotDate(): Promise<string | null> {
+    const { data } = await (this.app.supabase as any)
+      .from('dashboard_snapshot')
+      .select('snapshot_date')
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data?.snapshot_date ?? null;
   }
 
   async getResumo(request: FastifyRequest, reply: FastifyReply) {
@@ -116,43 +165,74 @@ export class DashboardController {
       .from('dashboard_snapshot')
       .select('*')
       .gte('snapshot_date', period.startDate)
-      .lte('snapshot_date', period.endDate);
+      .lte('snapshot_date', period.endDate)
+      .order('snapshot_date', { ascending: true });
     if (query.supplier_id) {
       snapshotsQuery = (this.app.supabase as any)
         .from('dashboard_snapshot_por_fornecedor')
         .select('*')
         .eq('supplier_id', query.supplier_id)
         .gte('snapshot_date', period.startDate)
-        .lte('snapshot_date', period.endDate);
+        .lte('snapshot_date', period.endDate)
+        .order('snapshot_date', { ascending: true });
     } else if (query.building_id) {
       snapshotsQuery = (this.app.supabase as any)
         .from('dashboard_snapshot_por_obra')
         .select('*')
         .eq('building_id', query.building_id)
         .gte('snapshot_date', period.startDate)
-        .lte('snapshot_date', period.endDate);
+        .lte('snapshot_date', period.endDate)
+        .order('snapshot_date', { ascending: true });
     }
     const { data } = await snapshotsQuery;
     const rows = data || [];
 
-    const cotacoesEnviadas = this.sum(rows, 'cotacoes_enviadas');
-    const cotacoesRespondidas = this.sum(rows, 'cotacoes_respondidas');
-    const cotacoesSemResposta = this.sum(rows, 'cotacoes_sem_resposta');
-    const pedidosNoPrazo = this.sum(rows, 'pedidos_no_prazo');
-    const pedidosAtrasados = this.sum(rows, 'pedidos_atrasados');
-    const pedidosComAvaria = this.sum(rows, 'pedidos_com_avaria');
-    const totalPedidosMonitorados = this.sum(rows, 'total_pedidos_monitorados');
-    const leadRows = rows
-      .map((row: any) => Number(row.lead_time_medio_dias_uteis))
-      .filter((value: number) => Number.isFinite(value));
-    const leadTimeMedio =
-      leadRows.length > 0
-        ? Number(
-            (leadRows.reduce((acc: number, cur: number) => acc + cur, 0) / leadRows.length).toFixed(
-              2,
-            ),
-          )
-        : 0;
+    let cotacoesEnviadas = 0;
+    let cotacoesRespondidas = 0;
+    let cotacoesSemResposta = 0;
+    let pedidosNoPrazo = 0;
+    let pedidosAtrasados = 0;
+    let pedidosComAvaria = 0;
+    let totalPedidosMonitorados = 0;
+    let leadTimeMedio = 0;
+
+    if (query.supplier_id || query.building_id) {
+      const latest = rows.length ? rows[rows.length - 1] : null;
+      cotacoesEnviadas = latest?.cotacoes_enviadas ?? 0;
+      cotacoesRespondidas = latest?.cotacoes_respondidas ?? 0;
+      cotacoesSemResposta = latest?.cotacoes_sem_resposta ?? 0;
+      pedidosNoPrazo = latest?.pedidos_no_prazo ?? 0;
+      pedidosAtrasados = latest?.pedidos_atrasados ?? 0;
+      pedidosComAvaria = latest?.pedidos_com_avaria ?? 0;
+      const sumPrazo =
+        (latest?.pedidos_no_prazo ?? 0) + (latest?.pedidos_atrasados ?? 0);
+      totalPedidosMonitorados =
+        typeof latest?.total_pedidos_monitorados === 'number'
+          ? latest.total_pedidos_monitorados
+          : sumPrazo;
+      const lt = Number(latest?.lead_time_medio_dias_uteis);
+      leadTimeMedio = Number.isFinite(lt) ? lt : 0;
+    } else {
+      cotacoesEnviadas = this.sum(rows, 'cotacoes_enviadas');
+      cotacoesRespondidas = this.sum(rows, 'cotacoes_respondidas');
+      cotacoesSemResposta = this.sum(rows, 'cotacoes_sem_resposta');
+      const latestGlobal = pickLatestGlobalRow(rows);
+      pedidosNoPrazo = latestGlobal?.pedidos_no_prazo ?? 0;
+      pedidosAtrasados = latestGlobal?.pedidos_atrasados ?? 0;
+      pedidosComAvaria = latestGlobal?.pedidos_com_avaria ?? 0;
+      totalPedidosMonitorados = latestGlobal?.total_pedidos_monitorados ?? 0;
+      const leadRows = rows
+        .map((row: any) => Number(row.lead_time_medio_dias_uteis))
+        .filter((value: number) => Number.isFinite(value));
+      leadTimeMedio =
+        leadRows.length > 0
+          ? Number(
+              (leadRows.reduce((acc: number, cur: number) => acc + cur, 0) / leadRows.length).toFixed(
+                2,
+              ),
+            )
+          : 0;
+    }
 
     await this.auditAccess(request, 'kpis');
     return reply.send({
@@ -191,7 +271,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.supplier_id) baseQuery = baseQuery.eq('supplier_id', query.supplier_id);
-    const { data: supplierRows } = await baseQuery;
+    const { data: supplierRowsRaw } = await baseQuery;
 
     let buildingQuery = (this.app.supabase as any)
       .from('dashboard_snapshot_por_obra')
@@ -199,7 +279,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.building_id) buildingQuery = buildingQuery.eq('building_id', query.building_id);
-    const { data: buildingRows } = await buildingQuery;
+    const { data: buildingRowsRaw } = await buildingQuery;
 
     const { data: globalRows } = await (this.app.supabase as any)
       .from('dashboard_snapshot')
@@ -220,15 +300,57 @@ export class DashboardController {
           )
         : 0;
 
+    let supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
+    let buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+
+    const orderId = query.purchase_order_id;
+    if (orderId) {
+      const { data: poRow } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('id, supplier_id, building_id')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (!poRow || poRow.id !== orderId) {
+        supplierAgg = [];
+        buildingAgg = [];
+      } else {
+        supplierAgg = supplierAgg.filter((r: any) => r.supplier_id === poRow.supplier_id);
+        buildingAgg = buildingAgg.filter((r: any) => r.building_id === poRow.building_id);
+      }
+    }
+
+    if (query.item_identifier) {
+      let itemQ = (this.app.supabase as any)
+        .from('purchase_order_items')
+        .select('purchase_order_id, item_number')
+        .eq('item_number', query.item_identifier);
+      if (orderId) itemQ = itemQ.eq('purchase_order_id', orderId);
+      const { data: itemRows } = await itemQ.limit(2000);
+      const orderIds = new Set((itemRows || []).map((r: any) => r.purchase_order_id));
+      if (orderIds.size === 0) {
+        supplierAgg = [];
+        buildingAgg = [];
+      } else {
+        const { data: ordersForItems } = await (this.app.supabase as any)
+          .from('purchase_orders')
+          .select('id, supplier_id, building_id')
+          .in('id', Array.from(orderIds));
+        const supIds = new Set((ordersForItems || []).map((o: any) => o.supplier_id));
+        const bIds = new Set((ordersForItems || []).map((o: any) => o.building_id));
+        supplierAgg = supplierAgg.filter((r: any) => supIds.has(r.supplier_id));
+        buildingAgg = buildingAgg.filter((r: any) => bIds.has(r.building_id));
+      }
+    }
+
     await this.auditAccess(request, 'lead-time');
     return reply.send({
       lead_time_medio_global: globalAvg,
-      lead_time_por_fornecedor: (supplierRows || []).map((row: any) => ({
+      lead_time_por_fornecedor: supplierAgg.map((row: any) => ({
         supplier_id: row.supplier_id,
         supplier_name: row.supplier_name,
         lead_time_medio: row.lead_time_medio_dias_uteis ?? 0,
       })),
-      lead_time_por_obra: (buildingRows || []).map((row: any) => ({
+      lead_time_por_obra: buildingAgg.map((row: any) => ({
         building_id: row.building_id,
         building_name: row.building_name,
         lead_time_medio: row.lead_time_medio_dias_uteis ?? 0,
@@ -255,7 +377,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.supplier_id) supplierQuery = supplierQuery.eq('supplier_id', query.supplier_id);
-    const { data: supplierRows } = await supplierQuery;
+    const { data: supplierRowsRaw } = await supplierQuery;
 
     let buildingQuery = (this.app.supabase as any)
       .from('dashboard_snapshot_por_obra')
@@ -263,7 +385,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.building_id) buildingQuery = buildingQuery.eq('building_id', query.building_id);
-    const { data: buildingRows } = await buildingQuery;
+    const { data: buildingRowsRaw } = await buildingQuery;
 
     const { data: globalRows } = await (this.app.supabase as any)
       .from('dashboard_snapshot')
@@ -272,23 +394,27 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('snapshot_date', { ascending: true });
 
-    const totalAtrasados = this.sum(globalRows || [], 'pedidos_atrasados');
-    const totalMonitorados = this.sum(globalRows || [], 'total_pedidos_monitorados');
+    const latestGlobal = pickLatestGlobalRow(globalRows || []);
+    const totalAtrasados = latestGlobal?.pedidos_atrasados ?? 0;
+    const totalMonitorados = latestGlobal?.total_pedidos_monitorados ?? 0;
+
+    const supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
+    const buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
 
     await this.auditAccess(request, 'atrasos');
     return reply.send({
       total_atrasados: totalAtrasados,
       taxa_atraso: this.safeRate(totalAtrasados, totalMonitorados),
-      atrasos_por_fornecedor: (supplierRows || []).map((row: any) => ({
+      atrasos_por_fornecedor: supplierAgg.map((row: any) => ({
         supplier_id: row.supplier_id,
         supplier_name: row.supplier_name,
         total_atrasados: row.pedidos_atrasados ?? 0,
         taxa_atraso: this.safeRate(
           row.pedidos_atrasados ?? 0,
-          row.pedidos_no_prazo + row.pedidos_atrasados,
+          (row.pedidos_no_prazo ?? 0) + (row.pedidos_atrasados ?? 0),
         ),
       })),
-      atrasos_por_obra: (buildingRows || []).map((row: any) => ({
+      atrasos_por_obra: buildingAgg.map((row: any) => ({
         building_id: row.building_id,
         building_name: row.building_name,
         total_atrasados: row.pedidos_atrasados ?? 0,
@@ -303,25 +429,61 @@ export class DashboardController {
 
   async getCriticidade(request: FastifyRequest, reply: FastifyReply) {
     const query = request.query as DashboardCriticidadeQueryDto;
+    const snapshotDate =
+      query.data_referencia ?? (await this.resolveLatestSnapshotDate());
+    if (!snapshotDate) {
+      await this.auditAccess(request, 'criticidade');
+      return reply.send({
+        data_snapshot: null,
+        total_urgentes: 0,
+        total_padrao: 0,
+        itens: [],
+      });
+    }
+
     let dataQuery = (this.app.supabase as any)
       .from('dashboard_criticidade_item')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500);
+      .eq('snapshot_date', snapshotDate)
+      .order('item_identifier', { ascending: true })
+      .limit(5000);
     if (query.building_id) dataQuery = dataQuery.eq('building_id', query.building_id);
     if (query.item_identifier) dataQuery = dataQuery.eq('item_identifier', query.item_identifier);
     const { data } = await dataQuery;
     const rows = data || [];
 
+    const buildingIds = [
+      ...new Set(
+        rows.map((r: any) => r.building_id).filter((id: unknown) => typeof id === 'number'),
+      ),
+    ] as number[];
+    const buildingNameById = new Map<number, string>();
+    if (buildingIds.length > 0) {
+      const { data: oba } = await (this.app.supabase as any)
+        .from('dashboard_snapshot_por_obra')
+        .select('building_id, building_name')
+        .eq('snapshot_date', snapshotDate)
+        .in('building_id', buildingIds);
+      for (const r of oba || []) {
+        if (r.building_id != null && r.building_name) {
+          buildingNameById.set(r.building_id, r.building_name);
+        }
+      }
+    }
+
     await this.auditAccess(request, 'criticidade');
     return reply.send({
+      data_snapshot: snapshotDate,
       total_urgentes: rows.filter((row: any) => row.criticidade === 'urgente').length,
       total_padrao: rows.filter((row: any) => row.criticidade === 'padrao').length,
       itens: rows.map((row: any) => ({
         item_identifier: row.item_identifier,
         item_description: row.item_description,
         building_id: row.building_id,
-        building_name: row.building_id ? `Obra ${row.building_id}` : null,
+        building_name:
+          row.building_id != null
+            ? buildingNameById.get(row.building_id) ?? `Obra ${row.building_id}`
+            : null,
         prazo_obra_dias_uteis: row.prazo_obra_dias_uteis,
         media_historica_dias_uteis: row.media_historica_dias_uteis,
         criticidade: row.criticidade,
@@ -345,9 +507,11 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('pedidos_atrasados', { ascending: false });
 
+    const aggregated = aggregateLatestPerSupplier(data || []);
+
     await this.auditAccess(request, 'ranking-fornecedores');
     return reply.send({
-      fornecedores: (data || []).map((row: any) => ({
+      fornecedores: aggregated.map((row: any) => ({
         supplier_id: row.supplier_id,
         supplier_name: row.supplier_name,
         cotacoes_enviadas: row.cotacoes_enviadas,
@@ -377,7 +541,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.supplier_id) supplierQuery = supplierQuery.eq('supplier_id', query.supplier_id);
-    const { data: supplierRows } = await supplierQuery;
+    const { data: supplierRowsRaw } = await supplierQuery;
 
     let buildingQuery = (this.app.supabase as any)
       .from('dashboard_snapshot_por_obra')
@@ -385,7 +549,7 @@ export class DashboardController {
       .gte('snapshot_date', period.startDate)
       .lte('snapshot_date', period.endDate);
     if (query.building_id) buildingQuery = buildingQuery.eq('building_id', query.building_id);
-    const { data: buildingRows } = await buildingQuery;
+    const { data: buildingRowsRaw } = await buildingQuery;
 
     const { data: globalRows } = await (this.app.supabase as any)
       .from('dashboard_snapshot')
@@ -400,23 +564,33 @@ export class DashboardController {
       .gte('created_at', `${period.startDate}T00:00:00.000Z`)
       .lte('created_at', `${period.endDate}T23:59:59.999Z`);
 
-    const totalAvarias = this.sum(globalRows || [], 'pedidos_com_avaria');
-    const totalMonitorados = this.sum(globalRows || [], 'total_pedidos_monitorados');
+    const latestGlobal = pickLatestGlobalRow(globalRows || []);
+    const pedidosComAvariaPonto = latestGlobal?.pedidos_com_avaria ?? 0;
+    const totalMonitorados = latestGlobal?.total_pedidos_monitorados ?? 0;
+
+    const { count: damageEventsCount } = await (this.app.supabase as any)
+      .from('damages')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', `${period.startDate}T00:00:00.000Z`)
+      .lte('created_at', `${period.endDate}T23:59:59.999Z`);
+
+    const supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
+    const buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
 
     await this.auditAccess(request, 'avarias');
     return reply.send({
-      total_avarias: totalAvarias,
-      taxa_avaria: this.safeRate(totalAvarias, totalMonitorados),
-      avarias_por_fornecedor: (supplierRows || []).map((row: any) => ({
+      total_avarias: damageEventsCount ?? 0,
+      taxa_avaria: this.safeRate(pedidosComAvariaPonto, totalMonitorados),
+      avarias_por_fornecedor: supplierAgg.map((row: any) => ({
         supplier_id: row.supplier_id,
         supplier_name: row.supplier_name,
         total_avarias: row.pedidos_com_avaria ?? 0,
         taxa_avaria: this.safeRate(
           row.pedidos_com_avaria ?? 0,
-          row.pedidos_no_prazo + row.pedidos_atrasados,
+          (row.pedidos_no_prazo ?? 0) + (row.pedidos_atrasados ?? 0),
         ),
       })),
-      avarias_por_obra: (buildingRows || []).map((row: any) => ({
+      avarias_por_obra: buildingAgg.map((row: any) => ({
         building_id: row.building_id,
         building_name: row.building_name,
         total_avarias: row.pedidos_com_avaria ?? 0,
@@ -438,3 +612,4 @@ export class DashboardController {
     });
   }
 }
+

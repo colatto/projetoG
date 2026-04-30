@@ -3,14 +3,17 @@ import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
 import { DashboardFilters } from './DashboardFilters';
 import '../orders.css';
+import './dashboard-prd.css';
 
 type CriticalityPayload = {
+  data_snapshot?: string | null;
   total_urgentes: number;
   total_padrao: number;
   itens: Array<{
     item_identifier: string;
     item_description?: string | null;
     building_id?: number | null;
+    building_name?: string | null;
     criticidade: 'urgente' | 'padrao';
     prazo_obra_dias_uteis?: number | null;
     media_historica_dias_uteis?: number | null;
@@ -18,6 +21,7 @@ type CriticalityPayload = {
 };
 
 export default function DashboardCriticidade() {
+  const [dataReferencia, setDataReferencia] = useState('');
   const [buildingId, setBuildingId] = useState('');
   const [itemIdentifier, setItemIdentifier] = useState('');
   const [data, setData] = useState<CriticalityPayload | null>(null);
@@ -30,6 +34,7 @@ export default function DashboardCriticidade() {
       setError(null);
       const response = await api.get('/dashboard/criticidade', {
         params: {
+          data_referencia: dataReferencia || undefined,
           building_id: buildingId ? Number(buildingId) : undefined,
           item_identifier: itemIdentifier || undefined,
         },
@@ -40,7 +45,7 @@ export default function DashboardCriticidade() {
     } finally {
       setLoading(false);
     }
-  }, [buildingId, itemIdentifier]);
+  }, [dataReferencia, buildingId, itemIdentifier]);
 
   useEffect(() => {
     load();
@@ -52,6 +57,18 @@ export default function DashboardCriticidade() {
         <div>
           <h1 className="o-page-title">Dashboard de Criticidade</h1>
           <p className="o-page-subtitle">Itens classificados por criticidade operacional</p>
+        </div>
+      </div>
+
+      <div className="dashboard-period o-filters">
+        <div className="form-group">
+          <label className="form-label">Data do snapshot (opcional)</label>
+          <input
+            className="form-input"
+            type="date"
+            value={dataReferencia}
+            onChange={(e) => setDataReferencia(e.target.value)}
+          />
         </div>
       </div>
 
@@ -68,10 +85,18 @@ export default function DashboardCriticidade() {
       {!loading && !error && data && (
         <>
           <div className="q-notice">
+            {data.data_snapshot
+              ? `Snapshot: ${data.data_snapshot} — `
+              : 'Nenhum snapshot disponível. '}
             Urgentes: {data.total_urgentes} | Padrão: {data.total_padrao}
           </div>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
+            Prazo obra (dias úteis): proxy até a data de entrega do pedido da linha. Média histórica:
+            média de lead times de outros pedidos entregues com o mesmo item (mín. 2 amostras; caso
+            contrário, Padrão — RN-19).
+          </p>
           <div className="table-wrapper" style={{ marginTop: '1rem' }}>
-            <table>
+            <table className="dashboard-table">
               <thead>
                 <tr>
                   <th>Item</th>
@@ -84,10 +109,13 @@ export default function DashboardCriticidade() {
               </thead>
               <tbody>
                 {data.itens.map((row) => (
-                  <tr key={`${row.item_identifier}-${row.building_id || 'n/a'}`}>
+                  <tr key={`${row.item_identifier}-${row.building_id ?? 'n'}-${row.item_description ?? ''}`}>
                     <td>{row.item_identifier}</td>
                     <td>{row.item_description || '—'}</td>
-                    <td>{row.building_id || '—'}</td>
+                    <td>
+                      {row.building_name ||
+                        (row.building_id != null ? `Obra ${row.building_id}` : '—')}
+                    </td>
                     <td>{row.prazo_obra_dias_uteis ?? '—'}</td>
                     <td>{row.media_historica_dias_uteis ?? '—'}</td>
                     <td>
@@ -103,6 +131,13 @@ export default function DashboardCriticidade() {
                     </td>
                   </tr>
                 ))}
+                {data.itens.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="o-empty">
+                      Nenhum item para os filtros selecionados.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -16,6 +16,7 @@ Manter contratos leves e reutilizáveis entre frontend, API e workers.
 - `users.ts`: schemas de criação/edição de usuários
 - `integration.ts`: schemas de eventos de integração, credenciais Sienge e escrita de negociação
 - `quotations.ts`: schemas de consulta, envio, resposta (com itens e entregas) e revisão de cotações
+- `dashboard.ts`: schemas Zod das queries do PRD-08 (`/api/dashboard/*`)
 
 ### Utilitários (`src/utils/`)
 

@@ -1,0 +1,111 @@
+/* PRD-08 visual accents (headers, hover) */
+.dashboard-table thead th {
+  background: #324598;
+  color: #fff;
+  font-weight: 600;
+}
+
+.dashboard-table tbody tr:hover {
+  background: rgba(50, 69, 152, 0.12);
+}
+
+.dashboard-chart__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: #1e293b;
+}
+
+.dashboard-chart-empty {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.dashboard-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.dashboard-period .form-group {
+  margin-bottom: 0;
+}
+
+.badge-confiavel {
+  background: #16a34a;
+  color: #fff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.badge-atencao {
+  background: #ca8a04;
+  color: #fff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.badge-critico {
+  background: #dc2626;
+  color: #fff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* PRD-08 §8.1 — Summary cards with operational colours */
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-card {
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-card__label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.dashboard-card__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-card--turquesa {
+  background: linear-gradient(135deg, #19B4BE, #6ED8E0);
+}
+
+.dashboard-card--azul {
+  background: linear-gradient(135deg, #324598, #465EBE);
+}
+
+.dashboard-card--vermelho {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+.dashboard-card--roxo {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+}
+

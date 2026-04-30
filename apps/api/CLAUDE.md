@@ -22,6 +22,7 @@ Servir o backend dedicado do projeto com Fastify 5.
 - módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05)
 - módulo de notificações por e-mail com templates editáveis, logs de envio e provedor Resend (PRD-03)
 - módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04)
+- módulo de avarias (PRD-06) e leitura de dashboards consolidados (PRD-08) em `/api/dashboard/*`
 - documentação Swagger em `/docs`
 - métricas via `prom-client`
 
@@ -55,6 +56,8 @@ Servir o backend dedicado do projeto com Fastify 5.
 | orders          | `/api/orders`                                                 | listagem, detalhe, cancelamento, histórico de status (PRD-05)                                  |
 | notifications   | `/api/notifications`                                          | templates (CRUD), logs (listagem) (PRD-03)                                                     |
 | followup        | `/api/followup`                                               | orders list/detail, confirm, suggest-date, date-changes approve/reject, notifications (PRD-04) |
+| damages         | `/api/damages`                                                | CRUD fluxo avaria, audit (PRD-06)                                                              |
+| dashboard       | `/api/dashboard`                                              | resumo, kpis, lead-time, atrasos, criticidade, ranking, avarias (PRD-08)                       |
 
 ## Dependências principais
 
@@ -85,12 +88,11 @@ Servir o backend dedicado do projeto com Fastify 5.
 
 ## Estado de qualidade
 
-- testes: 100 passando (15 suítes)
+- testes: 118+ passando (inclui `dashboard.routes.test.ts`)
 - build: passa
 - lint: passa
 - vitest runner: estável — todas as suítes fazem teardown com `app.close()`, `pool: 'forks'` sem warnings de `MaxListeners` ou `tinypool`
 
 ## Funcionalidades ainda não implementadas
 
-- endpoints de avarias e dashboard
 - portal completo do Visualizador de Pedidos

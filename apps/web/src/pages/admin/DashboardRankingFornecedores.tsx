@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { format, subDays } from 'date-fns';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
 import '../orders.css';
+import './dashboard-prd.css';
 
 type RankingPayload = {
   fornecedores: Array<{
@@ -18,26 +20,40 @@ type RankingPayload = {
   }>;
 };
 
+function confiabilidadeClass(c: 'confiavel' | 'atencao' | 'critico') {
+  if (c === 'confiavel') return 'badge-confiavel';
+  if (c === 'atencao') return 'badge-atencao';
+  return 'badge-critico';
+}
+
 export default function DashboardRankingFornecedores() {
+  const [dataInicio, setDataInicio] = useState(() => format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [dataFim, setDataFim] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [data, setData] = useState<RankingPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.get('/dashboard/ranking-fornecedores');
-        setData(response.data);
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, 'Erro ao carregar ranking de fornecedores'));
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/dashboard/ranking-fornecedores', {
+        params: {
+          data_inicio: dataInicio || undefined,
+          data_fim: dataFim || undefined,
+        },
+      });
+      setData(response.data);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Erro ao carregar ranking de fornecedores'));
+    } finally {
+      setLoading(false);
     }
+  }, [dataInicio, dataFim]);
+
+  useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <div>
@@ -48,12 +64,33 @@ export default function DashboardRankingFornecedores() {
         </div>
       </div>
 
+      <div className="dashboard-period o-filters">
+        <div className="form-group">
+          <label className="form-label">Data início</label>
+          <input
+            className="form-input"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Data fim</label>
+          <input
+            className="form-input"
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+          />
+        </div>
+      </div>
+
       {loading && <div className="o-loading">Carregando...</div>}
       {error && <div className="q-notice q-notice--error">{error}</div>}
 
       {!loading && !error && data && (
         <div className="table-wrapper">
-          <table>
+          <table className="dashboard-table">
             <thead>
               <tr>
                 <th>Fornecedor</th>
@@ -78,7 +115,9 @@ export default function DashboardRankingFornecedores() {
                   <td>{row.pedidos_atrasados}</td>
                   <td>{row.pedidos_com_avaria}</td>
                   <td>{row.lead_time_medio}</td>
-                  <td>{row.confiabilidade}</td>
+                  <td>
+                    <span className={confiabilidadeClass(row.confiabilidade)}>{row.confiabilidade}</span>
+                  </td>
                 </tr>
               ))}
               {data.fornecedores.length === 0 && (

@@ -16,6 +16,7 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 - gestão de templates e histórico de notificações (PRD-03)
 - listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05)
 - follow-up logístico com listagem, detalhe, aprovação/reprovação de datas e ações de fornecedor (PRD-04)
+- dashboards analíticos (PRD-08) em `/admin/dashboard/*` com filtros de período e gráficos (Recharts)
 
 ## Componentes reutilizáveis
 
@@ -28,30 +29,39 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 
 ## Rotas existentes
 
-| Rota                                  | Componente                | Perfis permitidos                    |
-| ------------------------------------- | ------------------------- | ------------------------------------ |
-| `/login`                              | `Login`                   | público                              |
-| `/esqueci-senha`                      | `ForgotPassword`          | público                              |
-| `/reset-password`                     | `ResetPassword`           | público                              |
-| `/`                                   | `PlaceholderDashboard`    | qualquer autenticado                 |
-| `/admin/users`                        | `UserList`                | Administrador                        |
-| `/admin/users/new`                    | `UserCreate`              | Administrador                        |
-| `/admin/users/:id`                    | `UserManage`              | Administrador                        |
-| `/admin/integration`                  | `IntegrationEvents`       | Administrador, Compras               |
-| `/admin/quotations`                   | `QuotationList`           | Administrador, Compras               |
-| `/admin/quotations/:id`               | `QuotationDetail`         | Administrador, Compras               |
-| `/admin/notifications/templates`      | `NotificationTemplates`   | Administrador                        |
-| `/admin/notifications/logs`           | `NotificationLogs`        | Administrador, Compras               |
-| `/admin/orders`                       | `OrderList`               | Administrador, Compras, Visualizador |
-| `/admin/orders/:purchaseOrderId`      | `OrderDetail`             | Administrador, Compras, Visualizador |
-| `/admin/followup`                     | `FollowUpList`            | Administrador, Compras               |
-| `/admin/followup/:purchaseOrderId`    | `FollowUpDetail`          | Administrador, Compras               |
-| `/supplier/quotations`                | `SupplierQuotationList`   | Fornecedor                           |
-| `/supplier/quotations/:id`            | `SupplierQuotationDetail` | Fornecedor                           |
-| `/supplier/orders`                    | `SupplierOrderList`       | Fornecedor                           |
-| `/supplier/orders/:purchaseOrderId`   | `SupplierOrderDetail`     | Fornecedor                           |
-| `/supplier/followup`                  | `SupplierFollowUpList`    | Fornecedor                           |
-| `/supplier/followup/:purchaseOrderId` | `SupplierFollowUpDetail`  | Fornecedor                           |
+| Rota                                    | Componente                     | Perfis permitidos                    |
+| --------------------------------------- | ------------------------------ | ------------------------------------ |
+| `/login`                                | `Login`                        | público                              |
+| `/esqueci-senha`                        | `ForgotPassword`               | público                              |
+| `/reset-password`                       | `ResetPassword`                | público                              |
+| `/`                                     | `PlaceholderDashboard`         | qualquer autenticado                 |
+| `/admin/users`                          | `UserList`                     | Administrador                        |
+| `/admin/users/new`                      | `UserCreate`                   | Administrador                        |
+| `/admin/users/:id`                      | `UserManage`                   | Administrador                        |
+| `/admin/integration`                    | `IntegrationEvents`            | Administrador, Compras               |
+| `/admin/quotations`                     | `QuotationList`                | Administrador, Compras               |
+| `/admin/quotations/:id`                 | `QuotationDetail`              | Administrador, Compras               |
+| `/admin/notifications/templates`        | `NotificationTemplates`        | Administrador                        |
+| `/admin/notifications/logs`             | `NotificationLogs`             | Administrador, Compras               |
+| `/admin/orders`                         | `OrderList`                    | Administrador, Compras, Visualizador |
+| `/admin/orders/:purchaseOrderId`        | `OrderDetail`                  | Administrador, Compras, Visualizador |
+| `/admin/followup`                       | `FollowUpList`                 | Administrador, Compras               |
+| `/admin/followup/:purchaseOrderId`      | `FollowUpDetail`               | Administrador, Compras               |
+| `/admin/damages`                        | `DamageList`                   | Administrador, Compras               |
+| `/admin/damages/new`                    | `DamageCreate`                 | Administrador, Compras               |
+| `/admin/damages/:damageId`              | `DamageDetail`                 | Administrador, Compras               |
+| `/admin/dashboard`                      | `DashboardHome`                | Administrador, Compras               |
+| `/admin/dashboard/lead-time`            | `DashboardLeadTime`            | Administrador, Compras               |
+| `/admin/dashboard/atrasos`              | `DashboardAtrasos`             | Administrador, Compras               |
+| `/admin/dashboard/criticidade`          | `DashboardCriticidade`         | Administrador, Compras               |
+| `/admin/dashboard/ranking-fornecedores` | `DashboardRankingFornecedores` | Administrador, Compras               |
+| `/admin/dashboard/avarias`              | `DashboardAvarias`             | Administrador, Compras               |
+| `/supplier/quotations`                  | `SupplierQuotationList`        | Fornecedor                           |
+| `/supplier/quotations/:id`              | `SupplierQuotationDetail`      | Fornecedor                           |
+| `/supplier/orders`                      | `SupplierOrderList`            | Fornecedor                           |
+| `/supplier/orders/:purchaseOrderId`     | `SupplierOrderDetail`          | Fornecedor                           |
+| `/supplier/followup`                    | `SupplierFollowUpList`         | Fornecedor                           |
+| `/supplier/followup/:purchaseOrderId`   | `SupplierFollowUpDetail`       | Fornecedor                           |
 
 ## Regras locais
 
@@ -86,7 +96,6 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 
 ## Funcionalidades ainda não implementadas
 
-- rotas de avaria e dashboard analítico
 - portal completo do Visualizador de Pedidos
 - notificações in-app
 - campos faltantes nas listas de follow-up (obra, saldo pendente, cotação vinculada)

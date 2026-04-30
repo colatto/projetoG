@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
 import '../orders.css';
+import './dashboard-prd.css';
 
 type DashboardSummary = {
   cotacoes_abertas: number;
@@ -56,24 +57,26 @@ export default function DashboardHome() {
 
       {!loading && !error && summary && (
         <>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '1rem',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <div className="q-notice">Cotações abertas: {summary.cotacoes_abertas}</div>
-            <div className="q-notice">
-              Aguardando revisão: {summary.cotacoes_aguardando_revisao}
+          <div className="dashboard-cards">
+            <div className="dashboard-card dashboard-card--turquesa">
+              <span className="dashboard-card__label">Cotações abertas</span>
+              <span className="dashboard-card__value">{summary.cotacoes_abertas}</span>
             </div>
-            <div className="q-notice q-notice--error">
-              Pedidos atrasados: {summary.pedidos_atrasados}
+            <div className="dashboard-card dashboard-card--azul">
+              <span className="dashboard-card__label">Aguardando revisão</span>
+              <span className="dashboard-card__value">{summary.cotacoes_aguardando_revisao}</span>
             </div>
-            <div className="q-notice">Pedidos em avaria: {summary.pedidos_em_avaria}</div>
-            <div className="q-notice q-notice--error">
-              Falhas de integração: {summary.falhas_integracao}
+            <div className="dashboard-card dashboard-card--vermelho">
+              <span className="dashboard-card__label">Pedidos atrasados</span>
+              <span className="dashboard-card__value">{summary.pedidos_atrasados}</span>
+            </div>
+            <div className="dashboard-card dashboard-card--roxo">
+              <span className="dashboard-card__label">Pedidos em avaria</span>
+              <span className="dashboard-card__value">{summary.pedidos_em_avaria}</span>
+            </div>
+            <div className="dashboard-card dashboard-card--vermelho">
+              <span className="dashboard-card__label">Falhas de integração</span>
+              <span className="dashboard-card__value">{summary.falhas_integracao}</span>
             </div>
           </div>
 

@@ -16,6 +16,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - follow-up logístico diário (08:00 BRT) com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04)
 - verificação de expiração de cotações (08:15 BRT) com alerta de sem resposta (PRD-02 §6.6)
 - envio de e-mail de notificação (PRD-03)
+- consolidação diária de snapshots do dashboard (PRD-08): job `dashboard:consolidation`, escrita atômica via `src/jobs/dashboard-snapshot-pg.ts` (requer `DATABASE_URL`)
 
 ## Estrutura real
 
@@ -34,18 +35,19 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Jobs registrados
 
-| Job                           | Cron           | Descrição                                              |
-| ----------------------------- | -------------- | ------------------------------------------------------ |
-| `sienge:sync-quotations`      | `*/15 * * * *` | polling de cotações do Sienge                          |
-| `sienge:sync-orders`          | `*/15 * * * *` | polling de pedidos do Sienge                           |
-| `sienge:sync-deliveries`      | `*/15 * * * *` | polling de entregas/NFs do Sienge + recálculo status   |
-| `sienge:reconcile`            | sob demanda    | re-leitura detalhada pós-webhook                       |
-| `sienge:process-webhook`      | sob demanda    | processamento assíncrono de webhook recebido           |
-| `sienge:outbound-negotiation` | sob demanda    | escrita de negociação aprovada no Sienge               |
-| `notification:send-email`     | sob demanda    | envio de e-mail via Resend (PRD-03)                    |
-| `integration:retry`           | `0 * * * *`    | retry de eventos com falha                             |
-| `follow-up`                   | `0 11 * * *`   | follow-up logístico diário com régua completa (PRD-04) |
-| `quotation:expire-check`      | `15 11 * * *`  | expiração automática de cotações sem resposta          |
+| Job                           | Cron           | Descrição                                                 |
+| ----------------------------- | -------------- | --------------------------------------------------------- |
+| `sienge:sync-quotations`      | `*/15 * * * *` | polling de cotações do Sienge                             |
+| `sienge:sync-orders`          | `*/15 * * * *` | polling de pedidos do Sienge                              |
+| `sienge:sync-deliveries`      | `*/15 * * * *` | polling de entregas/NFs do Sienge + recálculo status      |
+| `sienge:reconcile`            | sob demanda    | re-leitura detalhada pós-webhook                          |
+| `sienge:process-webhook`      | sob demanda    | processamento assíncrono de webhook recebido              |
+| `sienge:outbound-negotiation` | sob demanda    | escrita de negociação aprovada no Sienge                  |
+| `notification:send-email`     | sob demanda    | envio de e-mail via Resend (PRD-03)                       |
+| `integration:retry`           | `0 * * * *`    | retry de eventos com falha                                |
+| `follow-up`                   | `0 11 * * *`   | follow-up logístico diário com régua completa (PRD-04)    |
+| `quotation:expire-check`      | `15 11 * * *`  | expiração automática de cotações sem resposta             |
+| `dashboard:consolidation`     | `45 10 * * *`  | snapshots PRD-08 (transação única; requer `DATABASE_URL`) |
 
 ## Testes
 
@@ -60,6 +62,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - `follow-up.test.ts` (3 testes: bootstrap, overdue, close)
 - `business-days.test.ts` (5 testes: addBusinessDays, countBusinessDays, holidaysToSet)
 - `order-status-recalc.test.ts`
+- `dashboard-snapshot-pg.test.ts`
 
 ## Regras locais
 
@@ -70,7 +73,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Estado de qualidade
 
-- testes: 33 passando (9 suítes)
+- testes: 49+ passando (inclui transação do snapshot PRD-08)
 - build: passa
 - lint: passa
 
@@ -78,4 +81,4 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 - expansão de testes de follow-up (sugestão/aprovação de datas, entrega parcial)
 - reativação de tracker `CONCLUIDO` quando data prometida vence sem entrega (RN-13/14)
-- implementação do módulo de avaria (PRD-06)
+- testes de integração do job `dashboard:consolidation` com Supabase de teste

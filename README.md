@@ -24,9 +24,9 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 
 ## Modulos
 
-- `apps/web`: SPA React + Vite para login, recuperacao de senha, rotas protegidas, gestao de usuarios, monitoramento de integracao, fluxo de cotacoes, pedidos, follow-up logistico, notificacoes e avarias.
-- `apps/api`: API Fastify com autenticacao, RBAC, auditoria, webhooks Sienge, orquestracao de jobs, cotacoes, entregas, pedidos, notificacoes, follow-up, avarias, health check, Swagger e metricas Prometheus.
-- `workers`: runtime Node.js + `pg-boss` para polling Sienge, reconciliacao, retries, processamento de webhooks, escrita outbound de negociacoes, expiracao de cotacoes, envio de e-mail, follow-up diario e recalculo de status de pedido.
+- `apps/web`: SPA React + Vite para login, recuperacao de senha, rotas protegidas, gestao de usuarios, monitoramento de integracao, fluxo de cotacoes, pedidos, follow-up logistico, notificacoes, avarias e dashboards (PRD-08).
+- `apps/api`: API Fastify com autenticacao, RBAC, auditoria, webhooks Sienge, orquestracao de jobs, cotacoes, entregas, pedidos, notificacoes, follow-up, avarias, dashboards (PRD-08), health check, Swagger e metricas Prometheus.
+- `workers`: runtime Node.js + `pg-boss` para polling Sienge, reconciliacao, retries, processamento de webhooks, escrita outbound de negociacoes, expiracao de cotacoes, envio de e-mail, follow-up diario, recalculo de status de pedido e consolidacao diaria do dashboard (PRD-08).
 - `packages/domain`: enums, entidades e servicos de dominio, incluindo `OrderStatusEngine` e `TemplateRenderer`.
 - `packages/shared`: schemas Zod, tipos Supabase e utilitarios compartilhados.
 - `packages/integration-sienge`: cliente HTTP, clientes especializados, mapeadores, health check de integracao e criptografia de credenciais Sienge.
@@ -83,6 +83,7 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 - PRD-05: pedidos, entregas, divergencias, validacao e historico de status operacional.
 - PRD-06: avarias, acoes corretivas, reposicoes, auditoria especifica e telas de backoffice/fornecedor.
 - PRD-07: integracao Sienge por polling, webhooks, reconciliacao, retries e escrita outbound.
+- PRD-08: snapshots diarios de KPIs, ranking, lead time, atrasos, criticidade e avarias; API `/api/dashboard/*` e telas `/admin/dashboard/*`.
 - PRD-09: aliases de compatibilidade para rotas de cotacoes.
 
 ## Principais Endpoints
@@ -98,6 +99,7 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 | Notificacoes            | `/api/notifications/*`                                                                                                 |
 | Follow-up               | `/api/followup/*`                                                                                                      |
 | Avarias                 | `/api/damages/*`                                                                                                       |
+| Dashboard (PRD-08)      | `/api/dashboard/*`                                                                                                     |
 
 ## Pre-requisitos
 
