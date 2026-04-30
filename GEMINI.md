@@ -115,10 +115,11 @@ O repositorio foi definido como monorepo com estas fronteiras:
 
 ## 5. Stack definida
 
-- frontend: React + TypeScript + Vite;
+- frontend: React + TypeScript + Vite + Recharts (graficos PRD-08);
 - backend: Fastify v5 em TypeScript;
 - persistencia e identidade: Supabase Postgres + Supabase Auth;
 - jobs e scheduling: Node.js + TypeScript + `pg-boss`;
+- transacoes atomicas em workers: `pg` (^8.11.3) para escrita de snapshots PRD-08 via `BEGIN`/`COMMIT`/`ROLLBACK`;
 - workspace manager: `pnpm`;
 - observabilidade: `prom-client` (metricas) em API e workers;
 - idioma do repositorio: portugues para documentacao e UI; ingles para identificadores, comentarios e mensagens tecnicas de codigo.
@@ -160,6 +161,8 @@ Entidades centrais:
 > **Nota PRD-04 (atualizada 2026-04-24):** o PRD-04 (Follow-up Logístico) está implementado (Fases 1–4). Todas as 25 regras de negócio (RN-01 a RN-25) estão implementadas e verificadas. Inclui: 2 migrações de banco (extensão de `follow_up_trackers` com 12 novas colunas, `follow_up_date_changes`, `business_days_holidays`, 4 novos tipos de notificação com templates seed), enums PRD-04 no domínio, schemas Zod no shared, módulo API `followup` com 7 endpoints, worker `follow-up` scheduler diário com régua completa, utilitário `business-days.ts`, auditoria completa (8 eventos), e telas frontend completas (backoffice: FollowUpList com filtros de status/fornecedor/obra, FollowUpDetail com timeline de notificações e aprovação de datas; fornecedor: SupplierFollowUpList com indicação de avaria/reposição, SupplierFollowUpDetail com histórico de notificações, confirmação e sugestão de data). Testes: API 11, worker 5, utils 6, frontend 5 (27 total). **Correção (2026-04-24):** quatro gaps anteriormente documentados foram verificados como falsos: (1) RN-13/14 — o worker `processTracker()` **já** verifica overdue antes de checar `CONCLUIDO`, marcando como `ATRASADO` corretamente; (2) `decideDateChange('approved')` **já** usa `countBusinessDays()` e `addBusinessDays()` com suporte a feriados; (3) frontend **já** exibe histórico de notificações em `FollowUpDetail.tsx` (Timeline de Notificações) e `SupplierFollowUpDetail.tsx` (Histórico de Notificações); (4) frontend backoffice **já** possui filtros de fornecedor e obra em `FollowUpList.tsx`. Gaps reais remanescentes (não bloqueantes): (a) coluna `suggested_date` existe no schema inicial V1, mas não declarada formalmente na migração PRD-04; (b) Fase 5 (integração com Módulo 5) sem testes integrados end-to-end; (c) ausência de teste de isolamento de supplier em `listNotifications`.
 
 > **Nota PRD-06 (2026-04-28):** o PRD-06 (Avaria e Ação Corretiva) está implementado (Fases 1–6). Todas as 21 regras de negócio (RN-01 a RN-21) estão implementadas e verificadas. Inclui: migração `20260428150000` (extensão de `damages` com 10 colunas, tabelas `damage_replacements` e `damage_audit_logs` com RLS por fornecedor, constraints e índices), 4 enums no domínio (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`), schemas Zod completos no shared, módulo API `damages` com 8 endpoints (POST criar, PATCH suggest, PATCH resolve, PATCH replacement/date, PATCH replacement/cancel, GET listar, GET detalhe, GET audit), RBAC, isolamento de fornecedor, auditoria completa com 11 eventos §10, recálculo de status de pedido (`recomputeOrderStatusFromDamages`), cancelamento total com encerramento de régua de follow-up, reinício da régua ao informar data de reposição, integração worker `sync-deliveries.ts` para confirmação automática de reposição entregue, e telas frontend (backoffice: DamageList com filtros e badges, DamageDetail com atalhos Aceitar/Recusar e auditoria; fornecedor: SupplierDamageList com badges, SupplierDamageDetail com sugestão, reposição e auditoria; compartilhado: DamageCreate). Testes: API 12, worker 1, frontend 2 (15 total).
+
+> **Nota PRD-08 (2026-04-30):** o PRD-08 (Dashboard e Indicadores) está implementado (Fases 1–4). Inclui: migração `20260429153000_prd08_dashboard_indicators.sql` (tabelas `dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item` com RLS service_role-only), worker `dashboard:consolidation` com consolidação diária atômica via `pg.Pool` (`dashboard-snapshot-pg.ts` com `BEGIN`/`COMMIT`/`ROLLBACK`, zero `as any`, queries tipadas via `SupabaseClient<Database>`), criticidade por item (média histórica per-item, mínimo 2 amostras, RN-19), confiabilidade de fornecedor (janela 3 meses, RN-20/21/22), cron `45 10 * * *` (07:45 BRT), auditoria em `audit_logs` (`dashboard.snapshot_created`/`dashboard.consolidation_error`), controller API com 7 endpoints GET (resumo, kpis, lead-time, atrasos, criticidade, ranking-fornecedores, avarias) com RBAC Compras+Administrador, schemas Zod no shared, e telas frontend (DashboardHome com cards operacionais em paleta oficial, DashboardLeadTime/DashboardAtrasos/DashboardAvarias com gráficos Recharts, DashboardCriticidade com badges, DashboardRankingFornecedores com confiabilidade, DashboardFilters e DashboardEvolutionChart reutilizáveis, dashboard-prd.css). Dependências: `recharts` (^2.15.4) em web, `pg` (^8.11.3) + `@types/pg` em workers. Testes: 6 (3 RBAC + 3 lógica).
 
 Identificadores minimos persistidos:
 
@@ -213,7 +216,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - consumir contratos filtrados pelo backend;
 - nao conter regra critica nem integracao direta com Sienge;
 - usar branding e paleta definidos em `docs/identidade_visual.md` e `docs/paleta_de_cores.md`;
-- paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail, notification templates, notification logs, order list/detail, followup list/detail, damage list/detail/create), supplier (quotation list/detail, order list/detail, followup list/detail, damage list/detail/create).
+- paginas existentes: auth (login, forgot, reset), admin (users CRUD, integration events, quotation list/detail, notification templates, notification logs, order list/detail, followup list/detail, damage list/detail/create, dashboard home/lead-time/atrasos/criticidade/ranking-fornecedores/avarias), supplier (quotation list/detail, order list/detail, followup list/detail, damage list/detail/create).
 
 ### `apps/api`
 
@@ -240,7 +243,8 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
   │   ├── orders/     # listagem, detalhes, cancelamento, histórico de status e avaria (PRD-05)
   │   ├── notifications/ # templates, logs, envio de e-mail e NotificationService (PRD-03)
   │   ├── followup/   # listagem, detalhe, confirmação, sugestão/aprovação de datas (PRD-04)
-  │   └── damages/    # registro, sugestão, resolução, reposição, cancelamento e auditoria (PRD-06)
+  │   ├── damages/    # registro, sugestão, resolução, reposição, cancelamento e auditoria (PRD-06)
+  │   └── dashboard/  # 7 endpoints GET de leitura de snapshots com RBAC (PRD-08)
   └── test/           # setup de testes
   ```
 
@@ -272,6 +276,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - inclui função `sendNoResponseEmailAlert` em `operational-notifications.ts` para alerta de cotação sem resposta (PRD-03).
 - inclui follow-up scheduler completo `follow-up.ts` (PRD-04) com: criação automática de trackers, régua de notificações sequenciais (1 por dia útil, Compras em cópia da 2ª em diante), detecção de atraso (D+1 útil), encerramento automático por entrega/cancelamento, e utilitário `business-days.ts` para cálculo de dias úteis com feriados.
 - inclui integração de confirmação automática de reposição entregue via `sync-deliveries.ts` (PRD-06): ao detectar entrega de item com reposição `EM_ANDAMENTO`, marca como `ENTREGUE`, avaria como `RESOLVIDA` e registra evento `reposicao_entregue`.
+- inclui job `dashboard:consolidation` (PRD-08) com: consolidação diária de KPIs, ranking de fornecedor (confiabilidade 3 meses), criticidade por item, métricas por obra, escrita atômica via `pg.Pool` (`dashboard-snapshot-pg.ts` com `BEGIN`/`COMMIT`/`ROLLBACK`), auditoria em `audit_logs`, cron `45 10 * * *` (07:45 BRT).
 
 ---
 

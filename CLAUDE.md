@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-29`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-30`.
 
 ## Ordem de consulta
 
@@ -335,10 +335,10 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-28`:
+Em `2026-04-30`:
 
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 112+ testes (16 arquivos), `workers`: 34 testes (10 arquivos), `packages/domain`: 16 testes (2 arquivos), `apps/web`: testes de DamageList e SupplierDamageDetail incluídos
+- `pnpm -r run test`: OK — `apps/api`: 118+ testes (17 arquivos), `workers`: 34 testes (10 arquivos), `packages/domain`: 16 testes (2 arquivos), `apps/web`: testes de DamageList, SupplierDamageDetail e dashboard incluídos
 - `pnpm -r run lint`: OK (todos os workspaces passam)
 
 Observação residual de lint:
@@ -439,6 +439,8 @@ Limpa — nenhuma alteração pendente.
 > **Nota (2026-04-23):** PRD-05 frontend implementado. As telas de pedidos e entregas — anteriormente listadas como pendentes — agora estão presentes: `/admin/orders`, `/admin/orders/:purchaseOrderId`, `/supplier/orders`, `/supplier/orders/:purchaseOrderId` com navegação no AdminLayout.
 
 > **Nota (2026-04-28):** PRD-06 implementado (Fases 1–6). Todas as 21 regras de negócio (RN-01 a RN-21) estão implementadas e verificadas. Inclui: migração `20260428150000` com extensão de `damages` (10 colunas novas + constraints + índices), tabelas `damage_replacements` e `damage_audit_logs` com RLS por fornecedor, 4 enums no domínio (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`), schemas Zod completos no shared (create, suggest, resolve, informDate, cancelReplacement, list, params), módulo API `damages` com 8 endpoints (POST criar, PATCH suggest, PATCH resolve, PATCH replacement/date, PATCH replacement/cancel, GET listar, GET detalhe, GET audit), RBAC (Fornecedor para sugestão e data; Compras para resolução e cancelamento; ambos para criação; Compras+Admin para audit), isolamento de fornecedor via `resolveSupplierId()`, auditoria completa com todos os 11 eventos do PRD §10 (`avaria_registrada`, `sugestao_enviada`, `sugestao_aceita`, `sugestao_recusada`, `acao_corretiva_definida`, `cancelamento_aplicado`, `reposicao_criada`, `data_reposicao_informada`, `reposicao_entregue`, `reposicao_cancelada`, `pedido_cancelado_total`), recálculo de status de pedido (`recomputeOrderStatusFromDamages`), cancelamento total com encerramento de régua de follow-up, reinício da régua ao informar data de reposição, integração worker `sync-deliveries.ts` para confirmação automática de reposição entregue, e telas frontend completas (backoffice: DamageList com filtros status/fornecedor/pedido/obra e badges coloridos roxo/azul/cinza/verde, DamageDetail com atalhos Aceitar/Recusar sugestão e timeline de auditoria; fornecedor: SupplierDamageList com badges, SupplierDamageDetail com sugestão, data de reposição e timeline de auditoria; compartilhado: DamageCreate com sugestão opcional para fornecedor). Testes: API 12 (damages.routes.test.ts), worker 1 (sync-deliveries.test.ts cenário de reposição entregue), frontend 2 (DamageList.test.tsx, SupplierDamageDetail.test.tsx).
+
+> **Nota (2026-04-30):** PRD-08 implementado (Fases 1–4). Inclui: migração `20260429153000_prd08_dashboard_indicators.sql` (tabelas `dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item` com RLS service_role-only), worker `dashboard:consolidation` com consolidação diária atômica via `pg.Pool` (`dashboard-snapshot-pg.ts` com `BEGIN`/`COMMIT`/`ROLLBACK` explícito, zero `as any`, queries tipadas via `SupabaseClient<Database>`), criticidade por item com média histórica per-item excluindo pedido atual e mínimo de 2 amostras (RN-19), confiabilidade de fornecedor com janela de 3 meses (RN-20/21/22), cron `45 10 * * *` (07:45 BRT), auditoria em `audit_logs` (`dashboard.snapshot_created`/`dashboard.consolidation_error`), controller API com 7 endpoints GET (resumo, kpis, lead-time, atrasos, criticidade, ranking-fornecedores, avarias) com RBAC Compras+Administrador, schemas Zod de query params no shared, telas frontend (DashboardHome com cards operacionais usando paleta oficial #19B4BE/#324598/#dc2626/#7c3aed em gradientes, DashboardLeadTime/DashboardAtrasos/DashboardAvarias com gráficos de evolução via Recharts, DashboardCriticidade com badges urgente/padrão, DashboardRankingFornecedores com badges confiavel/atencao/critico, DashboardFilters e DashboardEvolutionChart como componentes reutilizáveis, dashboard-prd.css com estilos PRD), e 6 testes (3 RBAC + 3 lógica). Dependências adicionadas: `recharts` (^2.15.4) em `apps/web`, `pg` (^8.11.3) + `@types/pg` em `workers`.
 
 ## Diretriz para alterações futuras
 

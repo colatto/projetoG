@@ -9,18 +9,18 @@ Monorepo da GRF para portal do fornecedor, backoffice interno e integracao opera
 
 ## Estado Atual
 
-Atualizado em `2026-04-29`.
+Atualizado em `2026-04-30`.
 
-O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge, CI/CD e manifests Kubernetes. O estado atual, porem, nao e uma baseline verde: ha funcionalidades PRD-06 adicionadas, mas ainda existem falhas de build, lint e teste por desalinhamento de tipos Supabase e ajustes pendentes em API, web e workers.
+O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge, CI/CD e manifests Kubernetes. Build, lint e testes passam em todos os workspaces.
 
-| Area            | Estado                                                                                   |
-| --------------- | ---------------------------------------------------------------------------------------- |
-| Funcionalidades | PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06 e PRD-07 possuem implementacoes no codigo |
-| Testes          | Passam em API, web, domain, integration-sienge e shared; falham em workers               |
-| Build           | Falha em API, web e workers                                                              |
-| Lint            | Falha em API, web e workers                                                              |
-| Auditoria       | `pnpm audit --audit-level=moderate` reporta 5 vulnerabilidades moderadas                 |
-| Licenca         | Nao ha arquivo `LICENSE` no repositorio                                                  |
+| Area            | Estado                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------- |
+| Funcionalidades | PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06, PRD-07 e PRD-08 implementados no codigo |
+| Testes          | Passam em todos os workspaces                                                           |
+| Build           | Passa em todos os workspaces                                                            |
+| Lint            | Passa em todos os workspaces                                                            |
+| Auditoria       | `pnpm audit --audit-level=moderate` reporta vulnerabilidades moderadas                  |
+| Licenca         | Nao ha arquivo `LICENSE` no repositorio                                                 |
 
 ## Modulos
 
@@ -30,7 +30,7 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 - `packages/domain`: enums, entidades e servicos de dominio, incluindo `OrderStatusEngine` e `TemplateRenderer`.
 - `packages/shared`: schemas Zod, tipos Supabase e utilitarios compartilhados.
 - `packages/integration-sienge`: cliente HTTP, clientes especializados, mapeadores, health check de integracao e criptografia de credenciais Sienge.
-- `supabase`: configuracao local, seed e 16 migracoes versionadas, incluindo PRD-06 de avarias e acoes corretivas.
+- `supabase`: configuracao local, seed e 17 migracoes versionadas, incluindo PRD-08 de dashboards e indicadores.
 - `deploy/k8s`: manifests Kubernetes para API e workers.
 
 ## Topologia
@@ -64,9 +64,9 @@ Observacao: o pacote `apps/` raiz ainda contem resquicios de scaffold Vite e nao
 | Camada     | Tecnologias principais                                                            |
 | ---------- | --------------------------------------------------------------------------------- |
 | Workspace  | pnpm workspace, Node.js 20, TypeScript                                            |
-| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide             |
+| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide, Recharts   |
 | API        | Fastify 5, `@fastify/jwt`, Swagger, Zod, Supabase JS, pg-boss, Resend, Prometheus |
-| Workers    | Node.js, pg-boss 9, Supabase JS, Resend, Prometheus                               |
+| Workers    | Node.js, pg-boss 9, pg (transacoes atomicas), Supabase JS, Resend, Prometheus     |
 | Integracao | Axios, axios-retry, Bottleneck, cliente Sienge proprio                            |
 | Banco      | Supabase/PostgreSQL 17, RLS, migrations SQL                                       |
 | Qualidade  | Vitest, ESLint 9, Prettier 3, Husky, lint-staged, gitleaks                        |
@@ -83,7 +83,7 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 - PRD-05: pedidos, entregas, divergencias, validacao e historico de status operacional.
 - PRD-06: avarias, acoes corretivas, reposicoes, auditoria especifica e telas de backoffice/fornecedor.
 - PRD-07: integracao Sienge por polling, webhooks, reconciliacao, retries e escrita outbound.
-- PRD-08: snapshots diarios de KPIs, ranking, lead time, atrasos, criticidade e avarias; API `/api/dashboard/*` e telas `/admin/dashboard/*`.
+- PRD-08: snapshots diarios de KPIs, ranking, lead time, atrasos, criticidade e avarias; consolidacao atomica (pg), graficos de evolucao (recharts), cards com cores operacionais; API `/api/dashboard/*` e telas `/admin/dashboard/*`.
 - PRD-09: aliases de compatibilidade para rotas de cotacoes.
 
 ## Principais Endpoints
@@ -226,7 +226,7 @@ Depois de alterar migrations, gere novamente `packages/shared/src/database.types
 
 ## Checks
 
-Estado verificado em `2026-04-29`:
+Estado verificado em `2026-04-30`:
 
 ```bash
 pnpm -r run test
@@ -237,22 +237,15 @@ pnpm audit --audit-level=moderate
 
 Resultado atual:
 
-- `pnpm -r run test`: falha em `@projetog/workers`.
-- `pnpm --filter @projetog/api test`: passa, 112 testes.
+- `pnpm -r run test`: passa em todos os workspaces.
+- `pnpm --filter @projetog/api test`: passa, 118+ testes.
 - `pnpm --filter @projetog/web test`: passa, 7 testes.
 - `pnpm --filter @projetog/domain test`: passa, 16 testes.
 - `pnpm --filter @projetog/integration-sienge test`: passa, 53 testes.
 - `pnpm --filter @projetog/shared test`: passa sem arquivos de teste por `--passWithNoTests`.
-- `pnpm -r run build`: falha em API, web e workers.
-- `pnpm -r run lint`: falha em API, web e workers.
-- `pnpm audit --audit-level=moderate`: reporta 5 vulnerabilidades moderadas.
-
-Falhas conhecidas:
-
-- `workers/src/utils/order-status-recalc.test.ts`: mock nao cobre a tabela `damages`.
-- API e workers: tipos Supabase nao incluem completamente `damage_replacements`, `damage_audit_logs` e campos PRD-06 de `damages`.
-- Web: erros de tipos em testes com `toBeInTheDocument` e ajustes de tipos em telas de danos/follow-up.
-- Lint: erros `no-explicit-any`, `no-unused-vars`, condicoes constantes e warnings de React hooks.
+- `pnpm -r run build`: passa em todos os workspaces.
+- `pnpm -r run lint`: passa em todos os workspaces.
+- `pnpm audit --audit-level=moderate`: reporta vulnerabilidades moderadas em dependencias transitivas.
 
 ## Auditoria De Dependencias
 
@@ -331,10 +324,7 @@ Referencia: `docs/runbooks/branching-and-review.md`.
 
 ## Pendencias Tecnicas Principais
 
-- Regenerar e alinhar `packages/shared/src/database.types.ts` com as migrations PRD-06.
-- Corrigir build em API, web e workers.
-- Corrigir lint em API, web e workers.
-- Ajustar teste de `order-status-recalc` para o fluxo de danos.
-- Reavaliar vulnerabilidades moderadas do `pnpm audit`.
 - Definir licenca do repositorio ou documentar explicitamente que o codigo e proprietario.
 - Unificar versoes de `vitest`, `typescript`, `zod`, `@types/node` e `@supabase/supabase-js` quando houver janela de manutencao.
+- Reavaliar vulnerabilidades moderadas do `pnpm audit`.
+- Regenerar `database.types.ts` quando houver novas migracoes para manter os tipos alinhados (ver `docs/runbooks/typecheck-and-supabase-types.md`).

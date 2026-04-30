@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-04-29` para refletir o estado real do monorepo.
+Atualizado em `2026-04-30` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -160,6 +160,8 @@ sequenceDiagram
 | Testes        | `vitest`                          | `1.4.0`, `2.1.0`, `4.1.4` | unitários e integração      | execução rápida em Node/jsdom                      |
 | Qualidade     | `eslint`                          | `9.39.4`                  | lint por workspace          | flat config                                        |
 | Qualidade     | `prettier`                        | `3.8.1`                   | formatação                  | padronização transversal                           |
+| Frontend      | `recharts`                        | `2.15.4`                  | gráficos de dashboard       | séries temporais de evolução PRD-08                |
+| Workers       | `pg`                              | `8.11.3`                  | transações atômicas         | escrita de snapshot PRD-08 via `BEGIN`/`COMMIT`    |
 
 ### Observações de arquitetura técnica
 
@@ -169,17 +171,17 @@ sequenceDiagram
 
 ## 5. Estrutura de diretórios e aderência
 
-| Diretório                     | Papel                    | Aderência observada | Observações                                                                                        |
-| ----------------------------- | ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------- |
-| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02, PRD-05, PRD-04 e PRD-06 implementados    |
-| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02, PRD-05 e PRD-06 implementados                               |
-| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils; recálculo de status PRD-05 |
-| `packages/domain`             | domínio                  | média-boa           | entidades centrais, `OrderStatusEngine` (PRD-05) e testes unitários                                |
-| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                         |
-| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                      |
-| `supabase`                    | plataforma de dados      | boa                 | 16 migrações versionadas; PRD-02, PRD-05, PRD-03, PRD-04 e PRD-06 com RLS                          |
-| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                    |
-| `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                             |
+| Diretório                     | Papel                    | Aderência observada | Observações                                                                                                                                  |
+| ----------------------------- | ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                    | frontend real            | boa                 | rotas, contexto e páginas coerentes com o módulo; PRD-02, PRD-05, PRD-04, PRD-06 e PRD-08 implementados; dashboard com Recharts e paleta PRD |
+| `apps/api`                    | backend real             | boa                 | módulos separados por domínio; PRD-02, PRD-05, PRD-06 e PRD-08 implementados; dashboard com 7 endpoints e RBAC                               |
+| `workers`                     | processamento assíncrono | boa                 | jobs segregados por caso de uso; infra de observabilidade e test-utils; recálculo de status PRD-05; consolidação diária atômica PRD-08       |
+| `packages/domain`             | domínio                  | média-boa           | entidades centrais, `OrderStatusEngine` (PRD-05) e testes unitários                                                                          |
+| `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                                                                   |
+| `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                                                                |
+| `supabase`                    | plataforma de dados      | boa                 | 17 migrações versionadas; PRD-02, PRD-05, PRD-03, PRD-04, PRD-06 e PRD-08 com RLS                                                            |
+| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                                                              |
+| `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                                                                       |
 
 ## 6. Banco de dados e Supabase
 
@@ -441,9 +443,10 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas. O módulo de avarias e ação corretiva (PRD-06) está implementado (Fases 1–6) com todas as 21 regras de negócio verificadas, 8 endpoints de API, auditoria completa com 11 eventos, integração worker para confirmação automática de reposição, e telas frontend completas com badges e timeline de auditoria. A infraestrutura de deploy está pronta com Docker e Kubernetes. Lint agora passa em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas. O módulo de avarias e ação corretiva (PRD-06) está implementado (Fases 1–6) com todas as 21 regras de negócio verificadas, 8 endpoints de API, auditoria completa com 11 eventos, integração worker para confirmação automática de reposição, e telas frontend completas com badges e timeline de auditoria. O módulo de dashboards e indicadores (PRD-08) está implementado (Fases 1–4) com consolidação diária atômica (pg), 7 endpoints de API, telas frontend com gráficos Recharts, cards operacionais com paleta oficial, badges de confiabilidade e criticidade, e 6 testes. A infraestrutura de deploy está pronta com Docker e Kubernetes. Build, lint e testes passam em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
 - expansão da cobertura de testes do módulo follow-up (cópia Compras Notificação 2+, reinício end-to-end da régua, integração end-to-end com fluxo de entrega parcial, isolamento de supplier em listNotifications)
 - verificação da coluna `suggested_date` no schema remoto de `follow_up_trackers` (presente no schema inicial V1 mas sem ownership formal na migração PRD-04)
 - formalização da estratégia de deploy de produção
+- regeneração de `database.types.ts` após novas migrações para manter tipos alinhados (ver `docs/runbooks/typecheck-and-supabase-types.md`)
