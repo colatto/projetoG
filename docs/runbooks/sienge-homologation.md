@@ -12,6 +12,14 @@ pnpm --filter @projetog/integration-sienge exec tsx src/__tests__/<nome>.integra
 
 Credenciais: carregar `apps/api/.env` e/ou `workers/.env` (Sienge + Supabase service role onde aplicável).
 
+**Runner consolidado (todos os itens §17 em sequência):**
+
+```bash
+pnpm --filter @projetog/integration-sienge exec tsx src/__tests__/homologation-checklist.integration.ts
+```
+
+Este script executa §17.1, §17.3–17.5, §17.7–17.9 de forma automatizada e produz um relatório unificado com status `PASS`, `PARTIAL`, `SKIP`, `FAIL` ou `MANUAL` por item. §17.2 e §17.6 são marcados como `MANUAL` (dependem de sessão com Compras/cliente). Variáveis opcionais: `HOMOLOG_QUOTATION_ID`, `HOMOLOG_SUPPLIER_ID`, `HOMOLOG_DELIVERY_REQ_SAMPLES`.
+
 ---
 
 ## 17.1 Correspondência de Identificadores de Fornecedor

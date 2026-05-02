@@ -31,4 +31,4 @@ As funcionalidades abaixo ainda exigem evidência em ambiente real do cliente ou
 
 ---
 
-**Status**: Código entregue; homologação §17 com **scripts readonly** versionados e checklist vivo no runbook. Itens que dependem de mutação ou de disparo pelo Sienge permanecem **pendentes de sessão com cliente**.
+**Status**: Código entregue; homologação §17 com **scripts readonly** versionados, **runner consolidado** (`homologation-checklist.integration.ts`) e checklist vivo no runbook. Itens que dependem de mutação ou de disparo pelo Sienge permanecem **pendentes de sessão com cliente**.

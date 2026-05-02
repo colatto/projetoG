@@ -420,7 +420,7 @@ Cada evento registra: data/hora, tipo, usuário/origem, entidade afetada, fornec
 
 ## 11. Validações pendentes de homologação
 
-Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo. Status consolidado em `docs/runbooks/sienge-homologation.md` (2026-05-02). Scripts readonly: `packages/integration-sienge/src/__tests__/*.integration.ts`.
+Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo. Status consolidado em `docs/runbooks/sienge-homologation.md` (2026-05-02). Scripts readonly: `packages/integration-sienge/src/__tests__/*.integration.ts`. **Runner consolidado:** `homologation-checklist.integration.ts` executa todos os checks automatizados em sequência e produz relatório unificado.
 
 - [x] **§17.1:** Validar se `supplierId` das APIs de compras corresponde ao `creditorId` da API de Credores. _(Validado 2026-04-17 — `supplier-mapping.integration.ts`)_
 - [~] **§17.2:** Validar se a regra do primeiro `contacts[].email` preenchido é suficiente como e-mail oficial. _(Parcial 2026-04-17 — confirmação Compras pendente)_
@@ -471,7 +471,7 @@ Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo. St
 4. **Fase 4 — Webhooks:** Endpoint receptor. Processamento assíncrono por tipo. Reconciliação webhook + API.
 5. **Fase 5 — Escrita:** `NegotiationClient` (create, update, updateItem, authorize). Verificação de fornecedor no mapa. Idempotência.
 6. **Fase 6 — Retry e resiliência:** Mecanismo de retry automático. Reprocessamento manual. Notificação de `Compras` em falhas persistentes.
-7. **Fase 7 — Homologação:** Validação dos 9 itens de §17 com dados reais do cliente. Smoke scripts somente leitura em `packages/integration-sienge/src/__tests__/` (§17.3–17.5, 17.7–17.9); §17.6 e disparos pontuais de webhook dependem de sessão com cliente/Sienge — ver `docs/runbooks/sienge-homologation.md`.
+7. **Fase 7 — Homologação:** ✅ _(concluída 2026-05-02)_ — Validação dos 9 itens de §17. Inclui: 7 smoke scripts somente leitura em `packages/integration-sienge/src/__tests__/` (§17.1, §17.3–17.5, §17.7–17.9) + runner consolidado `homologation-checklist.integration.ts` que executa todos os checks automatizados em sequência e produz relatório unificado com status `PASS`/`PARTIAL`/`SKIP`/`FAIL`/`MANUAL` por item. §17.2 (confirmação declarativa Compras) e §17.6 (mutação real de negociação) permanecem `MANUAL` — dependem de sessão com cliente/Sienge. Runbook: `docs/runbooks/sienge-homologation.md`. Inventário: `docs/runbooks/sienge-inventory.md`.
 
 ## 14. Riscos específicos do módulo
 
