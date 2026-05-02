@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-04-30`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-02`.
 
 ## Ordem de consulta
 
@@ -72,8 +72,8 @@ Rotas protegidas (layout administrativo):
 - `/admin/notifications/logs` (Administrador, Compras) — histórico de notificações
 - `/admin/orders` (Administrador, Compras, Visualizador de Pedidos) — listagem de pedidos
 - `/admin/orders/:purchaseOrderId` (Administrador, Compras, Visualizador de Pedidos) — detalhe de pedido
-- `/admin/followup` (Administrador, Compras, Visualizador de Pedidos) — listagem de follow-up logístico
-- `/admin/followup/:purchaseOrderId` (Administrador, Compras, Visualizador de Pedidos) — detalhe com aprovação/reprovação de datas
+- `/admin/followup` (Administrador, Compras) — listagem de follow-up logístico
+- `/admin/followup/:purchaseOrderId` (Administrador, Compras) — detalhe com aprovação/reprovação de datas (ações de decisão apenas Compras na UI)
 - `/admin/damages` (Administrador, Compras) — gestão de avarias com filtros e badges
 - `/admin/damages/new` (Administrador, Compras) — registro de avaria
 - `/admin/damages/:damageId` (Administrador, Compras) — detalhe com decisão de ação corretiva e timeline de auditoria
@@ -137,11 +137,19 @@ Entregas e pedidos (PRD-05):
 
 - `GET /api/deliveries/pending` (listar entregas pendentes de validação)
 - `POST /api/deliveries/:id/validate` (validar entrega: OK / DIVERGENCIA)
-- `GET /api/orders` (listar pedidos com status operacional)
+- `GET /api/orders` (listar pedidos com status operacional; query `require_action`, `sort_priority`)
 - `GET /api/orders/:purchaseOrderId/deliveries` (entregas de um pedido)
 - `POST /api/orders/:purchaseOrderId/cancel` (cancelamento/devolução total)
 - `GET /api/orders/:purchaseOrderId/status-history` (histórico de status)
 - `POST /api/orders/:purchaseOrderId/avaria` (recepção de status EM_AVARIA / REPOSICAO — stub PRD-05 complementado pelo módulo damages PRD-06)
+
+Alias backoffice de pedidos (PRD-09; espelha `/api/orders`):
+
+- `GET /api/backoffice/orders` (listar pedidos com status operacional; query `require_action`, `sort_priority`)
+- `GET /api/backoffice/orders/:purchaseOrderId/deliveries` (entregas de um pedido)
+- `POST /api/backoffice/orders/:purchaseOrderId/cancel` (cancelamento/devolução total)
+- `GET /api/backoffice/orders/:purchaseOrderId/status-history` (histórico de status)
+- `POST /api/backoffice/orders/:purchaseOrderId/avaria` (recepção de status EM_AVARIA / REPOSICAO — stub PRD-05 complementado pelo módulo damages PRD-06)
 
 Notificações (PRD-03):
 
@@ -174,11 +182,11 @@ Dashboard e indicadores (PRD-08 — Compras, Administrador):
 
 - `GET /api/dashboard/resumo` — resumos rápidos (snapshot + contagens ao vivo)
 - `GET /api/dashboard/kpis` — KPIs com período e filtros fornecedor/obra
-- `GET /api/dashboard/lead-time` — lead time agregado, por fornecedor/obra, evolução diária; filtros pedido/item
-- `GET /api/dashboard/atrasos` — totais e séries por fornecedor/obra
-- `GET /api/dashboard/criticidade` — itens por `snapshot_date` (opcional `data_referencia`)
-- `GET /api/dashboard/ranking-fornecedores` — ranking no período (última linha por fornecedor)
-- `GET /api/dashboard/avarias` — totais, por dimensão, ações corretivas e série diária
+- `GET /api/dashboard/lead-time` — lead time agregado, por fornecedor/obra, evolução diária; filtros fornecedor/obra/pedido/item
+- `GET /api/dashboard/atrasos` — totais e séries por fornecedor/obra; mesmos filtros + totais alinhados ao escopo quando há PO/item
+- `GET /api/dashboard/criticidade` — itens por `snapshot_date` (opcional `data_referencia`); filtros obra/fornecedor/pedido/item
+- `GET /api/dashboard/ranking-fornecedores` — ranking no período (última linha por fornecedor); filtros fornecedor/obra/pedido/item
+- `GET /api/dashboard/avarias` — totais, por dimensão, ações corretivas e série diária; filtros dimensionais + contagens de `damages` filtradas
 
 ### `workers`
 
@@ -335,11 +343,13 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-04-30`:
+Em `2026-05-02` (última verificação local, pós-alinhamento Vitest e E2E):
 
+- `pnpm -r run typecheck`: OK (workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 118+ testes (17 arquivos), `workers`: 34 testes (10 arquivos), `packages/domain`: 16 testes (2 arquivos), `apps/web`: testes de DamageList, SupplierDamageDetail e dashboard incluídos
-- `pnpm -r run lint`: OK (todos os workspaces passam)
+- `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 44 testes (Vitest)
+- `pnpm --filter @projetog/web run test:e2e`: OK — 3 cenários Playwright (`login.spec.ts` + fluxos cross-módulo em `e2e/`)
+- `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` mantém 1 warning conhecido em `UserCreate`)
 
 Observação residual de lint:
 
@@ -347,30 +357,34 @@ Observação residual de lint:
 
 ## Auditoria de dependências
 
-`pnpm audit` retornou 3 vulnerabilidades moderadas:
+Executar `pnpm audit` na raiz (ou confiar no job [`.github/workflows/security.yml`](.github/workflows/security.yml), step `pnpm audit --audit-level=moderate`). O resultado depende do advisory feed do npm registry; em ambientes sem rede estável o comando pode falhar antes de retornar CVEs — repetir localmente ou inspecionar o log do workflow.
 
-- 2 em `vite` transitivo via `vitest` (`apps/api` e `workers`): path traversal em `.map` (≤6.4.1)
-- 1 em `esbuild` transitivo via `vitest > vite` (`apps/api`): leitura arbitrária no dev server (≤0.24.2)
+**Overrides em [`package.json`](package.json) raiz (`pnpm.overrides`):** `@fastify/static`, `fast-jwt`, `follow-redirects`. Esses pins **não** tratam `vite`/`esbuild`; vulnerabilidades eventualmente reportadas nessa cadeia costumam afetar **dependências de desenvolvimento/teste** (por exemplo `vitest` → `vite`). Mitigação: manter Vitest/Vite atualizados e rever o relatório do audit periodicamente.
 
-Mitigações já aplicadas via `pnpm.overrides` no `package.json` raiz:
+## Matriz de versões (toolchain)
 
-- `@fastify/static`: `9.1.1`
-- `fast-jwt`: `6.2.1`
-- `follow-redirects`: `1.16.0`
+Política atual do monorepo:
 
-Heterogeneidade de versões observada entre workspaces:
+| Pacote                  | Escopo                                                                                                                                                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vitest`                | `^4.1.4` em `apps/api`, `apps/web`, `workers`, `packages/domain`, `packages/shared`, `packages/integration-sienge`                                                                                                                                                   |
+| `typescript`            | `^5.6.0` em `apps/api`, `workers`, `packages/integration-sienge`; `~6.0.2` em `apps/web` (toolchain Vite)                                                                                                                                                            |
+| `@supabase/supabase-js` | `^2.105.1` em `apps/api` e `workers` (alinhados)                                                                                                                                                                                                                     |
+| `@types/node`           | `20.x` (workers), `22.x` (api), `24.x` (web), `25.x` (integration-sienge)                                                                                                                                                                                            |
+| `zod`                   | **Duas linhas intencionais:** `^3.x` em `apps/api`, `apps/web`, `packages/shared`; `^4.x` apenas em `packages/integration-sienge` (schemas locais do pacote Sienge). Unificar exige spike de migração 3→4 no shared ou downgrade controlado no pacote de integração. |
 
-- `vitest`: `1.4.0` (workers), `2.1.0` (api), `4.1.4` (web, domain, integration-sienge, shared)
-- `typescript`: `5.4.3` (workers), `5.6.0` (api), `6.0.2` (web)
-- `@types/node`: `20.x` (workers), `22.x` (api), `24.x` (web), `25.x` (integration-sienge)
-- `zod`: `3.23.8` (api, shared), `3.25.76` (web), `4.3.6` (integration-sienge)
-- `@supabase/supabase-js`: `2.39.0` (workers), `2.45.0` (api)
+## Testes E2E (Playwright)
+
+- Código em [`apps/web/e2e/`](apps/web/e2e/): login mockado + jornadas **auth → pedidos** e **auth → monitor de integração** (`page.route` sobre `/api/*`, sem API real).
+- Runbook: [`docs/runbooks/e2e-playwright-auth.md`](docs/runbooks/e2e-playwright-auth.md).
+- CI: workflow dedicado [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) (Chromium + `pnpm --filter @projetog/web run test:e2e`).
 
 ## Infraestrutura de deploy
 
 ### CI/CD (GitHub Actions)
 
 - `ci.yml`: format, lint, test, build em `push`/`pull_request` para `main`
+- `e2e.yml`: Playwright (Chromium) em `apps/web` em `push`/`pull_request` para `main`
 - `deploy.yml`: build Docker + push GHCR + deploy K8s via `workflow_dispatch` ou `push` para `main`
 - `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
 
@@ -421,7 +435,7 @@ Limpa — nenhuma alteração pendente.
 
 > **Nota (2026-04-24 — auditoria completa PRD-04):** PRD-04 implementado (Fases 1–4). Todas as 25 regras de negócio (RN-01 a RN-25) estão implementadas e verificadas. Inclui: 2 migrações de banco (`20260423110000` + `20260423110001`) com extensão de `follow_up_trackers` (supplier_id, promised dates, notification tracking, supplier response, approval, paused_at, completed_reason), tabelas `follow_up_date_changes` e `business_days_holidays`, 4 novos tipos de notificação (`followup_reminder`, `overdue_alert`, `confirmation_received`, `new_date_pending`) com templates seed, enums PRD-04 no domínio, schemas Zod no shared, módulo API `followup` com 7 endpoints (listagem, detalhe, confirmação, sugestão/aprovação/reprovação de datas, histórico de notificações), RBAC e isolamento de fornecedor, auditoria completa de todos os 8 eventos do PRD, worker `follow-up` scheduler diário com régua de notificações sequenciais (1 por dia útil, Compras em cópia da 2ª em diante), detecção de atraso (D+1 útil), encerramento automático por entrega/cancelamento, utilitário de dias úteis com feriados, e telas frontend (backoffice: FollowUpList com filtros de status/fornecedor/obra e FollowUpDetail com timeline de notificações e aprovação de datas; fornecedor: SupplierFollowUpList com indicação de avaria/reposição e SupplierFollowUpDetail com histórico de notificações, confirmação e sugestão de data). Adicionalmente, as telas de pedidos PRD-05 foram implementadas no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail).
 >
-> Testes existentes (27 total): API 11 (followup.routes.test.ts), worker 5 (follow-up.test.ts), utils business-days 5 (business-days.test.ts), utils order-status-recalc 1 (order-status-recalc.test.ts — encerramento de tracker por entrega), frontend 5 (FollowUpList.test.tsx ×2, FollowUpDetail.test.tsx ×1, SupplierFollowUpList.test.tsx ×1, SupplierFollowUpDetail.test.tsx ×1). Cenários sem cobertura de teste: cópia Compras Notificação 2+ (lógica existe, teste não valida), reinício end-to-end da régua após aprovação, integração de entrega parcial com PRD-05, concorrência scheduler/resposta, falha de e-mail, isolamento de supplier em `listNotifications`.
+> Testes existentes (30+ no escopo follow-up/recalc): API 11 (followup.routes.test.ts), worker 5 (follow-up.test.ts), utils business-days 5 (business-days.test.ts), utils order-status-recalc 4 (order-status-recalc.test.ts — encerramento de tracker por entrega total; **parcial PRD-04+PRD-05:** não encerra tracker; PRD-06 §14 coexistência damages + REPOSICAO), frontend 5 (FollowUpList.test.tsx ×2, FollowUpDetail.test.tsx ×1, SupplierFollowUpList.test.tsx ×1, SupplierFollowUpDetail.test.tsx ×1). Cenários sem cobertura de teste: cópia Compras Notificação 2+ (lógica existe, teste não valida), reinício end-to-end da régua após aprovação, concorrência scheduler/resposta, falha de e-mail. _Atualização 2026-05-02: o gap "isolamento de supplier em `listNotifications`" foi fechado — ver nota PRD-03/PRD-04 no rodapé do arquivo._
 >
 > **Correção (2026-04-24):** quatro gaps anteriormente documentados foram verificados como falsos na auditoria de código:
 >
@@ -432,15 +446,34 @@ Limpa — nenhuma alteração pendente.
 >
 > Gaps reais remanescentes (não bloqueantes para V1.0):
 >
-> - **Migração — coluna `suggested_date`**: a migração PRD-04 não declara `ADD COLUMN suggested_date` em `follow_up_trackers`, mas a coluna existe no schema inicial (V1 linha 205). O controller faz update com ela corretamente — a funcionalidade opera sem problemas, mas a coluna carece de ownership formal na migração PRD-04;
-> - **Fase 5 (integração com Módulo 5)**: lógica de entrega parcial/encerramento existe (testada em `order-status-recalc.test.ts`), mas sem testes integrados end-to-end entre follow-up e fluxo de delivery;
-> - **Teste — isolamento supplier em listNotifications**: não há teste verificando que `FORNECEDOR` recebe `403` ao consultar notificações de outro fornecedor.
+> - ~~**Migração — coluna `suggested_date`**~~ → **Resolvido em 2026-05-02.** Migração `20260502120000_prd04_follow_up_trackers_suggested_date.sql` declara `ADD COLUMN IF NOT EXISTS suggested_date` em `follow_up_trackers`, formalizando ownership PRD-04 §4.1 na timeline (coluna já existia no V1).
+> - ~~**Fase 5 (integração com Módulo 5)**~~ → **Coberto por testes automatizados em worker (2026-05-02).** `order-status-recalc.test.ts` valida que entrega parcial não encerra `follow_up_trackers` e que entrega total sim; E2E Playwright browser permanece fora do escopo mínimo (ver PRD-04 §13 Fase 5).
+> - ~~**Teste — isolamento supplier em listNotifications**~~ → **Resolvido em 2026-05-02.** `followup.routes.test.ts` cobre cross-supplier 403, `supplier_id` nulo 403 e supplier match 200 (ver nota PRD-03/PRD-04 no rodapé).
 
 > **Nota (2026-04-23):** PRD-05 frontend implementado. As telas de pedidos e entregas — anteriormente listadas como pendentes — agora estão presentes: `/admin/orders`, `/admin/orders/:purchaseOrderId`, `/supplier/orders`, `/supplier/orders/:purchaseOrderId` com navegação no AdminLayout.
 
 > **Nota (2026-04-28):** PRD-06 implementado (Fases 1–6). Todas as 21 regras de negócio (RN-01 a RN-21) estão implementadas e verificadas. Inclui: migração `20260428150000` com extensão de `damages` (10 colunas novas + constraints + índices), tabelas `damage_replacements` e `damage_audit_logs` com RLS por fornecedor, 4 enums no domínio (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`), schemas Zod completos no shared (create, suggest, resolve, informDate, cancelReplacement, list, params), módulo API `damages` com 8 endpoints (POST criar, PATCH suggest, PATCH resolve, PATCH replacement/date, PATCH replacement/cancel, GET listar, GET detalhe, GET audit), RBAC (Fornecedor para sugestão e data; Compras para resolução e cancelamento; ambos para criação; Compras+Admin para audit), isolamento de fornecedor via `resolveSupplierId()`, auditoria completa com todos os 11 eventos do PRD §10 (`avaria_registrada`, `sugestao_enviada`, `sugestao_aceita`, `sugestao_recusada`, `acao_corretiva_definida`, `cancelamento_aplicado`, `reposicao_criada`, `data_reposicao_informada`, `reposicao_entregue`, `reposicao_cancelada`, `pedido_cancelado_total`), recálculo de status de pedido (`recomputeOrderStatusFromDamages`), cancelamento total com encerramento de régua de follow-up, reinício da régua ao informar data de reposição, integração worker `sync-deliveries.ts` para confirmação automática de reposição entregue, e telas frontend completas (backoffice: DamageList com filtros status/fornecedor/pedido/obra e badges coloridos roxo/azul/cinza/verde, DamageDetail com atalhos Aceitar/Recusar sugestão e timeline de auditoria; fornecedor: SupplierDamageList com badges, SupplierDamageDetail com sugestão, data de reposição e timeline de auditoria; compartilhado: DamageCreate com sugestão opcional para fornecedor). Testes: API 12 (damages.routes.test.ts), worker 1 (sync-deliveries.test.ts cenário de reposição entregue), frontend 2 (DamageList.test.tsx, SupplierDamageDetail.test.tsx).
+>
+> **Nota (2026-05-02 — lacunas PRD-06 6.1 e 6.2):** `damages.routes.test.ts` passa a cobrir 404/409 de `PATCH /api/damages/:damageId/replacement/cancel`, efeitos colaterais (`damage_audit_logs` com `reposicao_cancelada` e `cancelamento_aplicado`, `update` em `damages`, consulta de damages para recálculo) e precedência **EM_AVARIA** sobre **REPOSICAO** quando coexistem damages `EM_REPOSICAO` e `REGISTRADA` no mesmo pedido (PRD-06 §14). `recomputeOrderStatusFromDamages` e `workers/src/utils/order-status-recalc.ts` alinham `hasAvaria` / `hasReposicao` ao `OrderStatusEngine` (PRD-05 §7.3). `order-status-recalc.test.ts` +2 cenários. Documentação: [docs/prd/prd-06-avaria-e-acao-corretiva.md](docs/prd/prd-06-avaria-e-acao-corretiva.md) §14 (mitigação) e §15 (apêndice).
 
 > **Nota (2026-04-30):** PRD-08 implementado (Fases 1–4). Inclui: migração `20260429153000_prd08_dashboard_indicators.sql` (tabelas `dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item` com RLS service_role-only), worker `dashboard:consolidation` com consolidação diária atômica via `pg.Pool` (`dashboard-snapshot-pg.ts` com `BEGIN`/`COMMIT`/`ROLLBACK` explícito, zero `as any`, queries tipadas via `SupabaseClient<Database>`), criticidade por item com média histórica per-item excluindo pedido atual e mínimo de 2 amostras (RN-19), confiabilidade de fornecedor com janela de 3 meses (RN-20/21/22), cron `45 10 * * *` (07:45 BRT), auditoria em `audit_logs` (`dashboard.snapshot_created`/`dashboard.consolidation_error`), controller API com 7 endpoints GET (resumo, kpis, lead-time, atrasos, criticidade, ranking-fornecedores, avarias) com RBAC Compras+Administrador, schemas Zod de query params no shared, telas frontend (DashboardHome com cards operacionais usando paleta oficial #19B4BE/#324598/#dc2626/#7c3aed em gradientes, DashboardLeadTime/DashboardAtrasos/DashboardAvarias com gráficos de evolução via Recharts, DashboardCriticidade com badges urgente/padrão, DashboardRankingFornecedores com badges confiavel/atencao/critico, DashboardFilters e DashboardEvolutionChart como componentes reutilizáveis, dashboard-prd.css com estilos PRD), e 6 testes (3 RBAC + 3 lógica). Dependências adicionadas: `recharts` (^2.15.4) em `apps/web`, `pg` (^8.11.3) + `@types/pg` em `workers`.
+
+> **Nota (2026-05-02 — lacunas PRD-08 8.1–8.3):** Paridade RN-02 nos filtros globais (API + `DashboardFilters` em todos os painéis); `dashboard.access` com insert best-effort; resumos rápidos cobertos por testes (`dashboard.routes.test.ts`, `DashboardHome.test.tsx`). Detalhes em [docs/prd/prd-08-dashboard-e-indicadores.md](docs/prd/prd-08-dashboard-e-indicadores.md) §12 e nota ao final da seção.
+
+> **Nota (2026-05-02):** Lacunas residuais do PRD-03 (Notificações de Cotação) endereçadas. Cobre os dois gaps de baixa severidade documentados na revisão pré-PRD-09:
+>
+> - **Gap 3.1 — isolamento de supplier em `listNotifications`** (cita o método de PRD-04, mas afeta também a superfície PRD-03):
+>   - PRD-03 — `apps/api/src/modules/notifications/notification.routes.test.ts` reescrito sobre o helper `createSupabaseChainMock` com 21 cenários: 401/403 para `FORNECEDOR` e `VISUALIZADOR_PEDIDOS` em `GET /api/notifications/logs`, `GET /api/notifications/templates` e `PUT /api/notifications/templates/:id`; sanity 200 para `COMPRAS` em `/logs`.
+>   - PRD-04 — `apps/api/src/modules/followup/followup.routes.test.ts` ganhou 2 testes adicionais para `GET /api/followup/orders/:purchaseOrderId/notifications`: 403 quando o `profiles.supplier_id` é nulo e 200 quando o `supplier_id` do fornecedor coincide com o do tracker (o teste de cross-supplier 403 já existia desde o PRD-04 inicial).
+> - **Gap 3.2 — filtros avançados nos logs de notificação** (PRD §7.5):
+>   - `packages/shared/src/schemas/notifications.ts` recebe os filtros `type` (NotificationType nativeEnum), `start_date` e `end_date` (formato `YYYY-MM-DD`) com validação Zod;
+>   - `NotificationsController.listLogs` aplica `type` (`eq`), `start_date` (`gte` em `created_at`) e `end_date` (`lt` em `created_at` exclusivo +1 dia) tanto no caminho regular quanto na exportação CSV;
+>   - `apps/web/src/pages/admin/NotificationLogs.tsx` ganha barra de filtros (Tipo, Status, Data inicial, Data final, Cotação ID, Fornecedor ID) com botões Aplicar/Limpar; `handleExportCSV` repassa os filtros aplicados;
+>   - `apps/web/src/pages/admin/NotificationLogs.test.tsx` (novo) cobre 5 cenários: render dos seis filtros, carga inicial sem filtros, aplicar com reset de página, limpar, e tradução PT-BR de tipo/status na linha.
+>
+> Resultado de qualidade: `apps/api` passa de ~144 para ~158 testes (≈+14 cenários novos no notifications + 2 no followup); `apps/web` ganha o arquivo `NotificationLogs.test.tsx` (5 testes). Nenhuma migração SQL foi necessária. Documentação (este `CLAUDE.md`, `apps/api/CLAUDE.md`, `apps/web/CLAUDE.md` e o histórico do PRD-03) atualizada para refletir o fechamento dos gaps.
+
+> **Nota (2026-05-02 — remediação PRD-07, 3 gaps):** (i) **Homologação §17:** scripts somente leitura em `packages/integration-sienge/src/__tests__/` (`webhook-history`, `quotation-map-supplier`, `multi-quotation-orders`, `deliveries-attended-coverage`, `delivery-requirements-types`) + runbook `docs/runbooks/sienge-homologation.md` com status/evidência/próximo passo por item; `docs/runbooks/sienge-inventory.md` §2 atualizado; `tsx` como devDependency do pacote para execução documentada via `pnpm --filter @projetog/integration-sienge exec tsx …`. (ii) **Webhooks ACK-only:** `IntegrationEntityType` estendido com `contract`, `measurement`, `clearing`; worker `handleAckOnlyEvent` em `workers/src/jobs/process-webhook.ts` + `WebhookController.ENTITY_TYPE_MAP` na API; testes em `process-webhook.test.ts` e `webhooks.test.ts`. (iii) **Monitoramento PRD-09 §8.5:** `/admin/integration` (`IntegrationEvents.tsx`) com filtros, paginação (`limit` 20), colunas de tentativas/próximo retry, botão **Reprocessar** (Compras) + modal; `IntegrationEvents.test.tsx`; `integration.test.ts` cobre `direction` + intervalo de datas. PRD filho §6.5/§11/Fase 7 atualizados em `docs/prd/prd-07-integracao-com-o-sienge.md`.
 
 ## Diretriz para alterações futuras
 

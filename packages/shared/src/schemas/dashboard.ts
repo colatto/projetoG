@@ -21,23 +21,22 @@ export const dashboardLeadTimeQuerySchema = dashboardKpisQuerySchema.extend({
 });
 export type DashboardLeadTimeQueryDto = z.infer<typeof dashboardLeadTimeQuerySchema>;
 
-export const dashboardAtrasosQuerySchema = dashboardKpisQuerySchema;
+export const dashboardAtrasosQuerySchema = dashboardLeadTimeQuerySchema;
 export type DashboardAtrasosQueryDto = z.infer<typeof dashboardAtrasosQuerySchema>;
 
 export const dashboardCriticidadeQuerySchema = z.object({
   data_referencia: dashboardDateSchema.optional(),
   building_id: z.coerce.number().int().positive().optional(),
+  supplier_id: z.coerce.number().int().positive().optional(),
+  purchase_order_id: z.coerce.number().int().positive().optional(),
   item_identifier: z.string().min(1).max(100).optional(),
 });
 export type DashboardCriticidadeQueryDto = z.infer<typeof dashboardCriticidadeQuerySchema>;
 
-export const dashboardRankingFornecedoresQuerySchema = z.object({
-  data_inicio: dashboardDateSchema.optional(),
-  data_fim: dashboardDateSchema.optional(),
-});
+export const dashboardRankingFornecedoresQuerySchema = dashboardLeadTimeQuerySchema;
 export type DashboardRankingFornecedoresQueryDto = z.infer<
   typeof dashboardRankingFornecedoresQuerySchema
 >;
 
-export const dashboardAvariasQuerySchema = dashboardKpisQuerySchema;
+export const dashboardAvariasQuerySchema = dashboardLeadTimeQuerySchema;
 export type DashboardAvariasQueryDto = z.infer<typeof dashboardAvariasQuerySchema>;

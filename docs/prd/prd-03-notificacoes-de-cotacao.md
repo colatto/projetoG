@@ -660,3 +660,24 @@ Os seguintes itens da §17 do PRDGlobal se aplicam a este módulo:
 | **`supplierId` ≠ `creditorId`**                                        |     Baixa     | Alto — e-mail buscado com ID errado, fornecedor errado notificado ou sem notificação | Dependente da homologação (§17.1). Mitigação: validar correspondência antes de usar o e-mail; registrar discrepância e bloquear envio até resolução. |
 | **Template editado de forma inadequada pelo Administrador**            |     Baixa     |                         Médio — e-mail deformado ou confuso                          | Validação obrigatória de presença de placeholders. Pré-visualização antes de salvar. Versionamento para rollback.                                    |
 | **Volume alto de cotações com muitos fornecedores sobrecarrega envio** |     Baixa     |                  Médio — atrasos no envio ou throttling do provedor                  | Implementar enfileiramento (queue) se necessário; respeitar rate limits do provedor de e-mail; envio assíncrono por cotação.                         |
+
+## 15. Histórico de implementação
+
+### 2026-04-22 — Implementação inicial (Fases 1–5)
+
+PRD-03 implementado conforme plano original — ver nota datada no `CLAUDE.md` raiz.
+
+### 2026-05-02 — Fechamento de lacunas residuais
+
+Fechamento dos dois gaps de baixa severidade identificados na revisão pré-PRD-09:
+
+- **Gap 3.1 — Teste de isolamento de supplier em `listNotifications`.** Cobertura ampliada em duas frentes:
+  - PRD-03: `apps/api/src/modules/notifications/notification.routes.test.ts` reescrito com 21 cenários cobrindo RBAC para `FORNECEDOR` e `VISUALIZADOR_PEDIDOS` em `GET /api/notifications/logs`, `GET /api/notifications/templates` e `PUT /api/notifications/templates/:id`, mais sanity 200 para `COMPRAS` e validação de cada filtro.
+  - PRD-04 (gap literal documentado): `apps/api/src/modules/followup/followup.routes.test.ts` ganha testes adicionais para `GET /api/followup/orders/:purchaseOrderId/notifications` cobrindo isolamento por `supplier_id` (cross-supplier 403, supplier nulo 403, supplier match 200).
+- **Gap 3.2 — Filtros avançados nos logs de notificação (§7.5).** Implementação completa dos filtros previstos no PRD:
+  - Schema (`packages/shared/src/schemas/notifications.ts`): `type` (`NotificationType` nativeEnum), `start_date` e `end_date` (`YYYY-MM-DD`).
+  - Controller (`apps/api/src/modules/notifications/notifications.controller.ts`): `type` aplicado via `eq`, `start_date` via `gte('created_at', ...)`, `end_date` via `lt('created_at', ...)` com +1 dia para incluir o dia inteiro. Filtros aplicados também no ramo de exportação CSV.
+  - UI (`apps/web/src/pages/admin/NotificationLogs.tsx`): barra de filtros com Tipo, Status, Data inicial, Data final, Cotação ID e Fornecedor ID; botões Aplicar/Limpar; reset de página ao aplicar/limpar; rótulos PT-BR para tipo/status; `handleExportCSV` propaga os filtros aplicados.
+  - Testes (`apps/web/src/pages/admin/NotificationLogs.test.tsx`): novo arquivo com 5 cenários cobrindo render dos filtros, carga inicial sem filtros, aplicação com reset de página, limpeza, e tradução PT-BR.
+
+Nenhuma migração SQL foi necessária. A baseline documental foi atualizada em `CLAUDE.md` (raiz, `apps/api`, `apps/web`).

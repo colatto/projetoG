@@ -121,6 +121,43 @@ describe('Integration Routes', () => {
     expect(listBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
   });
 
+  it('should list integration events with direction and date range filters', async () => {
+    const listBuilder = createAwaitableBuilder({
+      data: [],
+      count: 0,
+      error: null,
+    });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'integration_events') {
+        return {
+          select: vi.fn(() => listBuilder),
+        };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const token = await getAuthToken(app, UserRole.ADMINISTRADOR);
+
+    const fromIso = encodeURIComponent('2026-04-01T00:00:00.000Z');
+    const toIso = encodeURIComponent('2026-04-30T23:59:59.999Z');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/integration/events?direction=outbound&date_from=${fromIso}&date_to=${toIso}&page=1&limit=20`,
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(listBuilder.eq).toHaveBeenCalledWith('direction', 'outbound');
+    expect(listBuilder.gte).toHaveBeenCalledWith('created_at', '2026-04-01T00:00:00.000Z');
+    expect(listBuilder.lte).toHaveBeenCalledWith('created_at', '2026-04-30T23:59:59.999Z');
+    expect(listBuilder.range).toHaveBeenCalledWith(0, 19);
+  });
+
   it('should forbid retry for non-Compras roles', async () => {
     const token = await getAuthToken(app, UserRole.ADMINISTRADOR);
 

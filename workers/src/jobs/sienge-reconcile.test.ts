@@ -85,13 +85,17 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@projetog/integration-sienge')>();
   return {
     ...actual,
-    OrderClient: vi.fn().mockImplementation(() => ({
-      getById: getByIdMock,
-      getItems: getItemsMock,
-    })),
-    QuotationClient: vi.fn().mockImplementation(() => ({
-      listNegotiations: listNegotiationsMock,
-    })),
+    OrderClient: vi.fn(function OrderClientMock() {
+      return {
+        getById: getByIdMock,
+        getItems: getItemsMock,
+      };
+    }),
+    QuotationClient: vi.fn(function QuotationClientMock() {
+      return {
+        listNegotiations: listNegotiationsMock,
+      };
+    }),
   };
 });
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebhookType, IntegrationEventType } from '@projetog/domain';
+import { IntegrationEntityType, WebhookType, IntegrationEventType } from '@projetog/domain';
 
 const reconcileOrderFromApiMock = vi.fn();
 const reconcileQuotationFromApiMock = vi.fn();
@@ -107,6 +107,160 @@ describe('processWebhook', () => {
       expect.objectContaining({
         status: 'success',
         response_payload: expect.objectContaining({ skipped: true }),
+      }),
+    );
+  });
+
+  it('should process CONTRACT_AUTHORIZED as ACK-only without reconcile', async () => {
+    const job = {
+      id: 'job-contract-auth',
+      data: {
+        webhookEventId: 'wh-contract-a',
+        webhookType: WebhookType.CONTRACT_AUTHORIZED,
+        payload: { documentId: 'D1', contractNumber: 42, consistent: true },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(reconcileOrderFromApiMock).not.toHaveBeenCalled();
+    expect(reconcileQuotationFromApiMock).not.toHaveBeenCalled();
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: IntegrationEventType.WEBHOOK_PROCESSED,
+        related_entity_type: IntegrationEntityType.CONTRACT,
+        related_entity_id: '42',
+        response_payload: expect.objectContaining({
+          ackPipeline: true,
+          contractNumber: 42,
+          consistent: true,
+        }),
+      }),
+    );
+  });
+
+  it('should process CONTRACT_UNAUTHORIZED as ACK-only', async () => {
+    const job = {
+      id: 'job-contract-unauth',
+      data: {
+        webhookEventId: 'wh-contract-u',
+        webhookType: WebhookType.CONTRACT_UNAUTHORIZED,
+        payload: { documentId: 'D2', contractNumber: 99, consistent: false, disapproved: true },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        related_entity_type: IntegrationEntityType.CONTRACT,
+        related_entity_id: '99',
+        response_payload: expect.objectContaining({
+          disapproved: true,
+        }),
+      }),
+    );
+  });
+
+  it('should process MEASUREMENT_AUTHORIZED as ACK-only', async () => {
+    const job = {
+      id: 'job-meas-auth',
+      data: {
+        webhookEventId: 'wh-meas-a',
+        webhookType: WebhookType.MEASUREMENT_AUTHORIZED,
+        payload: {
+          documentId: 'D3',
+          contractNumber: 1,
+          measurementNumber: 700,
+          buildingId: 55,
+        },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        related_entity_type: IntegrationEntityType.MEASUREMENT,
+        related_entity_id: '700',
+        response_payload: expect.objectContaining({
+          measurementNumber: 700,
+          buildingId: 55,
+        }),
+      }),
+    );
+  });
+
+  it('should process MEASUREMENT_UNAUTHORIZED as ACK-only', async () => {
+    const job = {
+      id: 'job-meas-unauth',
+      data: {
+        webhookEventId: 'wh-meas-u',
+        webhookType: WebhookType.MEASUREMENT_UNAUTHORIZED,
+        payload: {
+          documentId: 'D4',
+          contractNumber: 2,
+          measurementNumber: 701,
+          buildingId: 56,
+        },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        related_entity_type: IntegrationEntityType.MEASUREMENT,
+        related_entity_id: '701',
+      }),
+    );
+  });
+
+  it('should process CLEARING_FINISHED as ACK-only', async () => {
+    const job = {
+      id: 'job-clear-f',
+      data: {
+        webhookEventId: 'wh-clear-f',
+        webhookType: WebhookType.CLEARING_FINISHED,
+        payload: {
+          documentId: 'D5',
+          contractNumber: 3,
+          measurementNumber: 900,
+          buildingId: 77,
+        },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        related_entity_type: IntegrationEntityType.CLEARING,
+        related_entity_id: '900',
+      }),
+    );
+  });
+
+  it('should process CLEARING_DELETED as ACK-only using documentId when measurement missing', async () => {
+    const job = {
+      id: 'job-clear-d',
+      data: {
+        webhookEventId: 'wh-clear-d',
+        webhookType: WebhookType.CLEARING_DELETED,
+        payload: {
+          documentId: 'DOC-X',
+          contractNumber: 4,
+          buildingId: 88,
+        },
+      },
+    };
+
+    await processWebhook(job as never);
+
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        related_entity_type: IntegrationEntityType.CLEARING,
+        related_entity_id: 'DOC-X',
       }),
     );
   });

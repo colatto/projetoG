@@ -176,6 +176,79 @@ describe('Webhook Routes', () => {
     expect(mockBossSend).not.toHaveBeenCalled();
   });
 
+  it('should persist CONTRACT_AUTHORIZED with contract entity type on WEBHOOK_RECEIVED', async () => {
+    const duplicateLookup = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const webhookInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'webhook-contract-id' },
+          error: null,
+        }),
+      }),
+    });
+    const integrationInsert = vi.fn().mockResolvedValue({ error: null });
+    mockBossSend.mockResolvedValueOnce('job-id');
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'webhook_events') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: duplicateLookup,
+            })),
+          })),
+          insert: webhookInsert,
+        };
+      }
+
+      if (table === 'integration_events') {
+        return { insert: integrationInsert };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/webhooks/sienge',
+      headers: {
+        'x-sienge-id': 'delivery-contract-001',
+        'x-sienge-event': WebhookType.CONTRACT_AUTHORIZED,
+      },
+      payload: {
+        type: WebhookType.CONTRACT_AUTHORIZED,
+        data: {
+          documentId: 'DOC-42',
+          contractNumber: 100,
+          consistent: true,
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(integrationInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: IntegrationEventType.WEBHOOK_RECEIVED,
+        related_entity_type: 'contract',
+      }),
+    );
+    expect(mockBossSend).toHaveBeenCalledWith(
+      'sienge:process-webhook',
+      expect.objectContaining({
+        webhookType: WebhookType.CONTRACT_AUTHORIZED,
+        payload: {
+          documentId: 'DOC-42',
+          contractNumber: 100,
+          consistent: true,
+        },
+      }),
+      expect.any(Object),
+    );
+  });
+
   it('should acknowledge duplicate deliveries without persisting or enqueueing again', async () => {
     const duplicateLookup = vi.fn().mockResolvedValue({
       data: { id: 'existing-webhook-id', status: 'processed' },

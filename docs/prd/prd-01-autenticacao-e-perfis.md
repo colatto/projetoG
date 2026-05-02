@@ -507,12 +507,18 @@ Da §17 do PRDGlobal, os itens que se aplicam diretamente a este módulo:
 - [ ] O bloqueio de um fornecedor interrompe imediatamente notificações e operação no portal.
 - [ ] Se não houver e-mail válido (nem do Sienge, nem cadastrado localmente), o fornecedor não pode operar no portal.
 - [ ] O `Fornecedor` acessa apenas os próprios dados.
-- [ ] O `Visualizador de Pedidos` não pode alterar dados nem acessar dashboards.
+- [x] O `Visualizador de Pedidos` não pode alterar dados nem acessar dashboards (UI e API alinhadas ao RN-18; ver §12.1).
 - [ ] Cada ação relevante gera um registro na trilha de auditoria com data/hora, tipo, ator e alvo.
 - [ ] Os registros de auditoria são imutáveis (append-only).
-- [ ] Os endpoints da API aplicam RBAC por perfil conforme especificado.
+- [x] Os endpoints da API aplicam RBAC por perfil conforme especificado (cobertura ampliada para `visualizador_pedidos` em pedidos, follow-up, entregas e avarias; ver §12.1).
 - [ ] Tentativas de acesso não autorizado retornam `403` sem revelar informações internas.
 - [ ] A tela de login exibe a logo GRF e segue a paleta de cores institucional.
+
+### 12.1 Validação técnica complementar (lacunas PRD-01 — 2026-05)
+
+- **Fluxo login → JWT → recurso protegido:** teste de integração em `apps/api/src/modules/auth/auth.test.ts` que chama `POST /api/auth/login` (Supabase mockado), usa `session.access_token` em `GET /api/auth/me` e espera `200`.
+- **E2E navegador:** Playwright em `apps/web/e2e/login.spec.ts` intercepta `POST /api/auth/login` e valida redirecionamento para o shell autenticado. Execução documentada em [`docs/runbooks/e2e-playwright-auth.md`](../runbooks/e2e-playwright-auth.md) (`pnpm --filter @projetog/web run test:e2e`).
+- **RN-18 (`visualizador_pedidos`):** no web, apenas `/admin/orders` e detalhe de pedido; sem itens de menu nem rotas para follow-up, avarias ou dashboards; em `OrderDetail`, ações de validação de entrega ocultas. Na API, `GET /api/followup/*` (backoffice) não autoriza esse perfil; `GET /api/damages`, `POST /api/deliveries/:id/validate` e `POST /api/orders/:id/cancel` retornam `403`; leitura de pedidos/entregas/histórico conforme `orders.routes.ts`. Testes: `AdminLayout.test.tsx`, `OrderDetail.test.tsx`, `followup.routes.test.ts`, `deliveries.test.ts`, `orders.test.ts`, `damages.routes.test.ts`.
 
 ## 13. Fases de implementação sugeridas
 

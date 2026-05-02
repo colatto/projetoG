@@ -423,6 +423,13 @@ Itens da §17 do PRDGlobal que se aplicam a este módulo:
 - [ ] A lista de pedidos no portal do fornecedor exibe todos os campos mínimos exigidos pelo PRDGlobal §14.1.
 - [ ] A ordenação no backoffice prioriza `Atrasados` > `Divergência` > `Em avaria`/`Reposição` > pendentes > no prazo.
 
+### 12.1 Histórico de notificações do follow-up (`listNotifications`)
+
+- **Endpoint:** `GET /api/followup/orders/:purchaseOrderId/notifications`
+- **Comportamento:** `FollowupController.listNotifications` (`apps/api/src/modules/followup/followup.controller.ts`) resolve o tracker pelo `purchase_order_id`, lê `notification_logs` filtradas por `follow_up_tracker_id`. Para o perfil **Fornecedor**, exige `profiles.supplier_id` não nulo e igual a `follow_up_trackers.supplier_id`; caso contrário responde `403 Forbidden`. `Compras` e `Administrador` consultam sem essa restrição por fornecedor.
+- **Distinção PRD-03:** o histórico global de e-mails (`GET /api/notifications/logs`) não é exposto a `Fornecedor`; RBAC coberto em `apps/api/src/modules/notifications/notification.routes.test.ts`.
+- **Testes de regressão (isolamento):** `apps/api/src/modules/followup/followup.routes.test.ts` — fornecedor com tracker de outro `supplier_id` → `403`; `supplier_id` nulo no perfil → `403`; correspondência de `supplier_id` → `200`.
+
 ## 13. Fases de implementação sugeridas
 
 ### Fase 1 — Infraestrutura de cálculo e scheduler
@@ -457,6 +464,7 @@ Itens da §17 do PRDGlobal que se aplicam a este módulo:
 - Implementar continuidade da régua em entrega parcial.
 - Implementar encerramento automático da régua quando saldo pendente zerar.
 - Testes integrados com fluxo de entrega.
+- **Estado (2026-05-02):** o worker `recalculateOrderStatus` (`workers/src/utils/order-status-recalc.ts`) encerra o tracker apenas quando o status calculado é `ENTREGUE` e `pendingQuantity === 0`. Testes em `workers/src/utils/order-status-recalc.test.ts`: entrega total encerra o tracker; **entrega parcial** (`PARCIALMENTE_ENTREGUE` com saldo pendente) não encerra o tracker (integração PRD-04 + PRD-05 em nível de worker; E2E browser não é requisito mínimo).
 
 ## 14. Riscos específicos do módulo
 

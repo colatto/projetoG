@@ -7,6 +7,10 @@ import {
   getStatusBadgeClass,
   formatDate,
   getDeadlineClass,
+  getDominantNegotiationStatus,
+  shouldShowInvalidMapMixedChip,
+  formatSupplierNamesCell,
+  quotationRowHasClosedSupplier,
 } from '../quotation-helpers';
 import '../quotations.css';
 
@@ -37,6 +41,9 @@ const STATUS_OPTIONS = [
   { value: 'APROVADA', label: 'Aprovada' },
   { value: 'INTEGRADA_SIENGE', label: 'Integrada' },
   { value: 'SEM_RESPOSTA', label: 'Sem resposta' },
+  { value: 'FORNECEDOR_INVALIDO_MAPA', label: 'Fornecedor inválido no mapa' },
+  { value: 'FORNECEDOR_FECHADO', label: 'Fornecedor fechado' },
+  { value: 'AGUARDANDO_REENVIO_SIENGE', label: 'Aguard. reenvio Sienge' },
   { value: 'ENCERRADA', label: 'Encerrada' },
 ];
 
@@ -77,19 +84,6 @@ export default function QuotationList() {
   }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
-
-  /** Derive dominant status from supplier negotiations */
-  function getDominantStatus(negotiations: SupplierNeg[]): string {
-    if (!negotiations.length) return 'SEM_RESPOSTA';
-    const statuses = negotiations.map((n) => n.status);
-    // Priority: pending > correction > review > terminal
-    if (statuses.includes('AGUARDANDO_RESPOSTA')) return 'AGUARDANDO_RESPOSTA';
-    if (statuses.includes('CORRECAO_SOLICITADA')) return 'CORRECAO_SOLICITADA';
-    if (statuses.includes('AGUARDANDO_REVISAO')) return 'AGUARDANDO_REVISAO';
-    if (statuses.includes('APROVADA')) return 'APROVADA';
-    if (statuses.includes('INTEGRADA_SIENGE')) return 'INTEGRADA_SIENGE';
-    return statuses[0];
-  }
 
   return (
     <div>
@@ -190,15 +184,17 @@ export default function QuotationList() {
               <tbody>
                 {data.map((q) => {
                   const negs = q.supplier_negotiations ?? [];
-                  const dominantStatus = getDominantStatus(negs);
+                  const statuses = negs.map((n) => n.status);
+                  const dominantStatus = getDominantNegotiationStatus(statuses);
+                  const showInvalidMixedChip = shouldShowInvalidMapMixedChip(statuses, dominantStatus);
                   const readCount = negs.filter((n) => n.read_at).length;
                   const responseCount = negs.filter((n) => n.latest_response_id).length;
                   const orderIds = negs
                     .filter((n) => n.closed_order_id)
                     .map((n) => n.closed_order_id);
-                  const supplierNames = negs
-                    .map((n) => n.suppliers?.name ?? `#${n.supplier_id}`)
-                    .join(', ');
+                  const nameParts = negs.map((n) => n.suppliers?.name ?? `#${n.supplier_id}`);
+                  const supplierCell = formatSupplierNamesCell(nameParts);
+                  const hasClosedSupplier = quotationRowHasClosedSupplier(negs);
 
                   return (
                     <tr key={q.id} className="q-table-row">
@@ -212,14 +208,28 @@ export default function QuotationList() {
                         {formatDate(q.end_at ?? q.end_date)}
                       </td>
                       <td>
-                        <span className={getStatusBadgeClass(dominantStatus)}>
-                          {getStatusLabel(dominantStatus)}
-                        </span>
+                        <div className="q-status-cell">
+                          <span className={getStatusBadgeClass(dominantStatus)}>
+                            {getStatusLabel(dominantStatus)}
+                          </span>
+                          {showInvalidMixedChip && (
+                            <span
+                              className="q-chip-invalid-map"
+                              title="Contém fornecedor inválido no mapa de cotação"
+                            >
+                              Mapa inválido
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td title={supplierNames}>
-                        <span style={{ fontSize: '0.8125rem' }}>
-                          {negs.length > 0 ? `${negs.length} forn.` : '—'}
-                        </span>
+                      <td title={supplierCell.title}>
+                        <span style={{ fontSize: '0.8125rem' }}>{supplierCell.primary}</span>
+                        {negs.length > 1 && (
+                          <span style={{ color: 'var(--color-gray-400)', fontSize: '0.75rem' }}>
+                            {' '}
+                            ({negs.length})
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="read-indicator">
@@ -235,7 +245,16 @@ export default function QuotationList() {
                         </span>
                       </td>
                       <td>
-                        {orderIds.length > 0 ? orderIds.map((oid) => `#${oid}`).join(', ') : '—'}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          {hasClosedSupplier && (
+                            <span className="q-chip-fornecedor-fechado">Fechado</span>
+                          )}
+                          <span style={{ fontSize: '0.8125rem' }}>
+                            {orderIds.length > 0
+                              ? orderIds.map((oid) => `#${oid}`).join(', ')
+                              : '—'}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   );

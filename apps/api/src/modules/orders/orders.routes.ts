@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import { ordersListQuerySchema } from '@projetog/shared';
 import { OrdersController } from './orders.controller.js';
 import { UserRole } from '@projetog/domain';
 
@@ -12,10 +13,7 @@ export const ordersRoutes: FastifyPluginAsync = async (app) => {
     '/',
     {
       schema: {
-        querystring: z.object({
-          status: z.string().optional(),
-          search: z.string().optional(),
-        }),
+        querystring: ordersListQuerySchema,
       },
       preValidation: [
         app.verifyRole([

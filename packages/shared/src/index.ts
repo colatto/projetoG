@@ -8,3 +8,4 @@ export * from './schemas/notifications.js';
 export * from './schemas/followup.js';
 export * from './schemas/damages.js';
 export * from './schemas/dashboard.js';
+export * from './schemas/orders.js';

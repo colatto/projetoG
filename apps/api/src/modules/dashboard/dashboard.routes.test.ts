@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import sensible from '@fastify/sensible';
@@ -177,5 +177,260 @@ describe('Dashboard Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.data_snapshot).toBeNull();
     expect(body.itens).toEqual([]);
+  });
+
+  it('GET /resumo returns summary shape and records dashboard.access audit', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('dashboard_snapshot')._mockResolvedValue({
+      data: {
+        snapshot_date: '2026-05-02',
+        pedidos_atrasados: 9,
+        pedidos_com_avaria: 2,
+      },
+      error: null,
+    });
+    supabase.table('supplier_negotiations')._mockResolvedValue({ count: 14, error: null });
+    supabase.table('integration_events')._mockResolvedValue({ count: 6, error: null });
+    supabase.table('audit_logs')._mockResolvedValue({ data: null, error: null });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/resumo',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body).toEqual({
+      cotacoes_abertas: 14,
+      cotacoes_aguardando_revisao: 14,
+      pedidos_atrasados: 9,
+      pedidos_em_avaria: 2,
+      falhas_integracao: 6,
+      data_snapshot: '2026-05-02',
+    });
+
+    expect(supabase.table('audit_logs').insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: 'dashboard.access',
+        entity_type: 'dashboard',
+        entity_id: 'resumo',
+        actor_id: '00000000-0000-0000-0000-000000000077',
+        metadata: expect.objectContaining({ dashboard: 'resumo' }),
+      }),
+    );
+  });
+
+  it('GET /lead-time records dashboard.access with entity_id lead-time', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('dashboard_snapshot_por_fornecedor')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-02',
+          supplier_id: 3,
+          supplier_name: 'X',
+          lead_time_medio_dias_uteis: 5,
+          pedidos_atrasados: 0,
+          pedidos_no_prazo: 1,
+        },
+      ],
+      error: null,
+    });
+    supabase.table('dashboard_snapshot_por_obra')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-02',
+          building_id: 8,
+          building_name: 'Obra',
+          lead_time_medio_dias_uteis: 6,
+          pedidos_atrasados: 0,
+          pedidos_no_prazo: 1,
+        },
+      ],
+      error: null,
+    });
+    supabase.table('dashboard_snapshot')._mockResolvedValue({
+      data: [{ snapshot_date: '2026-04-02', lead_time_medio_dias_uteis: 7 }],
+      error: null,
+    });
+    supabase.table('audit_logs')._mockResolvedValue({ data: null, error: null });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/lead-time?data_inicio=2026-04-01&data_fim=2026-04-05',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(supabase.table('audit_logs').insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: 'dashboard.access',
+        entity_id: 'lead-time',
+        actor_id: '00000000-0000-0000-0000-000000000077',
+      }),
+    );
+  });
+
+  it('GET /atrasos scopes headline to purchase_order_id and clears evolution series', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('dashboard_snapshot_por_fornecedor')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-10',
+          supplier_id: 5,
+          supplier_name: 'A',
+          pedidos_atrasados: 22,
+          pedidos_no_prazo: 40,
+        },
+        {
+          snapshot_date: '2026-04-10',
+          supplier_id: 9,
+          supplier_name: 'B',
+          pedidos_atrasados: 4,
+          pedidos_no_prazo: 10,
+        },
+      ],
+      error: null,
+    });
+    supabase.table('dashboard_snapshot_por_obra')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-10',
+          building_id: 77,
+          building_name: 'BR',
+          pedidos_atrasados: 999,
+          pedidos_no_prazo: 1,
+        },
+      ],
+      error: null,
+    });
+    supabase.table('dashboard_snapshot')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-10',
+          pedidos_atrasados: 999,
+          total_pedidos_monitorados: 500,
+        },
+      ],
+      error: null,
+    });
+    supabase.table('purchase_orders')._mockResolvedValue({
+      data: { id: 55, supplier_id: 5, building_id: 77 },
+      error: null,
+    });
+    supabase.table('audit_logs')._mockResolvedValue({ data: null, error: null });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/atrasos?data_inicio=2026-04-01&data_fim=2026-04-15&purchase_order_id=55',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.total_atrasados).toBe(22);
+    expect(body.taxa_atraso).toBe(
+      Number((((22 / 62) * 100).toFixed(2))),
+    );
+    expect(body.atrasos_por_fornecedor).toHaveLength(1);
+    expect(body.atrasos_por_obra).toHaveLength(1);
+    expect(body.evolucao_diaria).toEqual([]);
+  });
+
+  it('filters ranking suppliers when supplier_id query is set', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('dashboard_snapshot_por_fornecedor')._mockResolvedValue({
+      data: [
+        {
+          snapshot_date: '2026-04-10',
+          supplier_id: 5,
+          supplier_name: 'ACME',
+          cotacoes_enviadas: 1,
+          cotacoes_respondidas: 1,
+          pedidos_no_prazo: 2,
+          pedidos_atrasados: 1,
+          pedidos_com_avaria: 0,
+          lead_time_medio_dias_uteis: 10,
+          confiabilidade: 'confiavel',
+        },
+        {
+          snapshot_date: '2026-04-10',
+          supplier_id: 99,
+          supplier_name: 'OTHER',
+          cotacoes_enviadas: 3,
+          cotacoes_respondidas: 3,
+          pedidos_no_prazo: 1,
+          pedidos_atrasados: 0,
+          pedidos_com_avaria: 0,
+          lead_time_medio_dias_uteis: 3,
+          confiabilidade: 'confiavel',
+        },
+      ],
+      error: null,
+    });
+    supabase.table('audit_logs')._mockResolvedValue({ data: null, error: null });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/ranking-fornecedores?data_inicio=2026-04-01&data_fim=2026-04-15&supplier_id=99',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.fornecedores).toHaveLength(1);
+    expect(body.fornecedores[0].supplier_id).toBe(99);
+  });
+
+  it('returns 400 when criticidade supplier_id does not match purchase_order_id', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('purchase_orders')._mockResolvedValue({
+      data: { supplier_id: 100 },
+      error: null,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/criticidade?purchase_order_id=1&supplier_id=200',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.message).toMatch(/Fornecedor não corresponde ao pedido/);
+  });
+
+  it('returns 200 from resumo when audit_logs insert fails (best-effort audit)', async () => {
+    const token = await getRoleToken(app, UserRole.COMPRAS);
+    supabase.table('dashboard_snapshot')._mockResolvedValue({
+      data: {
+        snapshot_date: '2026-05-02',
+        pedidos_atrasados: 1,
+        pedidos_com_avaria: 0,
+      },
+      error: null,
+    });
+    supabase.table('supplier_negotiations')._mockResolvedValue({ count: 0, error: null });
+    supabase.table('integration_events')._mockResolvedValue({ count: 0, error: null });
+
+    const origFrom = supabase.client.from.bind(supabase.client);
+    supabase.client.from = vi.fn((table: string) => {
+      if (table === 'audit_logs') {
+        return {
+          insert: vi.fn(() => Promise.reject(new Error('audit down'))),
+        };
+      }
+      return origFrom(table);
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/dashboard/resumo',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    supabase.client.from = origFrom;
+
+    expect(response.statusCode).toBe(200);
   });
 });

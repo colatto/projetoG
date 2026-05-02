@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { DeliveryRequirementClient } from '../../clients/delivery-requirement-client.js';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SiengeClient } from '../../client.js';
 import type { SiengeDeliveryRequirement } from '../../types/sienge-types.js';
 

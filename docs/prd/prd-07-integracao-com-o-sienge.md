@@ -247,7 +247,7 @@ A seguinte tabela consolida os identificadores que **devem** ser persistidos nas
    - `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED`: reconsulta status da negociação.
    - `PURCHASE_ORDER_ITEM_MODIFIED`: reconsulta itens do pedido.
    - `PURCHASE_ORDER_AUTHORIZATION_CHANGED` / `PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED`: usa como gatilho de reconsulta apenas.
-   - `CONTRACT_AUTHORIZED`, `CONTRACT_UNAUTHORIZED`, `MEASUREMENT_AUTHORIZED`, `MEASUREMENT_UNAUTHORIZED`, `CLEARING_FINISHED`, `CLEARING_DELETED`: aceita, registra e finaliza com ACK seguro; pipeline de reconciliação específico permanece pendente de implementação.
+   - `CONTRACT_AUTHORIZED`, `CONTRACT_UNAUTHORIZED`, `MEASUREMENT_AUTHORIZED`, `MEASUREMENT_UNAUTHORIZED`, `CLEARING_FINISHED`, `CLEARING_DELETED`: aceita, registra e finaliza com ACK seguro; o worker executa `handleAckOnlyEvent`, grava `WEBHOOK_PROCESSED` em `integration_events` com `related_entity_type` (`contract` \| `measurement` \| `clearing`) e `related_entity_id` derivado do payload (sem reconciliação REST adicional nestes tipos).
 7. Atualiza status para `processed` ou `failed`.
 8. O processamento deve responder rapidamente ao Sienge e deixar toda reconsulta REST para o worker assíncrono.
 
@@ -420,17 +420,17 @@ Cada evento registra: data/hora, tipo, usuário/origem, entidade afetada, fornec
 
 ## 11. Validações pendentes de homologação
 
-Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo:
+Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo. Status consolidado em `docs/runbooks/sienge-homologation.md` (2026-05-02). Scripts readonly: `packages/integration-sienge/src/__tests__/*.integration.ts`.
 
-- [ ] **§17.1:** Validar se `supplierId` das APIs de compras corresponde ao `creditorId` da API de Credores.
-- [ ] **§17.2:** Validar se a regra do primeiro `contacts[].email` preenchido é suficiente como e-mail oficial.
-- [ ] **§17.3:** Validar disponibilidade e funcionamento do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`.
-- [ ] **§17.4:** Validar disponibilidade do webhook `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED`.
-- [ ] **§17.5:** Validar se o fornecedor continua existindo no mapa de cotação antes da escrita.
-- [ ] **§17.6:** Validar comportamento real de criação e atualização de negociação antes do envio dos itens.
-- [ ] **§17.7:** Validar cenários com múltiplas cotações em `purchaseQuotations[]`.
-- [ ] **§17.8:** Validar se `GET /purchase-invoices/deliveries-attended` cobre todos os cenários de entrega.
-- [ ] **§17.9:** Validar variações reais do campo `openQuantity` em `delivery-requirements`.
+- [x] **§17.1:** Validar se `supplierId` das APIs de compras corresponde ao `creditorId` da API de Credores. _(Validado 2026-04-17 — `supplier-mapping.integration.ts`)_
+- [~] **§17.2:** Validar se a regra do primeiro `contacts[].email` preenchido é suficiente como e-mail oficial. _(Parcial 2026-04-17 — confirmação Compras pendente)_
+- [~] **§17.3:** Validar disponibilidade e funcionamento do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`. _(Disparo real pendente cliente/Sienge; histórico Supabase — `webhook-history.integration.ts`)_
+- [~] **§17.4:** Validar disponibilidade do webhook `PURCHASE_QUOTATION_NEGOTIATION_AUTHORIZATION_CHANGED`. _(Disparo real pendente; mesmo script §17.3)_
+- [~] **§17.5:** Validar se o fornecedor continua existindo no mapa de cotação antes da escrita. _(Leitura API — `quotation-map-supplier.integration.ts`; cenário RN-10 completo com UI/outbound conjunto)_
+- [ ] **§17.6:** Validar comportamento real de criação e atualização de negociação antes do envio dos itens. _(Somente mutação real — sessão Compras; sem script readonly)_
+- [~] **§17.7:** Validar cenários com múltiplas cotações em `purchaseQuotations[]`. _(Amostragem — `multi-quotation-orders.integration.ts`)_
+- [~] **§17.8:** Validar se `GET /purchase-invoices/deliveries-attended` cobre todos os cenários de entrega. _(Cobertura Sienge × `deliveries` — `deliveries-attended-coverage.integration.ts`)_
+- [~] **§17.9:** Validar variações reais do campo `openQuantity` em `delivery-requirements`. _(Classificação de tipo — `delivery-requirements-types.integration.ts`)_
 
 ## 12. Critérios de aceite
 
@@ -471,7 +471,7 @@ Da §17 do PRDGlobal, todos os 9 itens se aplicam diretamente a este módulo:
 4. **Fase 4 — Webhooks:** Endpoint receptor. Processamento assíncrono por tipo. Reconciliação webhook + API.
 5. **Fase 5 — Escrita:** `NegotiationClient` (create, update, updateItem, authorize). Verificação de fornecedor no mapa. Idempotência.
 6. **Fase 6 — Retry e resiliência:** Mecanismo de retry automático. Reprocessamento manual. Notificação de `Compras` em falhas persistentes.
-7. **Fase 7 — Homologação:** Validação dos 9 itens de §17 com dados reais do cliente.
+7. **Fase 7 — Homologação:** Validação dos 9 itens de §17 com dados reais do cliente. Smoke scripts somente leitura em `packages/integration-sienge/src/__tests__/` (§17.3–17.5, 17.7–17.9); §17.6 e disparos pontuais de webhook dependem de sessão com cliente/Sienge — ver `docs/runbooks/sienge-homologation.md`.
 
 ## 14. Riscos específicos do módulo
 

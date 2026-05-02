@@ -30,6 +30,8 @@ export default function DashboardAvarias() {
   const [dataFim, setDataFim] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [supplierId, setSupplierId] = useState('');
   const [buildingId, setBuildingId] = useState('');
+  const [purchaseOrderId, setPurchaseOrderId] = useState('');
+  const [itemIdentifier, setItemIdentifier] = useState('');
   const [data, setData] = useState<DamagePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,8 @@ export default function DashboardAvarias() {
           data_fim: dataFim || undefined,
           supplier_id: supplierId ? Number(supplierId) : undefined,
           building_id: buildingId ? Number(buildingId) : undefined,
+          purchase_order_id: purchaseOrderId ? Number(purchaseOrderId) : undefined,
+          item_identifier: itemIdentifier || undefined,
         },
       });
       setData(response.data);
@@ -52,7 +56,7 @@ export default function DashboardAvarias() {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim, supplierId, buildingId]);
+  }, [dataInicio, dataFim, supplierId, buildingId, purchaseOrderId, itemIdentifier]);
 
   useEffect(() => {
     load();
@@ -93,6 +97,10 @@ export default function DashboardAvarias() {
         setSupplierId={setSupplierId}
         buildingId={buildingId}
         setBuildingId={setBuildingId}
+        purchaseOrderId={purchaseOrderId}
+        setPurchaseOrderId={setPurchaseOrderId}
+        itemIdentifier={itemIdentifier}
+        setItemIdentifier={setItemIdentifier}
       />
 
       {loading && <div className="o-loading">Carregando...</div>}

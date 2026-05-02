@@ -41,8 +41,7 @@ export async function getSiengeClient(supabase: SupabaseClient): Promise<SiengeC
     const apiKey = decryptSiengeCredential(creds.api_user);
     const apiSecret = decryptSiengeCredential(creds.api_password);
 
-    // The PRD indicates subdomain structure is: https://<subdomain>.sienge.com.br/api/v1
-    const baseUrl = `https://${creds.subdomain}.sienge.com.br/api/v1`;
+    const baseUrl = `https://api.sienge.com.br/${creds.subdomain}/public/api/v1`;
 
     client = createSiengeClient(
       {

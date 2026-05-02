@@ -67,21 +67,186 @@ function pickLatestGlobalRow(rows: any[]): any | null {
   rows[0]);
 }
 
+type DashboardDimensionalQuery = {
+  supplier_id?: number;
+  building_id?: number;
+  purchase_order_id?: number;
+  item_identifier?: string;
+};
+
 export class DashboardController {
   constructor(private app: FastifyInstance) {}
 
   private async auditAccess(request: FastifyRequest, dashboard: string) {
     const userId = (request as any).user?.sub ?? null;
-    await (this.app.supabase as any).from('audit_logs').insert({
-      event_type: 'dashboard.access',
-      actor_id: userId,
-      entity_type: 'dashboard',
-      entity_id: dashboard,
-      metadata: {
-        dashboard,
-        query: request.query ?? {},
-      },
-    });
+    try {
+      await (this.app.supabase as any).from('audit_logs').insert({
+        event_type: 'dashboard.access',
+        actor_id: userId,
+        entity_type: 'dashboard',
+        entity_id: dashboard,
+        metadata: {
+          dashboard,
+          query: request.query ?? {},
+        },
+      });
+    } catch (err: unknown) {
+      request.log.warn({ err, dashboard }, 'audit_logs dashboard.access insert failed');
+    }
+  }
+
+  /**
+   * Narrows supplier/building snapshot aggregates to the PO and/or item scope (same rules as lead time).
+   */
+  private async narrowAggregatesByPurchaseOrderAndItem(
+    supplierAgg: any[],
+    buildingAgg: any[],
+    purchase_order_id?: number,
+    item_identifier?: string,
+  ): Promise<{ supplierAgg: any[]; buildingAgg: any[] }> {
+    let sAgg = supplierAgg;
+    let bAgg = buildingAgg;
+    const orderId = purchase_order_id;
+    if (orderId) {
+      const { data: poRow } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('id, supplier_id, building_id')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (!poRow || Number(poRow.id) !== Number(orderId)) {
+        return { supplierAgg: [], buildingAgg: [] };
+      }
+      sAgg = sAgg.filter((r: any) => r.supplier_id === poRow.supplier_id);
+      bAgg = bAgg.filter((r: any) => r.building_id === poRow.building_id);
+    }
+    if (item_identifier) {
+      let itemQ = (this.app.supabase as any)
+        .from('purchase_order_items')
+        .select('purchase_order_id, item_number')
+        .eq('item_number', item_identifier);
+      if (orderId) itemQ = itemQ.eq('purchase_order_id', orderId);
+      const { data: itemRows } = await itemQ.limit(2000);
+      const orderIds = new Set((itemRows || []).map((r: any) => r.purchase_order_id));
+      if (orderIds.size === 0) {
+        return { supplierAgg: [], buildingAgg: [] };
+      }
+      const { data: ordersForItems } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('id, supplier_id, building_id')
+        .in('id', Array.from(orderIds));
+      const supIds = new Set((ordersForItems || []).map((o: any) => o.supplier_id));
+      const bIds = new Set((ordersForItems || []).map((o: any) => o.building_id));
+      sAgg = sAgg.filter((r: any) => supIds.has(r.supplier_id));
+      bAgg = bAgg.filter((r: any) => bIds.has(r.building_id));
+    }
+    return { supplierAgg: sAgg, buildingAgg: bAgg };
+  }
+
+  /** Headline totals: scoped when any dashboard dimension filter is active; else latest global snapshot. */
+  private headlineFromSnapshots(
+    query: DashboardDimensionalQuery,
+    supplierAgg: any[],
+    buildingAgg: any[],
+    globalRows: any[],
+    metric: 'atrasos' | 'avaria',
+  ): { primary: number; monitorBase: number } {
+    const scoped =
+      !!query.supplier_id ||
+      !!query.building_id ||
+      !!query.purchase_order_id ||
+      !!query.item_identifier;
+    const field = metric === 'atrasos' ? 'pedidos_atrasados' : 'pedidos_com_avaria';
+    const sumMonitor = (rows: any[]) =>
+      rows.reduce(
+        (acc, r) => acc + (Number(r.pedidos_no_prazo) || 0) + (Number(r.pedidos_atrasados) || 0),
+        0,
+      );
+    if (scoped) {
+      if (query.supplier_id) {
+        if (!supplierAgg.length) return { primary: 0, monitorBase: 0 };
+        const primary = supplierAgg.reduce((acc, r) => acc + (Number(r[field]) || 0), 0);
+        return { primary, monitorBase: sumMonitor(supplierAgg) };
+      }
+      if (query.building_id) {
+        if (!buildingAgg.length) return { primary: 0, monitorBase: 0 };
+        const primary = buildingAgg.reduce((acc, r) => acc + (Number(r[field]) || 0), 0);
+        return { primary, monitorBase: sumMonitor(buildingAgg) };
+      }
+      if (!supplierAgg.length && !buildingAgg.length) return { primary: 0, monitorBase: 0 };
+      const primary = supplierAgg.reduce((acc, r) => acc + (Number(r[field]) || 0), 0);
+      const base = sumMonitor(supplierAgg);
+      return { primary, monitorBase: base };
+    }
+    const latestGlobal = pickLatestGlobalRow(globalRows || []);
+    const primary = Number(latestGlobal?.[field]) || 0;
+    const monitorBase = Number(latestGlobal?.total_pedidos_monitorados) || 0;
+    return { primary, monitorBase };
+  }
+
+  private async allowedRankingSupplierIds(query: DashboardDimensionalQuery): Promise<Set<number> | null> {
+    const constraints: Set<number>[] = [];
+    if (query.supplier_id) constraints.push(new Set([Number(query.supplier_id)]));
+    if (query.building_id) {
+      const { data: rows } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('supplier_id')
+        .eq('building_id', query.building_id)
+        .limit(5000);
+      const supplierIds = (rows || [])
+        .map((r: any) => Number(r.supplier_id))
+        .filter((id: number): id is number => Number.isFinite(id));
+      const s = new Set<number>(supplierIds);
+      constraints.push(s);
+    }
+    if (query.purchase_order_id) {
+      const { data: po } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('supplier_id')
+        .eq('id', query.purchase_order_id)
+        .maybeSingle();
+      if (!po) return new Set();
+      constraints.push(new Set([Number(po.supplier_id)]));
+    }
+    if (query.item_identifier) {
+      let itemQ = (this.app.supabase as any)
+        .from('purchase_order_items')
+        .select('purchase_order_id')
+        .eq('item_number', query.item_identifier)
+        .limit(2000);
+      if (query.purchase_order_id) itemQ = itemQ.eq('purchase_order_id', query.purchase_order_id);
+      const { data: itemRows } = await itemQ;
+      const ids = [...new Set((itemRows || []).map((r: any) => r.purchase_order_id))];
+      if (!ids.length) return new Set();
+      const { data: orders } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('supplier_id')
+        .in('id', ids)
+        .limit(5000);
+      const orderSupplierIds = (orders || [])
+        .map((o: any) => Number(o.supplier_id))
+        .filter((id: number): id is number => Number.isFinite(id));
+      constraints.push(new Set<number>(orderSupplierIds));
+    }
+    if (!constraints.length) return null;
+    let acc = constraints[0];
+    for (let i = 1; i < constraints.length; i++) {
+      acc = new Set([...acc].filter((id) => constraints[i].has(id)));
+    }
+    return acc;
+  }
+
+  private evolutionSeriesScoped(globalRows: any[], query: DashboardDimensionalQuery) {
+    if (query.purchase_order_id || query.item_identifier) return [];
+    return globalRows || [];
+  }
+
+  private appendDamageDimensionalFilters(chain: any, query: DashboardDimensionalQuery) {
+    let q = chain;
+    if (query.purchase_order_id) q = q.eq('purchase_order_id', query.purchase_order_id);
+    if (query.item_identifier) q = q.eq('item_number', query.item_identifier);
+    if (query.supplier_id) q = q.eq('supplier_id', query.supplier_id);
+    if (query.building_id) q = q.eq('building_id', query.building_id);
+    return q;
   }
 
   private sum(rows: any[], field: string): number {
@@ -288,59 +453,41 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('snapshot_date', { ascending: true });
 
-    const leadValues = (globalRows || [])
-      .map((row: any) => Number(row.lead_time_medio_dias_uteis))
-      .filter((value: number) => Number.isFinite(value));
-    const globalAvg =
-      leadValues.length > 0
-        ? Number(
-            (
-              leadValues.reduce((acc: number, cur: number) => acc + cur, 0) / leadValues.length
-            ).toFixed(2),
-          )
-        : 0;
-
     let supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
     let buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+    const narrowed = await this.narrowAggregatesByPurchaseOrderAndItem(
+      supplierAgg,
+      buildingAgg,
+      query.purchase_order_id,
+      query.item_identifier,
+    );
+    supplierAgg = narrowed.supplierAgg;
+    buildingAgg = narrowed.buildingAgg;
 
-    const orderId = query.purchase_order_id;
-    if (orderId) {
-      const { data: poRow } = await (this.app.supabase as any)
-        .from('purchase_orders')
-        .select('id, supplier_id, building_id')
-        .eq('id', orderId)
-        .maybeSingle();
-      if (!poRow || poRow.id !== orderId) {
-        supplierAgg = [];
-        buildingAgg = [];
-      } else {
-        supplierAgg = supplierAgg.filter((r: any) => r.supplier_id === poRow.supplier_id);
-        buildingAgg = buildingAgg.filter((r: any) => r.building_id === poRow.building_id);
-      }
+    let globalAvg: number;
+    if (query.purchase_order_id || query.item_identifier) {
+      const vals = supplierAgg
+        .map((row: any) => Number(row.lead_time_medio_dias_uteis))
+        .filter((value: number) => Number.isFinite(value));
+      globalAvg =
+        vals.length > 0
+          ? Number((vals.reduce((acc: number, cur: number) => acc + cur, 0) / vals.length).toFixed(2))
+          : 0;
+    } else {
+      const leadValues = (globalRows || [])
+        .map((row: any) => Number(row.lead_time_medio_dias_uteis))
+        .filter((value: number) => Number.isFinite(value));
+      globalAvg =
+        leadValues.length > 0
+          ? Number(
+              (
+                leadValues.reduce((acc: number, cur: number) => acc + cur, 0) / leadValues.length
+              ).toFixed(2),
+            )
+          : 0;
     }
 
-    if (query.item_identifier) {
-      let itemQ = (this.app.supabase as any)
-        .from('purchase_order_items')
-        .select('purchase_order_id, item_number')
-        .eq('item_number', query.item_identifier);
-      if (orderId) itemQ = itemQ.eq('purchase_order_id', orderId);
-      const { data: itemRows } = await itemQ.limit(2000);
-      const orderIds = new Set((itemRows || []).map((r: any) => r.purchase_order_id));
-      if (orderIds.size === 0) {
-        supplierAgg = [];
-        buildingAgg = [];
-      } else {
-        const { data: ordersForItems } = await (this.app.supabase as any)
-          .from('purchase_orders')
-          .select('id, supplier_id, building_id')
-          .in('id', Array.from(orderIds));
-        const supIds = new Set((ordersForItems || []).map((o: any) => o.supplier_id));
-        const bIds = new Set((ordersForItems || []).map((o: any) => o.building_id));
-        supplierAgg = supplierAgg.filter((r: any) => supIds.has(r.supplier_id));
-        buildingAgg = buildingAgg.filter((r: any) => bIds.has(r.building_id));
-      }
-    }
+    const globalSeries = this.evolutionSeriesScoped(globalRows || [], query);
 
     await this.auditAccess(request, 'lead-time');
     return reply.send({
@@ -355,7 +502,7 @@ export class DashboardController {
         building_name: row.building_name,
         lead_time_medio: row.lead_time_medio_dias_uteis ?? 0,
       })),
-      evolucao_diaria: (globalRows || []).map((row: any) => ({
+      evolucao_diaria: globalSeries.map((row: any) => ({
         data: row.snapshot_date,
         lead_time_medio: row.lead_time_medio_dias_uteis ?? 0,
       })),
@@ -394,12 +541,26 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('snapshot_date', { ascending: true });
 
-    const latestGlobal = pickLatestGlobalRow(globalRows || []);
-    const totalAtrasados = latestGlobal?.pedidos_atrasados ?? 0;
-    const totalMonitorados = latestGlobal?.total_pedidos_monitorados ?? 0;
+    let supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
+    let buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+    const narrowedA = await this.narrowAggregatesByPurchaseOrderAndItem(
+      supplierAgg,
+      buildingAgg,
+      query.purchase_order_id,
+      query.item_identifier,
+    );
+    supplierAgg = narrowedA.supplierAgg;
+    buildingAgg = narrowedA.buildingAgg;
 
-    const supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
-    const buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+    const { primary: totalAtrasados, monitorBase: totalMonitorados } = this.headlineFromSnapshots(
+      query,
+      supplierAgg,
+      buildingAgg,
+      globalRows || [],
+      'atrasos',
+    );
+
+    const series = this.evolutionSeriesScoped(globalRows || [], query);
 
     await this.auditAccess(request, 'atrasos');
     return reply.send({
@@ -419,7 +580,7 @@ export class DashboardController {
         building_name: row.building_name,
         total_atrasados: row.pedidos_atrasados ?? 0,
       })),
-      evolucao_diaria: (globalRows || []).map((row: any) => ({
+      evolucao_diaria: series.map((row: any) => ({
         data: row.snapshot_date,
         total_atrasados: row.pedidos_atrasados ?? 0,
         taxa_atraso: this.safeRate(row.pedidos_atrasados ?? 0, row.total_pedidos_monitorados ?? 0),
@@ -429,6 +590,19 @@ export class DashboardController {
 
   async getCriticidade(request: FastifyRequest, reply: FastifyReply) {
     const query = request.query as DashboardCriticidadeQueryDto;
+    if (query.purchase_order_id && query.supplier_id) {
+      const { data: poCheck } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('supplier_id')
+        .eq('id', query.purchase_order_id)
+        .maybeSingle();
+      if (!poCheck) {
+        return reply.badRequest('Pedido não encontrado.');
+      }
+      if (Number(poCheck.supplier_id) !== Number(query.supplier_id)) {
+        return reply.badRequest('Fornecedor não corresponde ao pedido informado.');
+      }
+    }
     const snapshotDate =
       query.data_referencia ?? (await this.resolveLatestSnapshotDate());
     if (!snapshotDate) {
@@ -450,7 +624,52 @@ export class DashboardController {
     if (query.building_id) dataQuery = dataQuery.eq('building_id', query.building_id);
     if (query.item_identifier) dataQuery = dataQuery.eq('item_identifier', query.item_identifier);
     const { data } = await dataQuery;
-    const rows = data || [];
+    let rows = data || [];
+
+    if (query.purchase_order_id) {
+      const { data: poRow } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('id, building_id')
+        .eq('id', query.purchase_order_id)
+        .maybeSingle();
+      if (!poRow) {
+        await this.auditAccess(request, 'criticidade');
+        return reply.badRequest('Pedido não encontrado.');
+      }
+      const { data: poItems } = await (this.app.supabase as any)
+        .from('purchase_order_items')
+        .select('item_number')
+        .eq('purchase_order_id', query.purchase_order_id)
+        .limit(2000);
+      const nums = new Set((poItems || []).map((r: any) => String(r.item_number)));
+      rows = rows.filter((r: any) => {
+        if (!nums.has(String(r.item_identifier))) return false;
+        if (r.building_id != null && Number(r.building_id) !== Number(poRow.building_id)) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    if (query.supplier_id) {
+      const { data: poIds } = await (this.app.supabase as any)
+        .from('purchase_orders')
+        .select('id')
+        .eq('supplier_id', query.supplier_id)
+        .limit(5000);
+      const ids = (poIds || []).map((r: any) => r.id);
+      if (!ids.length) {
+        rows = [];
+      } else {
+        const { data: poItems } = await (this.app.supabase as any)
+          .from('purchase_order_items')
+          .select('item_number')
+          .in('purchase_order_id', ids)
+          .limit(10000);
+        const allowed = new Set((poItems || []).map((r: any) => String(r.item_number)));
+        rows = rows.filter((r: any) => allowed.has(String(r.item_identifier)));
+      }
+    }
 
     const buildingIds = [
       ...new Set(
@@ -507,7 +726,11 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('pedidos_atrasados', { ascending: false });
 
-    const aggregated = aggregateLatestPerSupplier(data || []);
+    let aggregated = aggregateLatestPerSupplier(data || []);
+    const allowed = await this.allowedRankingSupplierIds(query);
+    if (allowed !== null) {
+      aggregated = aggregated.filter((row: any) => allowed.has(Number(row.supplier_id)));
+    }
 
     await this.auditAccess(request, 'ranking-fornecedores');
     return reply.send({
@@ -558,24 +781,40 @@ export class DashboardController {
       .lte('snapshot_date', period.endDate)
       .order('snapshot_date', { ascending: true });
 
-    const { data: actions } = await (this.app.supabase as any)
+    let damagesActions = (this.app.supabase as any)
       .from('damages')
       .select('final_action')
       .gte('created_at', `${period.startDate}T00:00:00.000Z`)
       .lte('created_at', `${period.endDate}T23:59:59.999Z`);
+    damagesActions = this.appendDamageDimensionalFilters(damagesActions, query);
 
-    const latestGlobal = pickLatestGlobalRow(globalRows || []);
-    const pedidosComAvariaPonto = latestGlobal?.pedidos_com_avaria ?? 0;
-    const totalMonitorados = latestGlobal?.total_pedidos_monitorados ?? 0;
-
-    const { count: damageEventsCount } = await (this.app.supabase as any)
+    let damagesCount = (this.app.supabase as any)
       .from('damages')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', `${period.startDate}T00:00:00.000Z`)
       .lte('created_at', `${period.endDate}T23:59:59.999Z`);
+    damagesCount = this.appendDamageDimensionalFilters(damagesCount, query);
 
-    const supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
-    const buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+    const [{ data: actions }, { count: damageEventsCount }] = await Promise.all([
+      damagesActions,
+      damagesCount,
+    ]);
+
+    let supplierAgg = aggregateLatestPerSupplier(supplierRowsRaw || []);
+    let buildingAgg = aggregateLatestPerBuilding(buildingRowsRaw || []);
+    const narrowedAv = await this.narrowAggregatesByPurchaseOrderAndItem(
+      supplierAgg,
+      buildingAgg,
+      query.purchase_order_id,
+      query.item_identifier,
+    );
+    supplierAgg = narrowedAv.supplierAgg;
+    buildingAgg = narrowedAv.buildingAgg;
+
+    const { primary: pedidosComAvariaPonto, monitorBase: totalMonitorados } =
+      this.headlineFromSnapshots(query, supplierAgg, buildingAgg, globalRows || [], 'avaria');
+
+    const seriesAv = this.evolutionSeriesScoped(globalRows || [], query);
 
     await this.auditAccess(request, 'avarias');
     return reply.send({
@@ -605,7 +844,7 @@ export class DashboardController {
           (row: any) => String(row.final_action || '').toUpperCase() === 'REPOSICAO',
         ).length,
       },
-      evolucao_diaria: (globalRows || []).map((row: any) => ({
+      evolucao_diaria: seriesAv.map((row: any) => ({
         data: row.snapshot_date,
         total_avarias: row.pedidos_com_avaria ?? 0,
       })),

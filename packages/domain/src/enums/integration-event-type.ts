@@ -46,4 +46,10 @@ export enum IntegrationEntityType {
   ORDER = 'order',
   INVOICE = 'invoice',
   CREDITOR = 'creditor',
+  /** Contratos suprimentos — webhooks CONTRACT_* (PRD-07 §9.2) */
+  CONTRACT = 'contract',
+  /** Medições de contrato — webhooks MEASUREMENT_* */
+  MEASUREMENT = 'measurement',
+  /** Quitação/clearing — webhooks CLEARING_* */
+  CLEARING = 'clearing',
 }

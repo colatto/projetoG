@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { UserRole } from '@projetog/domain';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import { canUseOrdersRequireActionFilter } from '../../lib/rbac-ui';
+import { useAuth } from '../../contexts/AuthContext';
 import { getOrderStatusLabel, getOrderStatusBadgeClass, formatDate } from '../orders-helpers';
 import '../orders.css';
 
@@ -33,20 +36,28 @@ const STATUS_OPTIONS = [
 ];
 
 export default function OrderList() {
+  const { user } = useAuth();
+  const allowRequireAction = canUseOrdersRequireActionFilter(user?.role);
+  const isViewer = user?.role === UserRole.VISUALIZADOR_PEDIDOS;
+
   const [data, setData] = useState<PurchaseOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [requireActionOnly, setRequireActionOnly] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const params: Record<string, string | number> = {};
+      const params: Record<string, string | number | boolean> = {
+        sort_priority: true,
+      };
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
+      if (allowRequireAction && requireActionOnly) params.require_action = true;
 
       const res = await api.get('/orders', { params });
       setData(res.data ?? []);
@@ -55,7 +66,7 @@ export default function OrderList() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search]);
+  }, [statusFilter, search, requireActionOnly, allowRequireAction]);
 
   useEffect(() => {
     load();
@@ -65,12 +76,30 @@ export default function OrderList() {
     <div>
       <div className="o-page-header">
         <div>
-          <h1 className="o-page-title">Pedidos</h1>
-          <p className="o-page-subtitle">Gestão e acompanhamento logístico</p>
+          <h1 className="o-page-title">{isViewer ? 'Consulta de Pedidos' : 'Pedidos'}</h1>
+          <p className="o-page-subtitle">
+            {isViewer
+              ? 'Somente leitura — consulta de pedidos e entregas.'
+              : 'Gestão e acompanhamento logístico'}
+          </p>
         </div>
       </div>
 
       <div className="o-filters">
+        {allowRequireAction ? (
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <input
+              id="filter-require-action"
+              type="checkbox"
+              checked={requireActionOnly}
+              onChange={(e) => setRequireActionOnly(e.target.checked)}
+            />
+            <label className="form-label" htmlFor="filter-require-action" style={{ marginBottom: 0 }}>
+              Exigem ação
+            </label>
+          </div>
+        ) : null}
+
         <div className="form-group">
           <label className="form-label" htmlFor="filter-status">
             Status
@@ -108,6 +137,7 @@ export default function OrderList() {
           onClick={() => {
             setStatusFilter('');
             setSearch('');
+            setRequireActionOnly(false);
           }}
         >
           Limpar

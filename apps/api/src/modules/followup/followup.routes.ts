@@ -23,7 +23,6 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
         typedApp.verifyRole([
           UserRole.ADMINISTRADOR,
           UserRole.COMPRAS,
-          UserRole.VISUALIZADOR_PEDIDOS,
           UserRole.FORNECEDOR,
         ]),
       ],
@@ -39,7 +38,6 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
         typedApp.verifyRole([
           UserRole.ADMINISTRADOR,
           UserRole.COMPRAS,
-          UserRole.VISUALIZADOR_PEDIDOS,
           UserRole.FORNECEDOR,
         ]),
       ],
@@ -92,7 +90,6 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
           UserRole.ADMINISTRADOR,
           UserRole.COMPRAS,
           UserRole.FORNECEDOR,
-          UserRole.VISUALIZADOR_PEDIDOS,
         ]),
       ],
     },

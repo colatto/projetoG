@@ -25,6 +25,16 @@ describe('damages routes', () => {
     });
   }
 
+  it('GET /api/damages returns 403 for VISUALIZADOR_PEDIDOS', async () => {
+    const token = await generateTestToken(context.app, { role: UserRole.VISUALIZADOR_PEDIDOS });
+    const response = await context.app.inject({
+      method: 'GET',
+      url: '/api/damages',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+
   it('creates damage for compras', async () => {
     context.supabase.table('purchase_orders').single.mockResolvedValue({
       data: { id: 10, supplier_id: 777, building_id: 55, local_status: 'PENDENTE' },
@@ -305,5 +315,250 @@ describe('damages routes', () => {
     });
 
     expect(response.statusCode).toBe(403);
+  });
+
+  it('returns 404 when damage does not exist for replacement cancel', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: null,
+      error: { message: 'not found' },
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-00000000aa01/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('returns 409 when damage is not in reposicao flow for replacement cancel', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-00000000aa02',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'CANCELAMENTO_PARCIAL',
+      },
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-00000000aa02/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 404 when replacement row is missing for replacement cancel', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-00000000aa03',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'REPOSICAO',
+      },
+      error: null,
+    });
+    context.supabase.table('damage_replacements').single.mockResolvedValue({
+      data: null,
+      error: { message: 'not found' },
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-00000000aa03/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('returns 409 when replacement already delivered for replacement cancel', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-00000000aa04',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'REPOSICAO',
+      },
+      error: null,
+    });
+    context.supabase.table('damage_replacements').single.mockResolvedValue({
+      data: { id: 'replacement-x', replacement_status: 'ENTREGUE' },
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-00000000aa04/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('returns 409 when replacement already cancelled for replacement cancel', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-00000000aa05',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'REPOSICAO',
+      },
+      error: null,
+    });
+    context.supabase.table('damage_replacements').single.mockResolvedValue({
+      data: { id: 'replacement-y', replacement_status: 'CANCELADO' },
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-00000000aa05/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
+  it('cancel replacement writes audit events and updates damage row', async () => {
+    const reason = 'Fornecedor não cumpriu nova data';
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-000000000105',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'REPOSICAO',
+      },
+      error: null,
+    });
+    context.supabase.table('damage_replacements').single.mockResolvedValue({
+      data: { id: 'replacement-side', replacement_status: 'AGUARDANDO_DATA' },
+      error: null,
+    });
+    context.supabase.table('purchase_orders').single.mockResolvedValue({
+      data: { local_status: 'REPOSICAO' },
+      error: null,
+    });
+    context.supabase.table('damages')._mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-000000000105/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: { cancellation_reason: reason },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(context.supabase.table('damages').update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'CANCELAMENTO_APLICADO',
+        final_action_notes: reason,
+      }),
+    );
+    const auditInserts = context.supabase.table('damage_audit_logs').insert.mock.calls.map(
+      (c) => c[0] as { event_type?: string },
+    );
+    expect(auditInserts.some((row) => row.event_type === 'reposicao_cancelada')).toBe(true);
+    expect(auditInserts.some((row) => row.event_type === 'cancelamento_aplicado')).toBe(true);
+  });
+
+  it('cancel replacement triggers order status recompute via damages query', async () => {
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: {
+        id: '00000000-0000-0000-0000-000000000106',
+        purchase_order_id: 10,
+        supplier_id: 777,
+        final_action: 'REPOSICAO',
+      },
+      error: null,
+    });
+    context.supabase.table('damage_replacements').single.mockResolvedValue({
+      data: { id: 'replacement-recompute', replacement_status: 'EM_ANDAMENTO' },
+      error: null,
+    });
+    context.supabase.table('purchase_orders').single.mockResolvedValue({
+      data: { local_status: 'REPOSICAO' },
+      error: null,
+    });
+    context.supabase.table('damages')._mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    await context.app.inject({
+      method: 'PATCH',
+      url: '/api/damages/00000000-0000-0000-0000-000000000106/replacement/cancel',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {},
+    });
+
+    expect(context.supabase.table('damages').in).toHaveBeenCalled();
+    expect(context.supabase.table('purchase_orders').single.mock.calls.length).toBeGreaterThanOrEqual(
+      1,
+    );
+  });
+
+  it('recompute prefers EM_AVARIA when EM_REPOSICAO and REGISTRADA coexist on same order (PRD-06 §14)', async () => {
+    const purchaseOrdersUpdateMock = vi.fn(() => ({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    }));
+
+    context.supabase.table('purchase_orders').single.mockResolvedValue({
+      data: { id: 10, supplier_id: 777, building_id: 55, local_status: 'REPOSICAO' },
+      error: null,
+    });
+    context.supabase.table('purchase_orders').update = purchaseOrdersUpdateMock;
+
+    context.supabase.table('purchase_order_items').single.mockResolvedValue({
+      data: { id: 'item-1' },
+      error: null,
+    });
+    context.supabase.table('damages').single.mockResolvedValue({
+      data: { id: 'damage-new', status: 'REGISTRADA', created_at: '2026-04-28T12:00:00Z' },
+      error: null,
+    });
+    context.supabase.table('damages')._mockResolvedValue({
+      data: [
+        { status: 'EM_REPOSICAO', final_action: 'REPOSICAO' },
+        { status: 'REGISTRADA', final_action: null },
+      ],
+      error: null,
+    });
+
+    const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
+    const response = await context.app.inject({
+      method: 'POST',
+      url: '/api/damages',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {
+        purchase_order_id: 10,
+        purchase_order_item_number: 2,
+        description: 'Segunda avaria no mesmo pedido com outra em reposição.',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(purchaseOrdersUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ local_status: 'EM_AVARIA' }),
+    );
   });
 });

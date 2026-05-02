@@ -97,12 +97,16 @@ vi.mock('../sienge.js', () => ({
 }));
 
 vi.mock('@projetog/integration-sienge', () => ({
-  QuotationClient: vi.fn().mockImplementation(() => ({
-    listNegotiationsPaged: listNegotiationsMock,
-  })),
-  CreditorClient: vi.fn().mockImplementation(() => ({
-    getById: getCreditorByIdMock,
-  })),
+  QuotationClient: vi.fn(function QuotationClientMock() {
+    return {
+      listNegotiationsPaged: listNegotiationsMock,
+    };
+  }),
+  CreditorClient: vi.fn(function CreditorClientMock() {
+    return {
+      getById: getCreditorByIdMock,
+    };
+  }),
   mapQuotationToLocal: mapQuotationToLocalMock,
   mapSupplierNegotiationsToLocal: mapSupplierNegotiationsToLocalMock,
   mapNegotiationItemsToLocal: mapNegotiationItemsToLocalMock,

@@ -18,7 +18,7 @@ Concentrar o cliente técnico do ERP e os adaptadores reutilizáveis por API e w
 - `QuotationClient`: cotações e negociações
 - `CreditorClient`: credores/fornecedores
 - `OrderClient`: pedidos de compra
-- `InvoiceClient`: notas fiscais
+- `InvoiceClient`: notas fiscais (HTTP apenas; mapeamento para o modelo local está em `invoice-mapper.ts`, coberto por `invoice-mapper.spec.ts` — não há débito de mapper em falta)
 - `DeliveryRequirementClient`: requisições de entrega
 - `NegotiationClient`: criação, atualização, atualização de item e autorização de negociação
 
@@ -58,7 +58,8 @@ Integração live:
 - `axios ^1.15.0`
 - `axios-retry ^4.5.0`
 - `bottleneck ^2.19.5`
-- `zod ^4.3.6` (nota: versão 4.x, diferente dos demais workspaces que usam 3.x)
+- `typescript ^5.6.0` (alinhado a `apps/api` e `workers`)
+- `zod ^4.3.6` — **política:** mantida a linha 4.x só neste pacote (schemas de `config/env` e validações internas). `packages/shared`, `apps/api` e `apps/web` permanecem em Zod 3.x até um spike de migração coordenada; não partilhar schemas entre major versions sem rever breaking changes.
 
 ## Regras locais
 
@@ -70,5 +71,5 @@ Integração live:
 ## Estado de qualidade
 
 - lint: passa
-- testes: passam
+- testes: 53 passando (Vitest 4.x)
 - coverage: configurado via `@vitest/coverage-v8`

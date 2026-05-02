@@ -118,6 +118,66 @@ describe('Auth Routes', () => {
       expect(body.session).toHaveProperty('access_token');
     });
 
+    it('should allow GET /api/auth/me with JWT returned from login (auth chain)', async () => {
+      const userId = '00000000-0000-0000-0000-000000000042';
+
+      mockSignInWithPassword.mockResolvedValueOnce({
+        data: {
+          user: { id: userId, email: 'chain@grf.com.br' },
+          session: { access_token: 'supabase-token' },
+        },
+        error: null,
+      });
+
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            single: () =>
+              Promise.resolve({
+                data: {
+                  id: userId,
+                  name: 'Chain User',
+                  role: UserRole.COMPRAS,
+                  status: UserStatus.ATIVO,
+                  supplier_id: null,
+                },
+                error: null,
+              }),
+          }),
+        }),
+      });
+
+      mockFrom.mockReturnValueOnce({
+        insert: () => Promise.resolve({ error: null }),
+      });
+
+      const loginRes = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: 'chain@grf.com.br', password: 'password123' },
+      });
+
+      expect(loginRes.statusCode).toBe(200);
+      const token = loginRes.json().session.access_token as string;
+      expect(token).toBeTruthy();
+
+      const meRes = await app.inject({
+        method: 'GET',
+        url: '/api/auth/me',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(meRes.statusCode).toBe(200);
+      const meBody = meRes.json();
+      expect(meBody.data).toMatchObject({
+        id: userId,
+        email: 'chain@grf.com.br',
+        name: 'Chain User',
+        role: UserRole.COMPRAS,
+        status: UserStatus.ATIVO,
+      });
+    });
+
     it('should return 401 on invalid credentials', async () => {
       mockSignInWithPassword.mockResolvedValueOnce({
         data: { user: null, session: null },

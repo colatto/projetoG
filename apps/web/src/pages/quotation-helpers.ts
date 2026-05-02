@@ -1,5 +1,61 @@
 /** Quotation status display helpers — PRD-02 §8 */
 
+/** PRDGlobal §9.9 / PRD-02 RN-30 — full wording for alerts (detail). */
+export const INVALID_SUPPLIER_MAP_ALERT_MESSAGE =
+  'Fornecedor inválido no mapa de cotação';
+
+/**
+ * Aggregated status for one quotation row (multiple supplier_negotiations).
+ * RN-30 first; integration retry next; then pipeline states (PRD-09 RN-08).
+ */
+const BACKOFFICE_DOMINANT_NEGOTIATION_STATUS_ORDER: readonly string[] = [
+  'FORNECEDOR_INVALIDO_MAPA',
+  'AGUARDANDO_REENVIO_SIENGE',
+  'AGUARDANDO_RESPOSTA',
+  'CORRECAO_SOLICITADA',
+  'AGUARDANDO_REVISAO',
+  'REPROVADA',
+  'APROVADA',
+  'INTEGRADA_SIENGE',
+  'SEM_RESPOSTA',
+  'FORNECEDOR_FECHADO',
+  'ENCERRADA',
+];
+
+export function getDominantNegotiationStatus(statuses: string[]): string {
+  if (!statuses.length) return 'SEM_RESPOSTA';
+  const set = new Set(statuses);
+  for (const s of BACKOFFICE_DOMINANT_NEGOTIATION_STATUS_ORDER) {
+    if (set.has(s)) return s;
+  }
+  return statuses[0];
+}
+
+/** Secondary chip when invalid-map exists but dominant differs (defensive / future tweaks). */
+export function shouldShowInvalidMapMixedChip(
+  statuses: string[],
+  dominant: string,
+): boolean {
+  return statuses.includes('FORNECEDOR_INVALIDO_MAPA') && dominant !== 'FORNECEDOR_INVALIDO_MAPA';
+}
+
+/** Visible cell text + tooltip for §14.1 supplier visibility (one row per quotation). */
+export function formatSupplierNamesCell(names: string[]): { title: string; primary: string } {
+  const filtered = names.map((n) => n.trim()).filter(Boolean);
+  if (!filtered.length) return { title: '', primary: '—' };
+  const title = filtered.join(', ');
+  if (filtered.length === 1) return { title, primary: filtered[0] };
+  return { title, primary: `${filtered[0]} +${filtered.length - 1}` };
+}
+
+export function quotationRowHasClosedSupplier(
+  negotiations: Array<{ status: string; closed_order_id: number | null }>,
+): boolean {
+  return negotiations.some(
+    (n) => n.status === 'FORNECEDOR_FECHADO' || n.closed_order_id != null,
+  );
+}
+
 const STATUS_LABELS: Record<string, string> = {
   AGUARDANDO_RESPOSTA: 'Aguardando resposta',
   CORRECAO_SOLICITADA: 'Correção solicitada',

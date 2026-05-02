@@ -60,6 +60,16 @@ describe('FollowUp Routes', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('returns 403 for VISUALIZADOR_PEDIDOS on followup list', async () => {
+    const token = await getToken(app, UserRole.VISUALIZADOR_PEDIDOS);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/followup/orders',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+
   it('returns list ordered by operational priority', async () => {
     supabase.table('follow_up_trackers')._mockResolvedValue({
       data: [
@@ -346,5 +356,68 @@ describe('FollowUp Routes', () => {
       }),
     );
     expect(supabase.table('notification_logs').select).not.toHaveBeenCalled();
+  });
+
+  it('blocks supplier with null supplier_id on profile from reading notifications', async () => {
+    supabase.table('follow_up_trackers').single.mockResolvedValueOnce({
+      data: { id: 'trk-77', supplier_id: 77 },
+      error: null,
+    });
+    supabase.table('profiles').single.mockResolvedValueOnce({
+      data: { supplier_id: null },
+      error: null,
+    });
+
+    const token = await getToken(app, UserRole.FORNECEDOR);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/followup/orders/123/notifications',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.payload)).toEqual(
+      expect.objectContaining({
+        message: 'Acesso negado',
+      }),
+    );
+    expect(supabase.table('notification_logs').select).not.toHaveBeenCalled();
+  });
+
+  it('returns notifications when supplier_id on profile matches tracker supplier_id', async () => {
+    supabase.table('follow_up_trackers').single.mockResolvedValueOnce({
+      data: { id: 'trk-77', supplier_id: 77 },
+      error: null,
+    });
+    supabase.table('profiles').single.mockResolvedValueOnce({
+      data: { supplier_id: 77 },
+      error: null,
+    });
+    supabase.table('notification_logs')._mockResolvedValue({
+      data: [
+        {
+          id: 'n-77',
+          follow_up_tracker_id: 'trk-77',
+          subject: 'Lembrete fornecedor 77',
+        },
+      ],
+      error: null,
+    });
+
+    const token = await getToken(app, UserRole.FORNECEDOR);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/followup/orders/123/notifications',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const payload = JSON.parse(response.payload);
+    expect(payload).toHaveLength(1);
+    expect(payload[0].id).toBe('n-77');
+    expect(supabase.table('notification_logs').eq).toHaveBeenCalledWith(
+      'follow_up_tracker_id',
+      'trk-77',
+    );
   });
 });

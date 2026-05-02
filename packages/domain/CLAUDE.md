@@ -11,6 +11,7 @@ Centralizar tipos e entidades nucleares independentes de framework.
 - `UserRole`: `ADMINISTRADOR`, `COMPRAS`, `FORNECEDOR`, `VISUALIZADOR_PEDIDOS`
 - `UserStatus`: `ATIVO`, `BLOQUEADO`, `INATIVO`
 - `IntegrationEventType`: tipos de eventos de integração (webhook, sync, write, retry)
+- `IntegrationEntityType`: inclui entidades Sienge mapeadas em eventos; desde **2026-05-02** também `contract`, `measurement`, `clearing` (webhooks ACK-only PRD-07 §9.2)
 - `SyncStatus`: estados de sincronização
 - `WebhookType`: tipos de webhook do Sienge
 

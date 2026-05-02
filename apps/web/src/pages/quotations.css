@@ -160,6 +160,42 @@
   background: #ef4444;
 }
 
+/* List row: status badge + optional RN-30 mixed chip */
+.q-status-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.q-chip-invalid-map {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.125rem 0.45rem;
+  border-radius: 9999px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  white-space: nowrap;
+}
+
+.q-chip-fornecedor-fechado {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.125rem 0.45rem;
+  border-radius: 9999px;
+  background: #fce7f3;
+  color: #9d174d;
+  border: 1px solid #f9a8d4;
+  width: fit-content;
+}
+
 .badge-encerrada {
   background: #f3f4f6;
   color: #6b7280;

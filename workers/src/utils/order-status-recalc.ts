@@ -74,12 +74,11 @@ export async function recalculateOrderStatus(
     .eq('purchase_order_id', purchaseOrderId)
     .in('status', ['REGISTRADA', 'SUGESTAO_PENDENTE', 'ACAO_DEFINIDA', 'EM_REPOSICAO']);
 
-  const hasReposicao = (activeDamages || []).some(
-    (damage) => damage.final_action === 'REPOSICAO' || damage.status === 'EM_REPOSICAO',
+  // PRD-06 §14 + OrderStatusEngine (PRD-05): EM_AVARIA precede REPOSICAO.
+  const hasAvaria = (activeDamages || []).some((damage) =>
+    ['REGISTRADA', 'SUGESTAO_PENDENTE', 'ACAO_DEFINIDA'].includes(damage.status),
   );
-  const hasAvaria = (activeDamages || []).some(
-    (damage) => damage.status !== 'RESOLVIDA' && damage.status !== 'CANCELAMENTO_APLICADO',
-  );
+  const hasReposicao = (activeDamages || []).some((damage) => damage.status === 'EM_REPOSICAO');
   const isCancelled = order.local_status === 'CANCELADO';
 
   const newStatus = OrderStatusEngine.calculateStatus({

@@ -646,8 +646,8 @@ Da §17 do PRDGlobal, os seguintes itens impactam indiretamente este módulo:
 
 ## 12. Critérios de aceite
 
-- [ ] Os 5 dashboards oficiais (Lead Time, Atrasos, Criticidade, Ranking de Fornecedores, Avarias) estão implementados e acessíveis. _(§13.1)_
-- [ ] Os filtros Fornecedor, Obra, Pedido e Item estão disponíveis e funcionais em todos os dashboards. _(§13.2)_
+- [x] Os 5 dashboards oficiais (Lead Time, Atrasos, Criticidade, Ranking de Fornecedores, Avarias) estão implementados e acessíveis. _(§13.1)_
+- [x] Os filtros Fornecedor, Obra, Pedido e Item estão disponíveis e funcionais em todos os dashboards. _(§13.2)_
 - [ ] Os indicadores são atualizados diariamente por job agendado. _(§13.3)_
 - [ ] Os 6 KPIs oficiais (Cotações enviadas, Cotações respondidas, Cotações sem resposta, Pedidos no prazo, Pedidos atrasados, Pedidos com avaria) são exibidos corretamente. _(§13.4)_
 - [ ] As 12 fórmulas derivadas (taxas e lead time médio) são calculadas corretamente conforme §13.5.
@@ -655,14 +655,16 @@ Da §17 do PRDGlobal, os seguintes itens impactam indiretamente este módulo:
 - [ ] A criticidade é classificada como `Urgente` quando o prazo da obra for menor que a média histórica do item. _(§13.6)_
 - [ ] A criticidade é classificada como `Padrão` quando o prazo for maior ou igual à média histórica, ou quando não houver histórico suficiente. _(§13.6)_
 - [ ] A sinalização de confiabilidade do fornecedor está implementada: `Confiável` (sem atraso e sem avaria nos últimos 3 meses), `Atenção` (atraso ou avaria), `Crítico` (atraso e avaria). _(§13.7)_
-- [ ] Os resumos rápidos exibem: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria, falhas de integração. _(§13.8)_
+- [x] Os resumos rápidos exibem: cotações abertas, cotações aguardando revisão, pedidos atrasados, pedidos em avaria, falhas de integração. _(§13.8)_
 - [ ] Apenas `Compras` e `Administrador` acessam os dashboards. `Fornecedor` e `Visualizador de Pedidos` recebem erro 403. _(§3.2)_
-- [ ] O acesso ao dashboard gera evento de auditoria. _(§12.6)_
+- [x] O acesso ao dashboard gera evento de auditoria. _(§12.6)_
 - [ ] O snapshot diário é atômico e idempotente (reenfileiramento seguro).
 - [ ] As cores operacionais seguem o padrão definido em §12.5.
 - [ ] A paleta de cores da interface segue `docs/paleta_de_cores.md`.
 - [ ] Todos os endpoints do dashboard retornam 401 para requisições não autenticadas.
 - [ ] Os dados exibidos no dashboard são consistentes com os status operacionais dos módulos dependentes (Cotação, Follow-up, Entrega, Avaria).
+
+**Nota (2026-05-02) — lacunas 8.1–8.3 (cobertura):** Filtros globais espelhados na API (`packages/shared/src/schemas/dashboard.ts`) e nas telas (`DashboardFilters` em Lead Time, Atrasos, Avarias, Ranking e Criticidade); escopo por `purchase_order_id` / `item_identifier` reutiliza narrowing no `DashboardController` com totais de destaque alinhados às agregações quando há filtro dimensional; evolução diária omitida para PO/item (evita série global fora do escopo). Auditoria `dashboard.access` com insert best-effort (`try/catch` + log). Testes: [`apps/api/src/modules/dashboard/dashboard.routes.test.ts`](../../apps/api/src/modules/dashboard/dashboard.routes.test.ts) (resumo, audit em dois endpoints, atrasos com PO, ranking por `supplier_id`, criticidade 400, resiliência de audit) e [`apps/web/src/pages/admin/DashboardHome.test.tsx`](../../apps/web/src/pages/admin/DashboardHome.test.tsx).
 
 ## 13. Fases de implementação sugeridas
 

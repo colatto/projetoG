@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { UserRole } from '@projetog/domain';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import { useAuth } from '../../contexts/AuthContext';
 import { getOrderStatusBadgeClass, getOrderStatusLabel } from '../orders-helpers';
 import '../orders.css';
 
@@ -34,6 +36,9 @@ type FollowUpDetailData = {
 
 export default function FollowUpDetail() {
   const { purchaseOrderId } = useParams<{ purchaseOrderId: string }>();
+  const { user } = useAuth();
+  const canDecideDateChanges = user?.role === UserRole.COMPRAS;
+
   const [data, setData] = useState<FollowUpDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,15 +168,17 @@ export default function FollowUpDetail() {
         <div className="o-detail-header">
           <h2 style={{ fontSize: '1.125rem' }}>Sugestões de Nova Data</h2>
         </div>
-        <div className="form-group" style={{ maxWidth: 480 }}>
-          <label className="form-label">Justificativa da decisão (opcional)</label>
-          <textarea
-            className="form-input"
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </div>
+        {canDecideDateChanges ? (
+          <div className="form-group" style={{ maxWidth: 480 }}>
+            <label className="form-label">Justificativa da decisão (opcional)</label>
+            <textarea
+              className="form-input"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+        ) : null}
         <div className="table-wrapper">
           <table>
             <thead>
@@ -179,7 +186,7 @@ export default function FollowUpDetail() {
                 <th>Data anterior</th>
                 <th>Data sugerida</th>
                 <th>Decisão</th>
-                <th>Ações</th>
+                {canDecideDateChanges ? <th>Ações</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -188,33 +195,35 @@ export default function FollowUpDetail() {
                   <td>{new Date(change.previous_date).toLocaleDateString('pt-BR')}</td>
                   <td>{new Date(change.suggested_date).toLocaleDateString('pt-BR')}</td>
                   <td>{change.decision || 'pending'}</td>
-                  <td>
-                    {change.decision === 'pending' ? (
-                      <>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          disabled={submittingId === change.id}
-                          onClick={() => decide(change.id, 'approve')}
-                        >
-                          Aprovar
-                        </button>{' '}
-                        <button
-                          className="btn btn-outline btn-sm"
-                          disabled={submittingId === change.id}
-                          onClick={() => decide(change.id, 'reject')}
-                        >
-                          Reprovar
-                        </button>
-                      </>
-                    ) : (
-                      <span>—</span>
-                    )}
-                  </td>
+                  {canDecideDateChanges ? (
+                    <td>
+                      {change.decision === 'pending' ? (
+                        <>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            disabled={submittingId === change.id}
+                            onClick={() => decide(change.id, 'approve')}
+                          >
+                            Aprovar
+                          </button>{' '}
+                          <button
+                            className="btn btn-outline btn-sm"
+                            disabled={submittingId === change.id}
+                            onClick={() => decide(change.id, 'reject')}
+                          >
+                            Reprovar
+                          </button>
+                        </>
+                      ) : (
+                        <span>—</span>
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
               {data.date_changes.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="o-empty">
+                  <td colSpan={canDecideDateChanges ? 4 : 3} className="o-empty">
                     Nenhuma sugestão registrada.
                   </td>
                 </tr>
@@ -222,7 +231,7 @@ export default function FollowUpDetail() {
             </tbody>
           </table>
         </div>
-        {pendingChanges.length > 0 && (
+        {canDecideDateChanges && pendingChanges.length > 0 && (
           <p style={{ marginTop: 12, color: '#92400e' }}>
             Existem {pendingChanges.length} sugestão(ões) aguardando decisão de Compras.
           </p>

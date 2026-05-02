@@ -22,7 +22,9 @@ type CriticalityPayload = {
 
 export default function DashboardCriticidade() {
   const [dataReferencia, setDataReferencia] = useState('');
+  const [supplierId, setSupplierId] = useState('');
   const [buildingId, setBuildingId] = useState('');
+  const [purchaseOrderId, setPurchaseOrderId] = useState('');
   const [itemIdentifier, setItemIdentifier] = useState('');
   const [data, setData] = useState<CriticalityPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,9 @@ export default function DashboardCriticidade() {
       const response = await api.get('/dashboard/criticidade', {
         params: {
           data_referencia: dataReferencia || undefined,
+          supplier_id: supplierId ? Number(supplierId) : undefined,
           building_id: buildingId ? Number(buildingId) : undefined,
+          purchase_order_id: purchaseOrderId ? Number(purchaseOrderId) : undefined,
           item_identifier: itemIdentifier || undefined,
         },
       });
@@ -45,7 +49,7 @@ export default function DashboardCriticidade() {
     } finally {
       setLoading(false);
     }
-  }, [dataReferencia, buildingId, itemIdentifier]);
+  }, [dataReferencia, supplierId, buildingId, purchaseOrderId, itemIdentifier]);
 
   useEffect(() => {
     load();
@@ -73,8 +77,12 @@ export default function DashboardCriticidade() {
       </div>
 
       <DashboardFilters
+        supplierId={supplierId}
+        setSupplierId={setSupplierId}
         buildingId={buildingId}
         setBuildingId={setBuildingId}
+        purchaseOrderId={purchaseOrderId}
+        setPurchaseOrderId={setPurchaseOrderId}
         itemIdentifier={itemIdentifier}
         setItemIdentifier={setItemIdentifier}
       />

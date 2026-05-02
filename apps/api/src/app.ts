@@ -108,6 +108,7 @@ export function buildApp(options: BuildAppOptions = {}) {
   // Deliveries and Orders (PRD-05)
   app.register(deliveriesRoutes, { prefix: '/api/deliveries' });
   app.register(ordersRoutes, { prefix: '/api/orders' });
+  app.register(ordersRoutes, { prefix: '/api/backoffice/orders' });
 
   // Notifications (PRD-03)
   app.register(notificationsRoutes, { prefix: '/api/notifications' });

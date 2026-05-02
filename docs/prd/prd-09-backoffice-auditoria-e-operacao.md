@@ -19,7 +19,7 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 ### 2.1 Incluso neste PRD
 
-- Tela de listagem de cotações no backoffice com campos mínimos obrigatórios (§14.1).
+- Tela de listagem de cotações no backoffice com campos mínimos obrigatórios (§14.1). _(Evolução opcional: endpoint/listagem com **uma linha por fornecedor** e `supplier_name` por registro no contrato consolidado; o PRD-02 cobre hoje o modelo **uma linha por cotação** com agregação.)_
 - Tela de listagem de pedidos e follow-up no backoffice com campos mínimos obrigatórios (§14.1).
 - Definição dos campos mínimos de listagem do portal do fornecedor — pedidos e cotações (§14.1).
 - Status mínimos de integração e sua sinalização visual (§12.1).
@@ -228,8 +228,8 @@ Por fim, o módulo consolida os critérios de aceite macro (§14 do PRDGlobal) q
 
 ### 7.2 Listar pedidos e follow-up do backoffice
 
-- **Método e rota:** `GET /api/backoffice/orders`
-- **Entrada:** `page` (integer, opcional), `limit` (integer, opcional), `status` (string, opcional), `supplier_id` (UUID, opcional), `building_id` (UUID, opcional), `require_action` (boolean, opcional), `sort_priority` (boolean, opcional, default: true — aplica ordenação por prioridade operacional conforme RN-09).
+- **Método e rota:** `GET /api/orders` (canônico PRD-05) com alias **`GET /api/backoffice/orders`** (compatibilidade PRD-09).
+- **Entrada:** `status` (string, opcional), `search` (string, opcional — número Sienge), `require_action` (boolean, opcional), `sort_priority` (boolean, opcional, **default: true** — ordenação conforme RN-09, enriquecida com `follow_up_trackers` quando existir). Paginação e filtros `supplier_id` / `building_id` podem evoluir conforme §14.1.
 - **Saída:** Lista paginada de pedidos com campos mínimos: `order_number`, `supplier_name`, `building_name`, `status`, `order_date`, `current_promised_date`, `delay_indicator`, `damage_or_divergence_indicator`, `pending_balance`, `linked_quotation_number`. _(PRDGlobal §14.1)_
 - **Erros esperados:** `401 Unauthorized`, `403 Forbidden`.
 - **Perfis autorizados:** `Compras`, `Administrador`, `Visualizador de Pedidos` (somente leitura, sem filtro "Exigem ação").
@@ -481,6 +481,7 @@ Os seguintes itens da §17 do PRDGlobal se aplicam a este módulo:
 ### Backoffice — Pedidos e Follow-up
 
 - [ ] A lista de pedidos do backoffice exibe todos os campos mínimos obrigatórios: número do pedido, fornecedor, obra, status, data do pedido, data prometida atual, indicação de atraso, indicação de avaria/divergência, saldo pendente, número da cotação vinculada. _(§14.1)_
+- [ ] `GET /api/orders` (e alias `/api/backoffice/orders`) suporta `require_action` (subconjunto RN-08 em `local_status`) e `sort_priority` com priorização RN-09 (incluindo tier de resposta do fornecedor via `follow_up_trackers` quando aplicável). _(§12.3–12.4)_
 - [ ] A ordenação padrão segue a priorização visual: Atrasados > Divergência > Em avaria/Reposição > pendentes de resposta > no prazo/entregues. _(§12.4)_
 
 ### Portal do Fornecedor — Cotações

@@ -96,6 +96,45 @@ describe('Quotations Backoffice API', () => {
 
       expect(res.statusCode).toBe(500);
     });
+
+    it('should filter by FORNECEDOR_INVALIDO_MAPA negotiation status', async () => {
+      const mockData = [
+        {
+          id: 55,
+          quotation_date: '2026-04-01',
+          end_at: null,
+          end_date: '2026-04-20',
+          sent_at: null,
+          supplier_negotiations: [
+            {
+              id: 'sn-1',
+              supplier_id: 88,
+              status: 'FORNECEDOR_INVALIDO_MAPA',
+              read_at: null,
+              latest_response_id: null,
+              closed_order_id: null,
+              sienge_negotiation_id: null,
+              sienge_negotiation_number: null,
+              suppliers: { name: 'Fornecedor Mapa' },
+            },
+          ],
+        },
+      ];
+      const table = ctx.supabase.table('purchase_quotations');
+      table._mockResolvedValue({ data: mockData, error: null, count: 1 });
+
+      const res = await ctx.app.inject({
+        method: 'GET',
+        url: '/api/quotations?page=1&limit=20&status=FORNECEDOR_INVALIDO_MAPA',
+        headers: { authorization: `Bearer ${comprasToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.payload);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].id).toBe(55);
+      expect(body.data[0].supplier_negotiations[0].status).toBe('FORNECEDOR_INVALIDO_MAPA');
+    });
   });
 
   // ─── GET /:quotation_id (getBackofficeById) ──────────────────

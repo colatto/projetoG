@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import { UserRole } from '@projetog/domain';
+import { canOperateOrderDeliveries } from '../../lib/rbac-ui';
+import { useAuth } from '../../contexts/AuthContext';
 import { getOrderStatusLabel, getOrderStatusBadgeClass, formatDate } from '../orders-helpers';
 import '../orders.css';
 
@@ -40,6 +43,9 @@ type PurchaseOrderRow = {
 
 export default function OrderDetail() {
   const { purchaseOrderId } = useParams<{ purchaseOrderId: string }>();
+  const { user } = useAuth();
+  const allowDeliveryActions = canOperateOrderDeliveries(user?.role);
+  const isViewer = user?.role === UserRole.VISUALIZADOR_PEDIDOS;
 
   const [order, setOrder] = useState<PurchaseOrderRow | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
@@ -121,6 +127,7 @@ export default function OrderDetail() {
           <h1 className="o-page-title">Pedido #{order.sienge_purchase_order_id}</h1>
           <p className="o-page-subtitle">
             Fornecedor: {order.suppliers?.name ?? `#${order.supplier_id}`}
+            {isViewer ? ' · Somente leitura' : ''}
           </p>
         </div>
         <div>
@@ -166,7 +173,7 @@ export default function OrderDetail() {
                 <th>Data</th>
                 <th>Qtd</th>
                 <th>Status</th>
-                <th>Ações</th>
+                {allowDeliveryActions ? <th>Ações</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -186,22 +193,24 @@ export default function OrderDetail() {
                       <span className="badge badge-success">OK</span>
                     )}
                   </td>
-                  <td>
-                    {(d.validation_status === 'AGUARDANDO_VALIDACAO' ||
-                      d.validation_status === 'DIVERGENCIA') && (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => openValidationModal(d)}
-                      >
-                        Revisar
-                      </button>
-                    )}
-                  </td>
+                  {allowDeliveryActions ? (
+                    <td>
+                      {(d.validation_status === 'AGUARDANDO_VALIDACAO' ||
+                        d.validation_status === 'DIVERGENCIA') && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => openValidationModal(d)}
+                        >
+                          Revisar
+                        </button>
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
               {deliveries.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="o-empty">
+                  <td colSpan={allowDeliveryActions ? 5 : 4} className="o-empty">
                     Nenhuma entrega registrada ainda.
                   </td>
                 </tr>
@@ -250,7 +259,7 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      {validateModalOpen && validatingDelivery && (
+      {allowDeliveryActions && validateModalOpen && validatingDelivery && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3 className="modal-title">

@@ -10,7 +10,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - sync periódico de pedidos (a cada 15 min)
 - sync periódico de entregas/notas (a cada 15 min) com recálculo automático de status de pedido via `OrderStatusEngine` e sinalização de follow-up (PRD-05)
 - reconciliação acionada por webhook
-- processamento assíncrono de webhooks recebidos
+- processamento assíncrono de webhooks recebidos (`process-webhook.ts`: reconciliação pedido/cotação + **`handleAckOnlyEvent`** para os 6 tipos CONTRACT*/MEASUREMENT*/CLEARING\_ — `WEBHOOK_PROCESSED` com entidade tipada)
 - escrita outbound de negociação aprovada
 - retry de `integration_events` (a cada hora)
 - follow-up logístico diário (08:00 BRT) com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04)
@@ -61,7 +61,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - `quotation-expire-check.test.ts`
 - `follow-up.test.ts` (3 testes: bootstrap, overdue, close)
 - `business-days.test.ts` (5 testes: addBusinessDays, countBusinessDays, holidaysToSet)
-- `order-status-recalc.test.ts`
+- `order-status-recalc.test.ts` (4 testes: follow-up após entrega total/parcial; PRD-06 §14 precedência damages)
 - `dashboard-snapshot-pg.test.ts`
 
 ## Regras locais
@@ -73,12 +73,12 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Estado de qualidade
 
-- testes: 49+ passando (inclui transação do snapshot PRD-08)
+- testes: 58 passando (`vitest ^4.1.4`, [`vitest.config.ts`](vitest.config.ts) com `pool: forks`) — inclui transação do snapshot PRD-08, `order-status-recalc`, **`process-webhook.test.ts`** (+6 cenários ACK-only PRD-07)
 - build: passa
 - lint: passa
 
 ## Funcionalidades pendentes
 
-- expansão de testes de follow-up (sugestão/aprovação de datas, entrega parcial)
+- expansão de testes de follow-up (sugestão/aprovação de datas); entrega parcial vs encerramento de tracker coberto em `order-status-recalc.test.ts` (PRD-04 Fase 5 + PRD-05)
 - reativação de tracker `CONCLUIDO` quando data prometida vence sem entrega (RN-13/14)
 - testes de integração do job `dashboard:consolidation` com Supabase de teste

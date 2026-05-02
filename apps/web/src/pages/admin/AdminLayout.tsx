@@ -64,13 +64,13 @@ export default function AdminLayout() {
       name: 'Follow-up',
       path: '/admin/followup',
       icon: <BellRing size={20} />,
-      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS],
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
     },
     {
       name: 'Avarias',
       path: '/admin/damages',
       icon: <AlertTriangle size={20} />,
-      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.VISUALIZADOR_PEDIDOS],
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
     },
     {
       name: 'Minhas Cotações',

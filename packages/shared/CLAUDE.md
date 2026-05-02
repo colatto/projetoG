@@ -16,7 +16,8 @@ Manter contratos leves e reutilizáveis entre frontend, API e workers.
 - `users.ts`: schemas de criação/edição de usuários
 - `integration.ts`: schemas de eventos de integração, credenciais Sienge e escrita de negociação
 - `quotations.ts`: schemas de consulta, envio, resposta (com itens e entregas) e revisão de cotações
-- `dashboard.ts`: schemas Zod das queries do PRD-08 (`/api/dashboard/*`)
+- `dashboard.ts`: schemas Zod das queries do PRD-08 (`/api/dashboard/*`) — lead-time, atrasos, avarias e ranking compartilham filtros de período + fornecedor/obra/pedido/item; criticidade inclui `supplier_id` e `purchase_order_id`
+- `orders.ts`: query string de listagem de pedidos (`ordersListQuerySchema` — PRD-09 §7.2 / `GET /api/orders`)
 
 ### Utilitários (`src/utils/`)
 

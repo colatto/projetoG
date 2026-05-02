@@ -122,14 +122,20 @@ export class DamagesController {
         DamageStatus.EM_REPOSICAO,
       ]);
 
-    const hasReposicao = (activeDamages || []).some(
-      (d) => d.final_action === DamageAction.REPOSICAO || d.status === DamageStatus.EM_REPOSICAO,
+    // PRD-06 §14 + OrderStatusEngine (PRD-05): EM_AVARIA precede REPOSICAO.
+    // hasAvaria = decisão pendente; hasReposicao = reposição em andamento (sem pendência).
+    const hasAvaria = (activeDamages || []).some((d) =>
+      [
+        DamageStatus.REGISTRADA,
+        DamageStatus.SUGESTAO_PENDENTE,
+        DamageStatus.ACAO_DEFINIDA,
+      ].includes(d.status as DamageStatus),
     );
-    const hasAvaria = (activeDamages || []).some(
-      (d) => d.status !== DamageStatus.RESOLVIDA && d.status !== DamageStatus.CANCELAMENTO_APLICADO,
+    const hasReposicao = (activeDamages || []).some(
+      (d) => d.status === DamageStatus.EM_REPOSICAO,
     );
 
-    const targetStatus = hasReposicao ? 'REPOSICAO' : hasAvaria ? 'EM_AVARIA' : null;
+    const targetStatus = hasAvaria ? 'EM_AVARIA' : hasReposicao ? 'REPOSICAO' : null;
     if (!targetStatus || targetStatus === order.local_status) return;
 
     await this.app.supabase

@@ -697,6 +697,8 @@ Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 
 ## 12. Critérios de aceite
 
+> **Nota de ownership (PRD-09):** Conforme §2.2 deste PRD, o filtro rápido **"Exigem ação"**, a paleta **cores operacionais** do backoffice na dimensão transversal e a **ordenação por prioridade** na lista consolidada de pedidos são formalmente tratados no **PRD-09** (RN-08, RN-09, RN-10). A implementação técnica na SPA e em `GET /api/orders` (parâmetros `require_action`, `sort_priority`; alias `GET /api/backoffice/orders` para alinhamento ao contrato §7.2 do PRD-09) satisfaz os critérios de pedidos **em conjunto** com este módulo. Os status de **cotação** citados na RN-10 do PRD-09 (ex.: aguardando reenvio ao Sienge) aplicam-se às telas PRD-02/integração, não ao helper de badges de **status operacional de pedido** (`local_status`).
+
 - [ ] O sistema importa automaticamente dados de entrega do Sienge via `GET /purchase-invoices/deliveries-attended`.
 - [ ] Registros de entrega duplicados não são criados (idempotência garantida pela constraint UNIQUE).
 - [ ] `Compras` é notificado automaticamente quando uma nova entrega é identificada.
@@ -713,7 +715,7 @@ Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 - [ ] Os status `Em avaria` e `Reposição` são corretamente refletidos quando definidos pelo módulo 6.
 - [ ] A lista de pedidos no backoffice exibe todos os campos mínimos definidos no PRDGlobal §14.1.
 - [ ] A lista de pedidos no portal do fornecedor exibe todos os campos mínimos definidos no PRDGlobal §14.1.
-- [ ] O `Visualizador de Pedidos` consegue consultar pedidos e entregas sem capacidade de alteração.
+- [ ] O `Visualizador de Pedidos` consegue consultar pedidos e entregas sem capacidade de alteração (mesmas rotas `/admin/orders` que o backoffice, com RBAC na API e na UI — sem validação de entregas nem filtro "Exigem ação"; copy de **somente leitura** na lista e no detalhe).
 - [ ] O `Fornecedor` visualiza apenas seus próprios pedidos e entregas.
 - [ ] A ordenação no backoffice prioriza pedidos atrasados, em divergência e em avaria.
 - [ ] Cada validação de entrega e mudança de status gera registro de auditoria.

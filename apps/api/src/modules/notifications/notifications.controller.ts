@@ -18,7 +18,10 @@ export class NotificationsController {
       limit = 20,
       quotation_id,
       supplier_id,
+      type,
       status,
+      start_date,
+      end_date,
       export: exportFormat,
     } = request.query;
     const supabase = request.server.supabase;
@@ -39,12 +42,23 @@ export class NotificationsController {
     if (supplier_id) {
       query = query.eq('recipient_supplier_id', supplier_id);
     }
+    if (type) {
+      query = query.eq('type', type);
+    }
     if (status) {
       query = query.eq('status', status);
     }
+    if (start_date) {
+      query = query.gte('created_at', `${start_date}T00:00:00.000Z`);
+    }
+    if (end_date) {
+      // Inclui o dia inteiro: somar 1 dia e usar lt (limite exclusivo).
+      const endExclusive = new Date(`${end_date}T00:00:00.000Z`);
+      endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+      query = query.lt('created_at', endExclusive.toISOString());
+    }
 
     if (exportFormat === 'csv') {
-      // For export, we fetch more records, say up to 1000
       query = query.range(0, 999).order('created_at', { ascending: false });
       const { data, error } = await query;
 
@@ -53,7 +67,6 @@ export class NotificationsController {
         return reply.code(500).send({ message: 'Erro ao exportar logs' });
       }
 
-      // Generate CSV
       let csv = 'ID,Type,Recipient,Quotation ID,Subject,Status,Created At,Sent At\n';
       (data || []).forEach((row) => {
         csv += `${row.id},${row.type},${row.recipient_email},${row.quotation_id},"${row.subject}",${row.status},${row.created_at},${row.sent_at || ''}\n`;

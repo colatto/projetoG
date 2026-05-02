@@ -144,6 +144,13 @@ async function dispatchWebhook(
       return handleOrderAuthChanged(payload, supabase, siengeClient, context);
     case WebhookType.PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED:
       return handleOrderFinancialUpdated(payload, supabase, siengeClient, context);
+    case WebhookType.CONTRACT_AUTHORIZED:
+    case WebhookType.CONTRACT_UNAUTHORIZED:
+    case WebhookType.MEASUREMENT_AUTHORIZED:
+    case WebhookType.MEASUREMENT_UNAUTHORIZED:
+    case WebhookType.CLEARING_FINISHED:
+    case WebhookType.CLEARING_DELETED:
+      return handleAckOnlyEvent(webhookType, payload, context);
     default:
       console.info(
         `[${JOB_NAME}] Webhook type ${webhookType} has no explicit processing pipeline, acknowledging securely. CorrelationId: ${context.correlationId}`,
@@ -158,6 +165,110 @@ async function dispatchWebhook(
         },
       };
   }
+}
+
+/**
+ * Webhooks CONTRACT_*, MEASUREMENT_*, CLEARING_*: Sienge não expõe endpoints REST de reconciliação
+ * no escopo PRD-07; persistimos trilha tipada em integration_events (WEBHOOK_PROCESSED) com IDs do payload.
+ */
+function handleAckOnlyEvent(
+  webhookType: WebhookType,
+  payload: Record<string, unknown>,
+  context: WorkerContext,
+): ProcessResult {
+  const entityType = resolveAckOnlyEntityType(webhookType);
+  const entityId = extractAckOnlyEntityId(webhookType, payload);
+
+  const summary: Record<string, unknown> = {
+    webhookType,
+    ackPipeline: true,
+    documentId: payload.documentId ?? null,
+    contractNumber: payload.contractNumber ?? null,
+  };
+
+  if (
+    webhookType === WebhookType.CONTRACT_AUTHORIZED ||
+    webhookType === WebhookType.CONTRACT_UNAUTHORIZED
+  ) {
+    summary.consistent = payload.consistent ?? null;
+    if (webhookType === WebhookType.CONTRACT_UNAUTHORIZED) {
+      summary.disapproved = payload.disapproved ?? null;
+    }
+  }
+
+  if (
+    webhookType === WebhookType.MEASUREMENT_AUTHORIZED ||
+    webhookType === WebhookType.MEASUREMENT_UNAUTHORIZED ||
+    webhookType === WebhookType.CLEARING_FINISHED ||
+    webhookType === WebhookType.CLEARING_DELETED
+  ) {
+    summary.measurementNumber = payload.measurementNumber ?? null;
+    summary.buildingId = payload.buildingId ?? null;
+  }
+
+  console.info(
+    `[${JOB_NAME}] ACK-only webhook processed (${webhookType}). entityType=${entityType} entityId=${entityId}. CorrelationId: ${context.correlationId}`,
+  );
+
+  return {
+    entityType,
+    entityId,
+    summary,
+  };
+}
+
+function resolveAckOnlyEntityType(webhookType: WebhookType): IntegrationEntityType {
+  switch (webhookType) {
+    case WebhookType.CONTRACT_AUTHORIZED:
+    case WebhookType.CONTRACT_UNAUTHORIZED:
+      return IntegrationEntityType.CONTRACT;
+    case WebhookType.MEASUREMENT_AUTHORIZED:
+    case WebhookType.MEASUREMENT_UNAUTHORIZED:
+      return IntegrationEntityType.MEASUREMENT;
+    case WebhookType.CLEARING_FINISHED:
+    case WebhookType.CLEARING_DELETED:
+      return IntegrationEntityType.CLEARING;
+    default:
+      throw new Error(`Expected ACK-only webhook type, got: ${webhookType}`);
+  }
+}
+
+/** Preferências PRD-07 §9.2: CONTRACT → contractNumber || documentId; MEASUREMENT → measurementNumber ou composto; CLEARING → measurementNumber || documentId */
+function extractAckOnlyEntityId(
+  webhookType: WebhookType,
+  payload: Record<string, unknown>,
+): string | null {
+  const contractNum = coerceNumber(payload.contractNumber);
+  const measurementNum = coerceNumber(payload.measurementNumber);
+  const docIdNormalized = normalizeDocumentId(payload.documentId);
+
+  if (
+    webhookType === WebhookType.CONTRACT_AUTHORIZED ||
+    webhookType === WebhookType.CONTRACT_UNAUTHORIZED
+  ) {
+    if (contractNum !== null) return String(contractNum);
+    return docIdNormalized;
+  }
+
+  if (
+    webhookType === WebhookType.MEASUREMENT_AUTHORIZED ||
+    webhookType === WebhookType.MEASUREMENT_UNAUTHORIZED
+  ) {
+    if (measurementNum !== null) return String(measurementNum);
+    return docIdNormalized;
+  }
+
+  // CLEARING_FINISHED | CLEARING_DELETED
+  if (measurementNum !== null) return String(measurementNum);
+  return docIdNormalized ?? (contractNum !== null ? String(contractNum) : null);
+}
+
+function normalizeDocumentId(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.trim();
+  }
+  const n = coerceNumber(value);
+  return n !== null ? String(n) : null;
 }
 
 async function handleOrderGenerated(
@@ -401,6 +512,15 @@ function resolveEntityType(webhookType: WebhookType): IntegrationEntityType | nu
     case WebhookType.PURCHASE_ORDER_AUTHORIZATION_CHANGED:
     case WebhookType.PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED:
       return IntegrationEntityType.ORDER;
+    case WebhookType.CONTRACT_AUTHORIZED:
+    case WebhookType.CONTRACT_UNAUTHORIZED:
+      return IntegrationEntityType.CONTRACT;
+    case WebhookType.MEASUREMENT_AUTHORIZED:
+    case WebhookType.MEASUREMENT_UNAUTHORIZED:
+      return IntegrationEntityType.MEASUREMENT;
+    case WebhookType.CLEARING_FINISHED:
+    case WebhookType.CLEARING_DELETED:
+      return IntegrationEntityType.CLEARING;
     default:
       return null;
   }
@@ -423,6 +543,17 @@ function extractEntityIdFromPayload(
   ) {
     const id = coerceNumber(payload.purchaseOrderId);
     return id !== null ? String(id) : null;
+  }
+
+  if (
+    webhookType === WebhookType.CONTRACT_AUTHORIZED ||
+    webhookType === WebhookType.CONTRACT_UNAUTHORIZED ||
+    webhookType === WebhookType.MEASUREMENT_AUTHORIZED ||
+    webhookType === WebhookType.MEASUREMENT_UNAUTHORIZED ||
+    webhookType === WebhookType.CLEARING_FINISHED ||
+    webhookType === WebhookType.CLEARING_DELETED
+  ) {
+    return extractAckOnlyEntityId(webhookType, payload);
   }
 
   const keysToTry = [

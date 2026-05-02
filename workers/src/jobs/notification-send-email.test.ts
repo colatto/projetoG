@@ -18,11 +18,13 @@ vi.mock('../supabase.js', () => ({
 }));
 
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: {
-      send: resendSendMock,
-    },
-  })),
+  Resend: vi.fn(function ResendMock() {
+    return {
+      emails: {
+        send: resendSendMock,
+      },
+    };
+  }),
 }));
 
 describe('processNotificationSendEmail', () => {

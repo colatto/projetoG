@@ -16,12 +16,19 @@ Todos os itens previstos como "Inclusos neste PRD" (§2.1 e §4 a §7) foram int
 
 ## 2. Itens Dependentes de Validação Externa
 
-As funcionalidades abaixo representam o último bloqueio antes da liberação final (go-live), pois requerem validação conjunta com a operação real do cliente (conforme detalhado no documento `sienge-homologation.md`):
+As funcionalidades abaixo ainda exigem evidência em ambiente real do cliente ou ação conjunta com Sienge (detalhes e comandos em `docs/runbooks/sienge-homologation.md`, atualizado **2026-05-02**):
 
-- **Mapeamento de Vínculos Lógicos**: A exatidão do mapeamento de vínculos logísticos que dependem de preenchimento humano no Sienge (ex: o vínculo de fornecedores utilizando o e-mail principal).
-- **Disparo de Webhooks**: A consistência do disparo dos webhooks oficiais pelo ambiente em nuvem do Sienge, com ênfase absoluta na recepção do webhook `PURCHASE_ORDER_GENERATED_FROM_NEGOCIATION`.
-- **Mutações Críticas e Negociação**: A permissão efetiva da API do Sienge para acatar operações complexas de mutação no fluxo de negociações e cotações, validando na prática as regras restritivas e de bloqueio do mapa de cotação.
+| Área                                          | Estado (2026-05-02)                                 | Instrumentação no repo                                           |
+| --------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
+| Mapeamento fornecedor/credor + e-mail RN-05   | §17.1 validado; §17.2 parcial (confirmação Compras) | `supplier-mapping.integration.ts`                                |
+| Disparo de webhooks críticos                  | Pendente disparo pontual cliente/Sienge             | `webhook-history.integration.ts` (histórico Supabase)            |
+| Mapa de cotação / RN-10                       | Leitura API disponível; cenário completo com UI     | `quotation-map-supplier.integration.ts`                          |
+| Escrita negociação (sequência POST/PUT/PATCH) | Pendente — mutação real                             | Nenhum script readonly                                           |
+| Múltiplas cotações por pedido                 | Amostragem automatizada                             | `multi-quotation-orders.integration.ts`                          |
+| Cobertura `deliveries-attended` × DB local    | Relatório cobertos/órfãos                           | `deliveries-attended-coverage.integration.ts`                    |
+| Tipagem `openQuantity`                        | Amostras parametrizáveis                            | `delivery-requirements-types.integration.ts`                     |
+| Webhooks ACK-only (contrato/medição/clearing) | Pipeline tipado em worker + API                     | `handleAckOnlyEvent` — ver `workers/src/jobs/process-webhook.ts` |
 
 ---
 
-**Status**: Código entregue. Aguardando Validação Externa.
+**Status**: Código entregue; homologação §17 com **scripts readonly** versionados e checklist vivo no runbook. Itens que dependem de mutação ou de disparo pelo Sienge permanecem **pendentes de sessão com cliente**.

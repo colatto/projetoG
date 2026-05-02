@@ -1,19 +1,67 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { UserRole } from '@projetog/domain';
+import { ordersListQuerySchema } from '@projetog/shared';
+
+/** RN-08 — statuses represented on purchase_orders.local_status (orders slice; quotation statuses live in PRD-02). */
+const REQUIRE_ACTION_LOCAL_STATUSES = ['ATRASADO', 'DIVERGENCIA', 'EM_AVARIA', 'REPOSICAO'] as const;
+
+type PurchaseOrderListRow = {
+  id: number;
+  local_status?: string | null;
+  created_at?: string | null;
+};
+
+type TrackerLite = {
+  purchase_order_id: number;
+  status: string | null;
+  suggested_date_status: string | null;
+  promised_date_current: string | null;
+  updated_at: string | null;
+};
+
+function getOperationalPriority(
+  localStatus: string | null | undefined,
+  trackerStatus: string | null | undefined,
+  suggestedDateStatus: string | null | undefined,
+): number {
+  if (localStatus === 'ATRASADO' || trackerStatus === 'ATRASADO') return 1;
+  if (localStatus === 'DIVERGENCIA') return 2;
+  if (localStatus === 'EM_AVARIA' || localStatus === 'REPOSICAO') return 3;
+  if (trackerStatus === 'PAUSADO' || suggestedDateStatus === 'pending_approval') return 4;
+  if (localStatus === 'PENDENTE' || localStatus === 'PARCIALMENTE_ENTREGUE') return 5;
+  if (localStatus === 'ENTREGUE' || localStatus === 'CANCELADO') return 6;
+  return 7;
+}
+
+function mergeLatestTrackerPerOrder(rows: TrackerLite[]): Map<number, TrackerLite> {
+  const map = new Map<number, TrackerLite>();
+  for (const row of rows) {
+    const prev = map.get(row.purchase_order_id);
+    if (!prev || (row.updated_at || '') > (prev.updated_at || '')) {
+      map.set(row.purchase_order_id, row);
+    }
+  }
+  return map;
+}
 
 export class OrdersController {
   constructor(private app: FastifyInstance) {}
 
   async listOrders(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
-    const { status, search } = (request.query || {}) as { status?: string; search?: string };
+    const parsed = ordersListQuerySchema.safeParse(request.query ?? {});
+    if (!parsed.success) {
+      return reply.badRequest(parsed.error.message);
+    }
+    const { status, search, require_action, sort_priority } = parsed.data;
+
+    if (require_action && user.role === UserRole.VISUALIZADOR_PEDIDOS) {
+      return reply.forbidden('Visualizador de Pedidos não pode usar o filtro Exigem ação');
+    }
 
     let query = this.app.supabase.from('purchase_orders').select('*, purchase_order_items(count)');
 
     if (user.role === UserRole.FORNECEDOR) {
-      // Must filter by supplier_id
-      // In this system, user.id is mapped to a profile that might have supplier_id.
-      // Wait, let's fetch profile first to get supplier_id.
       const { data: profile } = await this.app.supabase
         .from('profiles')
         .select('supplier_id')
@@ -26,12 +74,15 @@ export class OrdersController {
       query = query.eq('supplier_id', profile.supplier_id);
     }
 
+    if (require_action && user.role !== UserRole.FORNECEDOR) {
+      query = query.in('local_status', [...REQUIRE_ACTION_LOCAL_STATUSES]);
+    }
+
     if (status) {
       query = query.eq('local_status', status);
     }
 
     if (search) {
-      // Basic search on order number
       query = query.ilike('formatted_purchase_order_id', `%${search}%`);
     }
 
@@ -42,7 +93,50 @@ export class OrdersController {
       return reply.internalServerError('Failed to fetch orders');
     }
 
-    return reply.send(data);
+    let rows = (data ?? []) as PurchaseOrderListRow[];
+
+    if (sort_priority) {
+      const ids = rows.map((r) => r.id).filter((id) => Number.isFinite(id));
+      let trackerByOrder = new Map<number, TrackerLite>();
+      if (ids.length > 0) {
+        const { data: trackers, error: trackerErr } = await this.app.supabase
+          .from('follow_up_trackers')
+          .select(
+            'purchase_order_id, status, suggested_date_status, promised_date_current, updated_at',
+          )
+          .in('purchase_order_id', ids);
+
+        if (trackerErr) {
+          request.log.error(trackerErr);
+          return reply.internalServerError('Failed to fetch follow-up context for orders');
+        }
+        trackerByOrder = mergeLatestTrackerPerOrder((trackers ?? []) as TrackerLite[]);
+      }
+
+      rows = [...rows].sort((a, b) => {
+        const ta = trackerByOrder.get(a.id);
+        const tb = trackerByOrder.get(b.id);
+        const pa = getOperationalPriority(a.local_status, ta?.status, ta?.suggested_date_status);
+        const pb = getOperationalPriority(b.local_status, tb?.status, tb?.suggested_date_status);
+        if (pa !== pb) return pa - pb;
+
+        const aPromised = ta?.promised_date_current || '';
+        const bPromised = tb?.promised_date_current || '';
+        if (aPromised !== bPromised) return aPromised.localeCompare(bPromised);
+
+        const aUp = ta?.updated_at || a.created_at || '';
+        const bUp = tb?.updated_at || b.created_at || '';
+        return bUp.localeCompare(aUp);
+      });
+    } else {
+      rows = [...rows].sort((a, b) => {
+        const ac = a.created_at || '';
+        const bc = b.created_at || '';
+        return bc.localeCompare(ac);
+      });
+    }
+
+    return reply.send(rows);
   }
 
   async listOrderDeliveries(request: FastifyRequest, reply: FastifyReply) {

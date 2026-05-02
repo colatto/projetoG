@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { UserRole } from '@projetog/domain';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import { useAuth } from '../../contexts/AuthContext';
 import { getDamageStatusBadgeClass, getDamageStatusLabel } from '../damages-helpers';
 import '../orders.css';
 
@@ -26,6 +28,8 @@ type DamageDetailData = {
 
 export default function DamageDetail() {
   const { damageId } = useParams<{ damageId: string }>();
+  const { user } = useAuth();
+  const canResolveDamage = user?.role === UserRole.COMPRAS;
   const [data, setData] = useState<DamageDetailData | null>(null);
   const [finalAction, setFinalAction] = useState('reposicao');
   const [notes, setNotes] = useState('');
@@ -120,7 +124,7 @@ export default function DamageDetail() {
         )}
       </div>
 
-      {canResolve && (
+      {canResolveDamage && canResolve && (
         <div className="o-detail-section">
           <div className="o-detail-header">
             <h2 style={{ fontSize: '1.125rem' }}>Definir Ação Corretiva</h2>

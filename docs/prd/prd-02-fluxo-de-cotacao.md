@@ -328,7 +328,7 @@ _(PRDGlobal §4.6)_
 - **RN-27:** O sistema só devolve resposta de cotação ao Sienge após aprovação de `Compras`. _(PRDGlobal §1.4, §4.4, §9.3.7)_
 - **RN-28:** O endpoint `PATCH /purchase-quotations/{id}/suppliers/{id}/negotiations/latest/authorize` deve ser chamado somente depois da aprovação manual de `Compras`. _(PRDGlobal §9.3.7)_
 - **RN-29:** No envio de resposta de cotação ao Sienge, o sistema tenta mais 2 reenvios automáticos com intervalo de 24 horas. Após falha persistente, `Compras` é notificado. _(PRDGlobal §12.2)_
-- **RN-30:** Se o fornecedor foi removido do mapa de cotação no Sienge, o sistema não deve criar negociação automaticamente. O status exibido deve ser `Fornecedor inválido no mapa de cotação` com destaque vermelho. _(PRDGlobal §9.9)_
+- **RN-30:** Se o fornecedor foi removido do mapa de cotação no Sienge, o sistema não deve criar negociação automaticamente. O status exibido deve ser `Fornecedor inválido no mapa de cotação` com destaque vermelho. _(PRDGlobal §9.9)_ _(Não confundir com **RN-10** neste PRD, que trata de envio tardio em §4.2.)_
 - **RN-31:** Mesmo após correção no Sienge, nova tentativa de envio para fornecedor anteriormente inválido exige aprovação prévia de `Compras`. _(PRDGlobal §9.9)_
 
 ---
@@ -747,6 +747,29 @@ Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 
 ## 12. Critérios de aceite
 
+### 12.1 Listagem backoffice e PRDGlobal §14.1 (modelo de linha)
+
+A tela `/admin/quotations` usa **uma linha por cotação** (`purchase_quotations`), agregando os vínculos `supplier_negotiations`. Mapeamento dos campos mínimos do PRDGlobal §14.1:
+
+| §14.1                                       | Implementação na UI                                                                                                                                                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Número da cotação                           | Coluna Nº (`#id` da cotação)                                                                                                                                                                                               |
+| Fornecedor                                  | Texto visível com primeiro nome + sufixo `+N` quando há vários; lista completa no `title` da célula                                                                                                                        |
+| Status                                      | Badge do status **dominante** entre negociações (`getDominantNegotiationStatus` em `apps/web`), com prioridade a **RN-30** (`FORNECEDOR_INVALIDO_MAPA`); chip secundário defensivo “Mapa inválido” se o dominante divergir |
+| Data de início / data de fim                | Colunas Data e Prazo                                                                                                                                                                                                       |
+| Indicação de leitura / situação da resposta | Contadores agregados por negociação                                                                                                                                                                                        |
+| Indicação Fornecedor fechado                | Chip **Fechado** quando há `FORNECEDOR_FECHADO` ou `closed_order_id`                                                                                                                                                       |
+| Número do pedido de compra                  | Coluna Pedido (`#closed_order_id`)                                                                                                                                                                                         |
+
+**PRD-09:** uma linha **por fornecedor** com `supplier_name` isolado no endpoint consolidado do backoffice permanece como evolução deste módulo quando priorizada.
+
+**Verificação RN-30 (UI):** `QuotationList.test.tsx`, `quotation-helpers.test.ts`; filtro de status `FORNECEDOR_INVALIDO_MAPA` em `GET /api/quotations` — `quotations-backoffice.test.ts`.
+
+### Ações Pré-PRD-09 (lacunas 2.1 / 2.2)
+
+- [x] Badge e agregação “Fornecedor inválido no mapa” na `QuotationList` e alerta no `QuotationDetail` (`INVALID_SUPPLIER_MAP_ALERT_MESSAGE`).
+- [x] Mapeamento §14.1 vs listagem atual documentado acima; granularidade “um registro = um fornecedor” → PRD-09.
+
 - [ ] O sistema importa cotações do Sienge e persiste localmente com todos os campos mínimos.
 - [ ] `Compras` consegue revisar e enviar cotações apenas para fornecedores com acesso ativo.
 - [ ] A data de término é definida por `Compras` e torna-se imutável após o envio.
@@ -762,10 +785,10 @@ Os seguintes itens da §17 do PRDGlobal se aplicam diretamente a este módulo:
 - [ ] Após falha persistente, `Compras` é notificado e pode acionar reprocessamento manual.
 - [ ] Cotações vencidas sem resposta ficam com status `Sem resposta` e `Compras` é notificado.
 - [ ] Quando pedido é gerado no Sienge (webhook), o fornecedor vencedor fica como `Fornecedor fechado` e os demais como `Encerrado`.
-- [ ] Fornecedor removido do mapa do Sienge recebe status `Fornecedor inválido no mapa de cotação` com destaque vermelho.
+- [x] Fornecedor removido do mapa do Sienge recebe status `Fornecedor inválido no mapa de cotação` com destaque vermelho (lista: badge dominante + filtro; detalhe: badge + alerta textual).
 - [ ] Todos os eventos listados na seção 10 geram registro auditável com campos mínimos.
-- [ ] A listagem do backoffice exibe os campos mínimos definidos em §14.1.
-- [ ] A listagem do portal do fornecedor exibe os campos mínimos definidos em §14.1.
+- [x] A listagem do backoffice exibe os campos mínimos definidos em §14.1 (modelo por cotação; ver §12.1).
+- [x] A listagem do portal do fornecedor exibe os campos mínimos definidos em §14.1.
 - [ ] Os identificadores `purchaseQuotationId`, `supplierId`, `negotiationId`/`negotiationNumber` são persistidos. _(PRDGlobal §10)_
 - [ ] Fornecedor bloqueado tem notificações e operação interrompidas imediatamente.
 

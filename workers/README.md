@@ -40,9 +40,10 @@ Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 
 - `pg-boss 9.0.3`
 - `pg 8.16.3`
-- `@supabase/supabase-js 2.39.0`
-- `tsx 4.7.1`
-- `vitest 1.6.1`
+- `@supabase/supabase-js ^2.105.1`
+- `tsx ^4.7.1`
+- `typescript ^5.6.0`
+- `vitest ^4.1.4`
 
 ## Ambiente
 
@@ -71,5 +72,5 @@ pnpm --filter @projetog/workers lint
 - `DATABASE_URL` é obrigatória
 - o worker lê credenciais ativas em `sienge_credentials` e usa fallback de env apenas em `development`
 - o follow-up scheduler é completo e implementa a régua do PRD-04 (notificações em dias úteis, detecção de atraso, encerramento automático)
-- testes: 33 passando (9 suítes)
+- testes: 58 passando (13 ficheiros; ver `vitest.config.ts` com `pool: forks`)
 - build e lint passam

@@ -50,6 +50,17 @@ describe('Deliveries Module', () => {
     expect(JSON.parse(response.payload)).toEqual([{ id: 1 }]);
   });
 
+  it('POST /api/deliveries/:id/validate should return 403 for VISUALIZADOR_PEDIDOS', async () => {
+    const token = await generateTestToken(context.app, { role: UserRole.VISUALIZADOR_PEDIDOS });
+    const response = await context.app.inject({
+      method: 'POST',
+      url: '/api/deliveries/1/validate',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: { status: 'OK' },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+
   it('POST /api/deliveries/:id/validate should validate delivery', async () => {
     context.supabase.table('deliveries').single.mockResolvedValueOnce({
       data: { id: 1, validation_status: 'AGUARDANDO_VALIDACAO', purchase_order_id: 100 },

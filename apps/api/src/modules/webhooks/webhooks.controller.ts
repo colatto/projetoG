@@ -26,6 +26,12 @@ export class WebhookController {
     [WebhookType.PURCHASE_ORDER_AUTHORIZATION_CHANGED]: IntegrationEntityType.ORDER,
     [WebhookType.PURCHASE_ORDER_ITEM_MODIFIED]: IntegrationEntityType.ORDER,
     [WebhookType.PURCHASE_ORDER_FINANCIAL_FORECAST_UPDATED]: IntegrationEntityType.ORDER,
+    [WebhookType.CONTRACT_AUTHORIZED]: IntegrationEntityType.CONTRACT,
+    [WebhookType.CONTRACT_UNAUTHORIZED]: IntegrationEntityType.CONTRACT,
+    [WebhookType.MEASUREMENT_AUTHORIZED]: IntegrationEntityType.MEASUREMENT,
+    [WebhookType.MEASUREMENT_UNAUTHORIZED]: IntegrationEntityType.MEASUREMENT,
+    [WebhookType.CLEARING_FINISHED]: IntegrationEntityType.CLEARING,
+    [WebhookType.CLEARING_DELETED]: IntegrationEntityType.CLEARING,
   };
 
   async receiveWebhook(request: FastifyRequest, reply: FastifyReply) {

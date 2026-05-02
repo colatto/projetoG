@@ -111,6 +111,13 @@ function App() {
               >
                 <Route path="/admin/orders" element={<OrderList />} />
                 <Route path="/admin/orders/:purchaseOrderId" element={<OrderDetail />} />
+              </Route>
+
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ADMINISTRADOR, UserRole.COMPRAS]} />
+                }
+              >
                 <Route path="/admin/followup" element={<FollowUpList />} />
                 <Route path="/admin/followup/:purchaseOrderId" element={<FollowUpDetail />} />
                 <Route path="/admin/damages" element={<DamageList />} />
