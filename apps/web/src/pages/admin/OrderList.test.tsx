@@ -95,4 +95,59 @@ describe('OrderList', () => {
       });
     });
   });
+
+  it('renders PRD-09 §14.1 mandatory columns (cotação, obra, data prometida)', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: '3',
+        email: 'a@test.com',
+        name: 'Admin',
+        role: UserRole.ADMINISTRADOR,
+        status: UserStatus.ATIVO,
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    getMock.mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          sienge_purchase_order_id: 5001,
+          supplier_id: 10,
+          local_status: 'PENDENTE',
+          created_at: '2026-05-01T10:00:00Z',
+          last_delivery_date: null,
+          total_quantity_ordered: '100.00',
+          total_quantity_delivered: '25.00',
+          pending_quantity: '75.00',
+          has_divergence: false,
+          suppliers: { name: 'Fornecedor Teste' },
+          building_name: 'Obra Alpha',
+          promised_date_current: '2026-06-15T00:00:00Z',
+          purchase_quotation_id: 42,
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <OrderList />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalled();
+    });
+
+    // PRD-09 §14.1 — new mandatory columns
+    expect(await screen.findByText('#42')).toBeInTheDocument(); // Cotação vinculada
+    expect(screen.getByText('Obra Alpha')).toBeInTheDocument(); // Obra
+    // Column headers
+    expect(screen.getByText('Cotação')).toBeInTheDocument();
+    expect(screen.getByText('Obra')).toBeInTheDocument();
+    expect(screen.getByText('Data Prometida')).toBeInTheDocument();
+  });
 });

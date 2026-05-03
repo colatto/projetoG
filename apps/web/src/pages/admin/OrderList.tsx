@@ -21,6 +21,9 @@ type PurchaseOrderRow = {
   has_divergence: boolean;
   suppliers?: { name: string } | null;
   building_id?: number;
+  building_name?: string | null;
+  promised_date_current?: string | null;
+  purchase_quotation_id?: number | null;
 };
 
 const STATUS_OPTIONS = [
@@ -154,8 +157,11 @@ export default function OrderList() {
             <thead>
               <tr>
                 <th>Pedido</th>
+                <th>Cotação</th>
                 <th>Fornecedor</th>
+                <th>Obra</th>
                 <th>Status</th>
+                <th>Data Prometida</th>
                 <th>Criado em</th>
                 <th>Última Ent.</th>
                 <th>Faturado</th>
@@ -170,13 +176,16 @@ export default function OrderList() {
                       #{o.sienge_purchase_order_id}
                     </Link>
                   </td>
+                  <td>{o.purchase_quotation_id ? `#${o.purchase_quotation_id}` : '—'}</td>
                   <td>{o.suppliers?.name ?? `#${o.supplier_id}`}</td>
+                  <td>{o.building_name ?? (o.building_id ? `Obra #${o.building_id}` : '—')}</td>
                   <td>
                     <span className={getOrderStatusBadgeClass(o.local_status)}>
                       {getOrderStatusLabel(o.local_status)}
                     </span>
                     {o.has_divergence && <span style={{ marginLeft: 8, color: '#c2410c' }}>⚠</span>}
                   </td>
+                  <td>{formatDate(o.promised_date_current)}</td>
                   <td>{formatDate(o.created_at)}</td>
                   <td>{formatDate(o.last_delivery_date)}</td>
                   <td>{Number(o.total_quantity_delivered).toFixed(2)}</td>
@@ -185,7 +194,7 @@ export default function OrderList() {
               ))}
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="o-empty">
+                  <td colSpan={10} className="o-empty">
                     Nenhum pedido encontrado.
                   </td>
                 </tr>

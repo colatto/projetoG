@@ -84,7 +84,7 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 - PRD-06: avarias, acoes corretivas, reposicoes, auditoria especifica e telas de backoffice/fornecedor.
 - PRD-07: integracao Sienge por polling, webhooks, reconciliacao, retries e escrita outbound.
 - PRD-08: snapshots diarios de KPIs, ranking, lead time, atrasos, criticidade e avarias; consolidacao atomica (pg), graficos de evolucao (recharts), cards com cores operacionais; API `/api/dashboard/*` e telas `/admin/dashboard/*`.
-- PRD-09: trilha de auditoria operacional (`audit_logs` enriquecido, `GET /api/backoffice/audit*`), aliases `/api/backoffice/integrations*` e `/api/supplier-portal/orders*` (espelho dos canonicos), filtro "Exigem acao" em cotacoes backoffice, cooldown de retry manual na UI de integracao; retenção 1 ano documentada em `docs/runbooks/prd09-audit-retention.md`.
+- PRD-09: trilha de auditoria operacional (`audit_logs` enriquecido com summary obrigatorio, `AuditService` centralizado com fallback pg-boss, `GET /api/backoffice/audit*`), aliases `/api/backoffice/integrations*` e `/api/supplier-portal/orders*` (espelho dos canonicos), filtro "Exigem acao" em cotacoes backoffice, campos minimos §14.1 em OrderList (10 colunas) e SupplierOrderList (8 colunas com badges de atraso/avaria), cooldown de retry manual na UI de integracao; retencao 1 ano documentada em `docs/runbooks/prd09-audit-retention.md`.
 
 ## Principais Endpoints
 
@@ -223,11 +223,11 @@ pnpm run db:pull
 pnpm run db:types
 ```
 
-Depois de alterar migrations, gere novamente `packages/shared/src/database.types.ts`. O arquivo de tipos atual esta defasado em relacao ao PRD-06, o que explica parte das falhas de build em API e workers.
+Depois de alterar migrations, gere novamente `packages/shared/src/database.types.ts` seguindo o fluxo em `docs/runbooks/typecheck-and-supabase-types.md`.
 
 ## Checks
 
-Estado verificado em `2026-04-30`:
+Estado verificado em `2026-05-03`:
 
 ```bash
 pnpm -r run test
@@ -239,8 +239,8 @@ pnpm audit --audit-level=moderate
 Resultado atual:
 
 - `pnpm -r run test`: passa em todos os workspaces.
-- `pnpm --filter @projetog/api test`: passa, 118+ testes.
-- `pnpm --filter @projetog/web test`: passa, 7 testes.
+- `pnpm --filter @projetog/api test`: passa, 168+ testes.
+- `pnpm --filter @projetog/web test`: passa, 53 testes.
 - `pnpm --filter @projetog/domain test`: passa, 16 testes.
 - `pnpm --filter @projetog/integration-sienge test`: passa, 53 testes.
 - `pnpm --filter @projetog/shared test`: passa sem arquivos de teste por `--passWithNoTests`.

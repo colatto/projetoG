@@ -16,6 +16,9 @@ type PurchaseOrderRow = {
   total_quantity_delivered: string;
   pending_quantity: string;
   has_divergence: boolean;
+  promised_date_current?: string | null;
+  building_name?: string | null;
+  building_id?: number | null;
 };
 
 export default function SupplierOrderList() {
@@ -59,6 +62,8 @@ export default function SupplierOrderList() {
               <tr>
                 <th>Pedido</th>
                 <th>Status</th>
+                <th>Obra</th>
+                <th>Data Prometida</th>
                 <th>Criado em</th>
                 <th>Última Ent.</th>
                 <th>Total Pedido</th>
@@ -78,7 +83,11 @@ export default function SupplierOrderList() {
                       {getOrderStatusLabel(o.local_status)}
                     </span>
                     {o.has_divergence && <span style={{ marginLeft: 8, color: '#c2410c' }}>⚠</span>}
+                    {o.local_status === 'ATRASADO' && <span style={{ marginLeft: 4, color: '#dc2626', fontSize: '0.75rem', fontWeight: 600 }}>🔴</span>}
+                    {(o.local_status === 'EM_AVARIA' || o.local_status === 'REPOSICAO') && <span style={{ marginLeft: 4, fontSize: '0.75rem' }}>🛠️</span>}
                   </td>
+                  <td>{o.building_name ?? (o.building_id ? `Obra #${o.building_id}` : '—')}</td>
+                  <td>{formatDate(o.promised_date_current)}</td>
                   <td>{formatDate(o.created_at)}</td>
                   <td>{formatDate(o.last_delivery_date)}</td>
                   <td>{Number(o.total_quantity_ordered).toFixed(2)}</td>
@@ -87,7 +96,7 @@ export default function SupplierOrderList() {
               ))}
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="o-empty">
+                  <td colSpan={8} className="o-empty">
                     Nenhum pedido encontrado.
                   </td>
                 </tr>

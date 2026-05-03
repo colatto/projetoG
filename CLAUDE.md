@@ -32,6 +32,7 @@ O repositório não está mais em fase de scaffold. Hoje ele já contém:
 - API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração e aliases PRD-09 (`/api/backoffice/integrations`), fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, leitura paginada da trilha em `/api/backoffice/audit` (PRD-09), módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05) e alias `/api/supplier-portal/orders`, módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04), módulo de avarias com registro, sugestão, resolução, reposição, cancelamento de reposição, listagem, detalhe e auditoria completa com 11 eventos (PRD-06), e leitura de indicadores consolidados em `/api/dashboard/*` (PRD-08)
 - workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine`, sinalização de follow-up e confirmação automática de reposição entregue PRD-06), reconciliação por webhook, retry de eventos, escrita outbound de negociação, verificação automática de expiração de cotações, job de envio de e-mail de notificação (`notification:send-email`) com alerta de sem resposta (PRD-03), follow-up scheduler diário com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04), e consolidação diária de snapshots do dashboard (`dashboard:consolidation`, PRD-08)
 - schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações cobrindo PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders), PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status), PRD-04 (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), PRD-06 (extensão de damages, damage_replacements, damage_audit_logs com RLS e constraints), PRD-08 (`dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item`) e PRD-09 (colunas operacionais em `audit_logs`: summary, actor_type, event_timestamp, purchase_quotation_id, purchase_order_id, supplier_id + índices)
+- `AuditService` centralizado com `registerEvent()`: summary obrigatório (fallback automático via `fallbackSummary()`), campos operacionais PRD-09, e enfileiramento via pg-boss (`audit:retry`) em caso de falha de escrita (§9.6)
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
 - pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service, enums PRD-06 (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`) e testes unitários
 - infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
@@ -212,6 +213,7 @@ Jobs registrados:
 - `quotation:expire-check`
 - `notification:send-email`
 - `dashboard:consolidation`
+- `audit:retry` (deferred retry de eventos de auditoria via pg-boss — PRD-09 §9.6)
 
 Agendamentos observados:
 
@@ -356,7 +358,7 @@ Em `2026-05-02` (última verificação local, pós-alinhamento Vitest e E2E):
 
 - `pnpm -r run typecheck`: OK (workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 44 testes (Vitest)
+- `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 53 testes (Vitest — inclui 6 cenários AuditTrail + 3 cenários OrderList §14.1)
 - `pnpm --filter @projetog/web run test:e2e`: OK — 3 cenários Playwright (`login.spec.ts` + fluxos cross-módulo em `e2e/`)
 - `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` mantém 1 warning conhecido em `UserCreate`)
 
@@ -434,7 +436,7 @@ Política atual do monorepo:
 
 ### Working tree atual
 
-Limpa — nenhuma alteração pendente.
+Limpa — nenhuma alteração pendente após execução das correções da meta-auditoria PRD-09.
 
 > **Nota (2026-04-19):** saneamento de lint em `apps/web` concluído — helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo` para derivação de token e `useCallback` para deps de efeitos. Lint agora passa em todos os workspaces.
 
@@ -485,6 +487,19 @@ Limpa — nenhuma alteração pendente.
 > **Nota (2026-05-02 — remediação PRD-07, 3 gaps):** (i) **Homologação §17:** scripts somente leitura em `packages/integration-sienge/src/__tests__/` (`webhook-history`, `quotation-map-supplier`, `multi-quotation-orders`, `deliveries-attended-coverage`, `delivery-requirements-types`) + runbook `docs/runbooks/sienge-homologation.md` com status/evidência/próximo passo por item; `docs/runbooks/sienge-inventory.md` §2 atualizado; `tsx` como devDependency do pacote para execução documentada via `pnpm --filter @projetog/integration-sienge exec tsx …`. (ii) **Webhooks ACK-only:** `IntegrationEntityType` estendido com `contract`, `measurement`, `clearing`; worker `handleAckOnlyEvent` em `workers/src/jobs/process-webhook.ts` + `WebhookController.ENTITY_TYPE_MAP` na API; testes em `process-webhook.test.ts` e `webhooks.test.ts`. (iii) **Monitoramento PRD-09 §8.5:** `/admin/integration` (`IntegrationEvents.tsx`) com filtros, paginação (`limit` 20), colunas de tentativas/próximo retry, botão **Reprocessar** (Compras) + modal; `IntegrationEvents.test.tsx`; `integration.test.ts` cobre `direction` + intervalo de datas. PRD filho §6.5/§11/Fase 7 atualizados em `docs/prd/prd-07-integracao-com-o-sienge.md`.
 
 > **Nota (2026-05-02 — Fase 7 Homologação PRD-07):** Runner consolidado `homologation-checklist.integration.ts` criado em `packages/integration-sienge/src/__tests__/`. Executa todos os checks automatizados de §17 (§17.1, §17.3–17.5, §17.7–17.9) em sequência e produz relatório unificado com status `PASS`/`PARTIAL`/`SKIP`/`FAIL`/`MANUAL` por item. §17.2 e §17.6 marcados `MANUAL` (dependem de sessão presencial). Runbook `docs/runbooks/sienge-homologation.md` atualizado com instrução de execução do runner consolidado. Inventário `docs/runbooks/sienge-inventory.md` atualizado. Fase 7 do PRD-07 §13 marcada como ✅ concluída.
+
+> **Nota (2026-05-03 — Execução meta-auditoria PRD-09):** Correções de compliance executadas após meta-auditoria do relatório PRD-09. 13 ações corretivas (AC-01 a AC-13) aplicadas:
+>
+> - **AC-01/AC-02 (inserts diretos → AuditService):** `OrdersController` (4 inserts) e `DashboardController` (1 insert com `as any`) migrados para `AuditService.registerEvent()`. Todos os call sites agora incluem `summary`, `actorType` e `purchaseOrderId` conforme RN-12. Zero inserts diretos remanescentes em `audit_logs` fora de `AuditService`.
+> - **AC-03 (summary obrigatório):** `AuditService.fallbackSummary()` garante que nenhum evento de auditoria tenha `summary` NULL — gera descrição legível a partir do `eventType` quando o caller não fornece.
+> - **AC-04 (OrderList.tsx §14.1):** Adicionadas 3 colunas faltantes: cotação vinculada (`purchase_quotation_id`), obra (`building_name`), data prometida (`promised_date_current`). Tabela agora exibe 10 colunas.
+> - **AC-05 (SupplierOrderList.tsx §14.1):** Adicionados 4 campos: obra, data prometida, badge de atraso (🔴 para `ATRASADO`), badge de avaria (🛠️ para `EM_AVARIA`/`REPOSICAO`). Tabela agora exibe 8 colunas.
+> - **AC-06 (resiliência §9.6):** `AuditService` enfileira via pg-boss (`audit:retry`, retryLimit: 3, retryDelay: 60s) quando o insert em `audit_logs` falha. Fallback é best-effort — se pg-boss também falhar, o erro é logado mas nunca bloqueia o caller.
+> - **AC-07 (AuditTrail.test.tsx):** Expandido de 1 para 6 cenários: load, empty state, filtros, RN-12 fields, API error, metadata.
+> - **AC-08 (OrderList.test.tsx):** Adicionado cenário verificando renderização dos 3 novos campos §14.1.
+> - **AC-09–AC-13 (documentação):** Relatório `prd09_audit_report.md` corrigido com event types reais, gaps resolvidos (G-1 a G-8) e compliance recalculado de ~85% para ~95%.
+>
+> Compliance PRD-09 pós-correção: ~95%. Único gap residual: RN-13 (job de arquivamento automático), deferido para V2.0.
 
 ## Diretriz para alterações futuras
 

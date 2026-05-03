@@ -10,6 +10,8 @@ import {
   DashboardResumoQueryDto,
 } from '@projetog/shared';
 
+import { AuditService } from '../audit/audit.service.js';
+
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -75,24 +77,26 @@ type DashboardDimensionalQuery = {
 };
 
 export class DashboardController {
-  constructor(private app: FastifyInstance) {}
+  private audit: AuditService;
+
+  constructor(private app: FastifyInstance) {
+    this.audit = new AuditService(app);
+  }
 
   private async auditAccess(request: FastifyRequest, dashboard: string) {
     const userId = (request as any).user?.sub ?? null;
-    try {
-      await (this.app.supabase as any).from('audit_logs').insert({
-        event_type: 'dashboard.access',
-        actor_id: userId,
-        entity_type: 'dashboard',
-        entity_id: dashboard,
-        metadata: {
-          dashboard,
-          query: request.query ?? {},
-        },
-      });
-    } catch (err: unknown) {
-      request.log.warn({ err, dashboard }, 'audit_logs dashboard.access insert failed');
-    }
+    await this.audit.registerEvent({
+      eventType: 'dashboard.access',
+      actorId: userId,
+      actorType: 'user',
+      entityType: 'dashboard',
+      entityId: dashboard,
+      summary: `Acesso ao dashboard ${dashboard}`,
+      metadata: {
+        dashboard,
+        query: request.query ?? {},
+      },
+    });
   }
 
   /**

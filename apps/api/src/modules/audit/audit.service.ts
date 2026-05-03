@@ -24,7 +24,7 @@ export class AuditService {
       actor_id: params.actorId ?? null,
       target_user_id: params.targetUserId ?? null,
       metadata: (params.metadata ?? {}) as InsertAuditLog['metadata'],
-      summary: params.summary ?? null,
+      summary: params.summary ?? AuditService.fallbackSummary(params.eventType),
       actor_type: params.actorType ?? 'user',
       event_timestamp: ts,
       purchase_quotation_id: params.purchaseQuotationId ?? null,
@@ -39,9 +39,33 @@ export class AuditService {
     if (error) {
       this.fastify.log.error(
         { err: error, context: 'AuditService' },
-        'Falha ao registrar log de auditoria',
+        'Falha ao registrar log de auditoria — tentando enfileirar via pg-boss',
       );
+
+      // PRD-09 §9.6: enqueue locally for deferred retry when audit write fails.
+      try {
+        if (this.fastify.boss) {
+          await this.fastify.boss.send('audit:retry', logEntry, {
+            retryLimit: 3,
+            retryDelay: 60,
+          });
+          this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry');
+        }
+      } catch (enqueueError: unknown) {
+        this.fastify.log.error(
+          { err: enqueueError, context: 'AuditService.enqueue' },
+          'Falha ao enfileirar evento de auditoria — evento perdido',
+        );
+      }
     }
+  }
+
+  /**
+   * PRD-09 §4.1 — summary is mandatory. When callers omit it,
+   * derive a human-readable fallback from the event_type.
+   */
+  private static fallbackSummary(eventType: string): string {
+    return eventType.replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   /** @deprecated Prefer `registerEvent`; kept for call sites using the older name. */

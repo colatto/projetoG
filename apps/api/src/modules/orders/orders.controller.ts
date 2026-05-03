@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { UserRole } from '@projetog/domain';
 import { ordersListQuerySchema } from '@projetog/shared';
+import { AuditService } from '../audit/audit.service.js';
 
 /** RN-08 — statuses represented on purchase_orders.local_status (orders slice; quotation statuses live in PRD-02). */
 const REQUIRE_ACTION_LOCAL_STATUSES = ['ATRASADO', 'DIVERGENCIA', 'EM_AVARIA', 'REPOSICAO'] as const;
@@ -45,7 +46,11 @@ function mergeLatestTrackerPerOrder(rows: TrackerLite[]): Map<number, TrackerLit
 }
 
 export class OrdersController {
-  constructor(private app: FastifyInstance) {}
+  private audit: AuditService;
+
+  constructor(private app: FastifyInstance) {
+    this.audit = new AuditService(app);
+  }
 
   async listOrders(request: FastifyRequest, reply: FastifyReply) {
     const user = request.user!;
@@ -220,19 +225,25 @@ export class OrdersController {
       changed_by_system: false,
     });
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'order_cancelled',
-      actor_id: user.sub,
-      entity_type: 'purchase_order',
-      entity_id: purchaseOrderId.toString(),
+    await this.audit.registerEvent({
+      eventType: 'order_cancelled',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: purchaseOrderId,
+      entityType: 'purchase_order',
+      entityId: purchaseOrderId.toString(),
+      summary: `Cancelamento do pedido ${purchaseOrderId} (status anterior: ${order.local_status})`,
       metadata: { previousStatus: order.local_status, reason },
     });
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'order_status_changed',
-      actor_id: user.sub,
-      entity_type: 'purchase_order',
-      entity_id: purchaseOrderId.toString(),
+    await this.audit.registerEvent({
+      eventType: 'order_status_changed',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: purchaseOrderId,
+      entityType: 'purchase_order',
+      entityId: purchaseOrderId.toString(),
+      summary: `Status do pedido ${purchaseOrderId} alterado de ${order.local_status} para CANCELADO`,
       metadata: { previousStatus: order.local_status, newStatus: 'CANCELADO', reason },
     });
 
@@ -246,12 +257,15 @@ export class OrdersController {
       .single();
 
     if (tracker) {
-      await this.app.supabase.from('audit_logs').insert({
-        event_type: 'followup_termination_requested',
-        actor_id: user.sub,
-        entity_type: 'follow_up_tracker',
-        entity_id: tracker.id.toString(),
-        metadata: { reason: 'Order cancelled' },
+      await this.audit.registerEvent({
+        eventType: 'followup_termination_requested',
+        actorId: user.sub,
+        actorType: 'user',
+        purchaseOrderId: purchaseOrderId,
+        entityType: 'follow_up_tracker',
+        entityId: tracker.id.toString(),
+        summary: `Follow-up encerrado por cancelamento do pedido ${purchaseOrderId}`,
+        metadata: { reason: 'Order cancelled', trackerId: tracker.id },
       });
     }
 
@@ -299,11 +313,14 @@ export class OrdersController {
       changed_by_system: false,
     });
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'order_status_changed',
-      actor_id: user.sub,
-      entity_type: 'purchase_order',
-      entity_id: purchaseOrderId.toString(),
+    await this.audit.registerEvent({
+      eventType: 'order_status_changed',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: purchaseOrderId,
+      entityType: 'purchase_order',
+      entityId: purchaseOrderId.toString(),
+      summary: `Status do pedido ${purchaseOrderId} alterado de ${order.local_status} para ${status}`,
       metadata: { previousStatus: order.local_status, newStatus: status, reason },
     });
 
