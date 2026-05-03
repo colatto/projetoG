@@ -78,6 +78,7 @@ export default function IntegrationEvents() {
 
   const [retryTargetId, setRetryTargetId] = useState<string | null>(null);
   const [retryLoadingId, setRetryLoadingId] = useState<string | null>(null);
+  const lastManualRetryAtMs = useRef(0);
 
   const filtersRef = useRef({
     statusFilter,
@@ -182,6 +183,13 @@ export default function IntegrationEvents() {
   }
 
   async function confirmRetry(id: string) {
+    const now = Date.now();
+    if (now - lastManualRetryAtMs.current < 30_000) {
+      setError('Aguarde 30 segundos entre reprocessamentos manuais (PRD-09).');
+      setRetryTargetId(null);
+      return;
+    }
+    lastManualRetryAtMs.current = now;
     setRetryLoadingId(id);
     setRetryTargetId(null);
     try {

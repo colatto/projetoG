@@ -19,6 +19,8 @@ import { authRoutes } from './modules/auth/index.js';
 import { usersRoutes } from './modules/users/index.js';
 import { webhookRoutes } from './modules/webhooks/index.js';
 import { integrationRoutes } from './modules/integration/index.js';
+import integrationPrd09Routes from './modules/integration/integration-prd09.routes.js';
+import { auditRoutes } from './modules/audit/audit.routes.js';
 import {
   quotationsBackofficeRoutes,
   supplierQuotationsRoutes,
@@ -98,6 +100,7 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(webhookRoutes, { prefix: '/webhooks' });
   app.register(integrationRoutes, { prefix: '/api/integration' });
+  app.register(integrationPrd09Routes, { prefix: '/api/backoffice/integrations' });
 
   // Quotations (PRD-02) — canonical routes + compatibility aliases (PRD-09)
   app.register(quotationsBackofficeRoutes, { prefix: '/api/quotations' });
@@ -109,6 +112,10 @@ export function buildApp(options: BuildAppOptions = {}) {
   app.register(deliveriesRoutes, { prefix: '/api/deliveries' });
   app.register(ordersRoutes, { prefix: '/api/orders' });
   app.register(ordersRoutes, { prefix: '/api/backoffice/orders' });
+  app.register(ordersRoutes, { prefix: '/api/supplier-portal/orders' });
+
+  // PRD-09 — operational audit (read-only)
+  app.register(auditRoutes, { prefix: '/api/backoffice/audit' });
 
   // Notifications (PRD-03)
   app.register(notificationsRoutes, { prefix: '/api/notifications' });

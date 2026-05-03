@@ -10,8 +10,9 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 - rotas protegidas por autenticação e perfil (RBAC)
 - shell administrativo com navegação lateral dinâmica por perfil
 - gestão de usuários (listagem, criação, edição/bloqueio)
-- monitoramento de eventos de integração em `/admin/integration`: filtros (`status`, `event_type`, `direction`, datas), paginação interativa, colunas tentativas/próximo retry, **Reprocessar** com modal (Compras); ver `IntegrationEvents.tsx` e `IntegrationEvents.test.tsx`
-- listagem e detalhe de cotações (backoffice — Administrador/Compras)
+- monitoramento de eventos de integração em `/admin/integration`: filtros (`status`, `event_type`, `direction`, datas), paginação interativa, colunas tentativas/próximo retry, **Reprocessar** com modal (Compras) e **cooldown ~30s** entre retries manuais (PRD-09); ver `IntegrationEvents.tsx` e `IntegrationEvents.test.tsx`
+- trilha de auditoria operacional em `/admin/audit` (Compras, Administrador): filtros, paginação, expansão de metadata; `AuditTrail.tsx` + `AuditTrail.test.tsx`
+- listagem e detalhe de cotações (backoffice — Administrador/Compras), com filtro **Exigem ação** (`require_action`) para Compras/Administrador (PRD-09)
 - portal do fornecedor com listagem e detalhe de cotações, marcação de leitura e resposta
 - gestão de templates e histórico de notificações (PRD-03)
 - listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05): Visualizador usa as mesmas rotas `/admin/orders` com copy somente leitura e sem filtro "Exigem ação"; Compras/Administrador têm checkbox que envia `require_action` e listagem ordenada por prioridade operacional (`sort_priority` na API, PRD-09 RN-09)
@@ -39,6 +40,7 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 | `/admin/users/new`                      | `UserCreate`                   | Administrador                                                        |
 | `/admin/users/:id`                      | `UserManage`                   | Administrador                                                        |
 | `/admin/integration`                    | `IntegrationEvents`            | Administrador, Compras                                               |
+| `/admin/audit`                          | `AuditTrail`                   | Administrador, Compras                                               |
 | `/admin/quotations`                     | `QuotationList`                | Administrador, Compras                                               |
 | `/admin/quotations/:id`                 | `QuotationDetail`              | Administrador, Compras                                               |
 | `/admin/notifications/templates`        | `NotificationTemplates`        | Administrador                                                        |
@@ -92,7 +94,7 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 ## Estado de qualidade
 
 - build: passa
-- testes: 44 passando (Vitest — `QuotationList.test.tsx`, `quotation-helpers.test.ts`, `AdminLayout.test.tsx`, `OrderList.test.tsx`, `OrderDetail.test.tsx`, `orders-helpers.test.ts`, `NotificationLogs.test.tsx`, **`IntegrationEvents.test.tsx`** PRD-07/PRD-09, **`DashboardHome.test.tsx`** PRD-08 resumos rápidos)
+- testes: Vitest — `QuotationList.test.tsx`, `AuditTrail.test.tsx`, `quotation-helpers.test.ts`, `AdminLayout.test.tsx`, `OrderList.test.tsx`, `OrderDetail.test.tsx`, `orders-helpers.test.ts`, `NotificationLogs.test.tsx`, `IntegrationEvents.test.tsx`, `DashboardHome.test.tsx`
 - E2E: Playwright — `pnpm --filter @projetog/web run test:e2e` (login + fluxos cross-módulo mockados em [`e2e/`](e2e/); CI em [`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml)); runbook [`docs/runbooks/e2e-playwright-auth.md`](../../docs/runbooks/e2e-playwright-auth.md)
 - lint: passa (0 errors, 1 warning — `react-hooks/incompatible-library` em UserCreate por uso de `watch()` do react-hook-form; não acionável)
 

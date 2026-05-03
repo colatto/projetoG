@@ -273,6 +273,7 @@ describe('Integration Routes', () => {
       expect.objectContaining({
         event_type: 'integration.manual_retry',
         entity_type: 'integration_event',
+        actor_type: 'user',
       }),
     );
   });
@@ -345,5 +346,53 @@ describe('Integration Routes', () => {
         retryLimit: 0,
       }),
     );
+  });
+
+  it('PRD-09: GET /api/backoffice/integrations mirrors integration events list', async () => {
+    const listBuilder = createAwaitableBuilder({
+      data: [
+        {
+          id: 'evt-prd09',
+          event_type: IntegrationEventType.WEBHOOK_RECEIVED,
+          status: 'success',
+        },
+      ],
+      count: 1,
+      error: null,
+    });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'integration_events') {
+        return {
+          select: vi.fn(() => listBuilder),
+        };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const token = await getAuthToken(app, UserRole.COMPRAS);
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/backoffice/integrations?status=success&page=1&limit=10',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('PRD-09: POST /api/backoffice/integrations/:id/retry forbids Administrador', async () => {
+    const token = await getAuthToken(app, UserRole.ADMINISTRADOR);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/backoffice/integrations/00000000-0000-0000-0000-000000000010/retry',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
   });
 });

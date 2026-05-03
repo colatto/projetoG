@@ -11,6 +11,7 @@ import {
   Package,
   BellRing,
   AlertTriangle,
+  ClipboardList,
 } from 'lucide-react';
 import { UserRole } from '@projetog/domain';
 
@@ -40,6 +41,12 @@ export default function AdminLayout() {
       name: 'Integração Sienge',
       path: '/admin/integration',
       icon: <Cable size={20} />,
+      roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
+    },
+    {
+      name: 'Auditoria',
+      path: '/admin/audit',
+      icon: <ClipboardList size={20} />,
       roles: [UserRole.ADMINISTRADOR, UserRole.COMPRAS],
     },
     {

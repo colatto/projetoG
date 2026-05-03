@@ -17,6 +17,7 @@ import UserList from './pages/admin/UserList';
 import UserCreate from './pages/admin/UserCreate';
 import UserManage from './pages/admin/UserManage';
 import IntegrationEvents from './pages/admin/IntegrationEvents';
+import AuditTrail from './pages/admin/AuditTrail';
 import QuotationList from './pages/admin/QuotationList';
 import QuotationDetail from './pages/admin/QuotationDetail';
 import SupplierQuotationList from './pages/supplier/SupplierQuotationList';
@@ -90,6 +91,7 @@ function App() {
                 />
                 <Route path="/admin/dashboard/avarias" element={<DashboardAvarias />} />
                 <Route path="/admin/integration" element={<IntegrationEvents />} />
+                <Route path="/admin/audit" element={<AuditTrail />} />
                 <Route path="/admin/quotations" element={<QuotationList />} />
                 <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
                 <Route path="/admin/notifications" element={<NotificationsLayout />}>

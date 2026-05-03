@@ -46,4 +46,32 @@ describe('AdminLayout', () => {
     expect(screen.queryByRole('link', { name: 'Avarias' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
+
+  it('shows Auditoria for COMPRAS', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: '1',
+        email: 'c@test.com',
+        name: 'Compras',
+        role: UserRole.COMPRAS,
+        status: UserStatus.ATIVO,
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/admin/audit']}>
+        <Routes>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/audit" element={<span>audit-page</span>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Auditoria' })).toHaveAttribute('href', '/admin/audit');
+  });
 });

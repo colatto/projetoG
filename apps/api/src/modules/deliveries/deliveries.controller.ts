@@ -1,9 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { OrderStatusEngine } from '@projetog/domain';
 import type { Database } from '@projetog/shared';
+import { AuditService } from '../audit/audit.service.js';
 
 export class DeliveriesController {
-  constructor(private app: FastifyInstance) {}
+  private readonly audit: AuditService;
+
+  constructor(private app: FastifyInstance) {
+    this.audit = new AuditService(app);
+  }
 
   async listPending(request: FastifyRequest, reply: FastifyReply) {
     const { status } = (request.query || {}) as { status?: string };
@@ -65,11 +70,17 @@ export class DeliveriesController {
 
     // 3. Audit log — delivery_validated_ok or delivery_validated_divergence
     const eventType = status === 'OK' ? 'delivery_validated_ok' : 'delivery_validated_divergence';
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: eventType,
-      actor_id: user.sub,
-      entity_type: 'delivery',
-      entity_id: deliveryId,
+    await this.audit.registerEvent({
+      eventType,
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: delivery.purchase_order_id as number,
+      entityType: 'delivery',
+      entityId: deliveryId,
+      summary:
+        status === 'OK'
+          ? `Validação OK da entrega ${deliveryId} (pedido ${delivery.purchase_order_id})`
+          : `Divergência registrada na entrega ${deliveryId} (pedido ${delivery.purchase_order_id})`,
       metadata: { previousStatus: delivery.validation_status, newStatus: status, notes },
     });
 
@@ -127,10 +138,13 @@ export class DeliveriesController {
         .single();
 
       if (tracker) {
-        await supabase.from('audit_logs').insert({
-          event_type: 'followup_termination_requested',
-          entity_type: 'follow_up_tracker',
-          entity_id: tracker.id.toString(),
+        await this.audit.registerEvent({
+          eventType: 'followup_termination_requested',
+          actorType: 'system',
+          purchaseOrderId,
+          entityType: 'follow_up_tracker',
+          entityId: String(tracker.id),
+          summary: `Follow-up encerrado: pedido ${purchaseOrderId} totalmente entregue`,
           metadata: { reason: 'Order fully delivered', purchaseOrderId },
         });
       }
@@ -232,11 +246,13 @@ export class DeliveriesController {
         changed_by_system: true,
       });
 
-      // Audit: order_status_changed
-      await supabase.from('audit_logs').insert({
-        event_type: 'order_status_changed',
-        entity_type: 'purchase_order',
-        entity_id: purchaseOrderId.toString(),
+      await this.audit.registerEvent({
+        eventType: 'order_status_changed',
+        actorType: 'system',
+        purchaseOrderId,
+        entityType: 'purchase_order',
+        entityId: String(purchaseOrderId),
+        summary: `Status do pedido ${purchaseOrderId} alterado para ${newStatus}`,
         metadata: { previousStatus: order.local_status, newStatus, reason: 'manual_validation' },
       });
     }

@@ -1,3 +1,4 @@
+import type { FastifyInstance } from 'fastify';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import {
   IntegrationEvent,
@@ -14,6 +15,7 @@ import {
   WriteNegotiationBodyDto,
 } from '@projetog/shared';
 import { encryptSiengeCredential, decryptSiengeCredential } from '@projetog/integration-sienge';
+import { AuditService } from '../audit/audit.service.js';
 
 interface RetryTarget {
   jobName: string;
@@ -208,12 +210,14 @@ export class IntegrationController {
     }
 
     // ── 5. Register audit for manual retry ───────────────────
-    await supabase.from('audit_logs').insert({
-      event_type: 'integration.manual_retry',
-      actor_id: actorId,
-      entity_type: 'integration_event',
-      entity_id: id,
-      metadata: { integration_event_id: id, event_type: event.event_type } as unknown as Json,
+    await new AuditService(request.server as FastifyInstance).registerEvent({
+      eventType: 'integration.manual_retry',
+      actorId,
+      actorType: 'user',
+      entityType: 'integration_event',
+      entityId: id,
+      summary: `Reprocessamento manual do evento de integração ${id}`,
+      metadata: { integration_event_id: id, event_type: event.event_type },
     });
 
     return reply.code(200).send({
@@ -299,13 +303,14 @@ export class IntegrationController {
         .send({ message: 'Erro ao atualizar credenciais', error: error.message });
     }
 
-    // Register audit
-    await supabase.from('audit_logs').insert({
-      event_type: 'integration.credentials_updated',
-      actor_id: actorId,
-      entity_type: 'sienge_credentials',
-      entity_id: data.id,
-      metadata: { subdomain, rest_rate_limit, bulk_rate_limit } as unknown as Json,
+    await new AuditService(request.server as FastifyInstance).registerEvent({
+      eventType: 'integration.credentials_updated',
+      actorId,
+      actorType: 'user',
+      entityType: 'sienge_credentials',
+      entityId: data.id,
+      summary: 'Credenciais Sienge atualizadas',
+      metadata: { subdomain, rest_rate_limit, bulk_rate_limit },
     });
 
     return reply.code(200).send({
@@ -406,16 +411,19 @@ export class IntegrationController {
       return reply.code(500).send({ message: 'Erro ao enfileirar envio para o Sienge' });
     }
 
-    // Audit the action
-    await supabase.from('audit_logs').insert({
-      event_type: 'integration.outbound_enqueued',
-      actor_id: actorId,
-      entity_type: 'purchase_quotations',
-      entity_id: String(payload.purchaseQuotationId),
+    await new AuditService(request.server as FastifyInstance).registerEvent({
+      eventType: 'integration.outbound_enqueued',
+      actorId,
+      actorType: 'user',
+      purchaseQuotationId: payload.purchaseQuotationId,
+      supplierId: payload.supplierId,
+      entityType: 'purchase_quotations',
+      entityId: String(payload.purchaseQuotationId),
+      summary: `Envio assíncrono de negociação para Sienge (cotação ${payload.purchaseQuotationId})`,
       metadata: {
         supplier_id: payload.supplierId,
         integration_event_id: event.id,
-      } as unknown as Json,
+      },
     });
 
     return reply.code(202).send({

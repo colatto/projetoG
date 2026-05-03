@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-02`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-03`.
 
 ## Ordem de consulta
 
@@ -9,7 +9,7 @@ Documento-base para agentes e mantenedores. Atualizado para refletir o estado re
 3. `docs/architecture.md`
 4. `docs/decisions/*.md`
 5. `docs/prd/*.md`
-6. `docs/runbooks/*.md` (incluindo `docs/runbooks/typecheck-and-supabase-types.md`)
+6. `docs/runbooks/*.md` (incluindo `docs/runbooks/typecheck-and-supabase-types.md`, `docs/runbooks/prd09-audit-retention.md`)
 7. `apps/*/CLAUDE.md`, `packages/*/CLAUDE.md`, `workers/CLAUDE.md`
 
 ## Objetivo do produto
@@ -28,25 +28,25 @@ Construir uma aplicação web para a GRF com:
 
 O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
-- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, listagem e detalhe de cotações (backoffice e portal do fornecedor), gestão de templates e histórico de notificações (PRD-03), listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05), follow-up logístico com listagem, detalhe, aprovação de datas e ações de fornecedor (PRD-04), gestão de avarias com registro, sugestão de ação corretiva, decisão de Compras, reposição e badges de status (PRD-06), e dashboards analíticos com KPIs, ranking, lead time, atrasos, criticidade e avarias (PRD-08)
-- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração, fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05), módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04), módulo de avarias com registro, sugestão, resolução, reposição, cancelamento de reposição, listagem, detalhe e auditoria completa com 11 eventos (PRD-06), e leitura de indicadores consolidados em `/api/dashboard/*` (PRD-08)
+- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, trilha de auditoria operacional em `/admin/audit` (PRD-09), listagem e detalhe de cotações (backoffice e portal do fornecedor) com filtro "Exigem ação" no backoffice quando aplicável (PRD-09), gestão de templates e histórico de notificações (PRD-03), listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05), follow-up logístico com listagem, detalhe, aprovação de datas e ações de fornecedor (PRD-04), gestão de avarias com registro, sugestão de ação corretiva, decisão de Compras, reposição e badges de status (PRD-06), e dashboards analíticos com KPIs, ranking, lead time, atrasos, criticidade e avarias (PRD-08)
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração e aliases PRD-09 (`/api/backoffice/integrations`), fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, leitura paginada da trilha em `/api/backoffice/audit` (PRD-09), módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05) e alias `/api/supplier-portal/orders`, módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04), módulo de avarias com registro, sugestão, resolução, reposição, cancelamento de reposição, listagem, detalhe e auditoria completa com 11 eventos (PRD-06), e leitura de indicadores consolidados em `/api/dashboard/*` (PRD-08)
 - workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine`, sinalização de follow-up e confirmação automática de reposição entregue PRD-06), reconciliação por webhook, retry de eventos, escrita outbound de negociação, verificação automática de expiração de cotações, job de envio de e-mail de notificação (`notification:send-email`) com alerta de sem resposta (PRD-03), follow-up scheduler diário com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04), e consolidação diária de snapshots do dashboard (`dashboard:consolidation`, PRD-08)
-- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações cobrindo PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders), PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status), PRD-04 (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), PRD-06 (extensão de damages, damage_replacements, damage_audit_logs com RLS e constraints) e PRD-08 (`dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item`)
+- schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações cobrindo PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders), PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status), PRD-04 (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), PRD-06 (extensão de damages, damage_replacements, damage_audit_logs com RLS e constraints), PRD-08 (`dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item`) e PRD-09 (colunas operacionais em `audit_logs`: summary, actor_type, event_timestamp, purchase_quotation_id, purchase_order_id, supplier_id + índices)
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
 - pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service, enums PRD-06 (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`) e testes unitários
 - infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
 
 ## Módulos reais
 
-| Módulo                        | Estado                    | Responsabilidade principal                                                                                                             |
-| ----------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users, cotações, pedidos, notificações, follow-up, avarias e dashboards (PRD-08)                    |
-| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, cotações, entregas, pedidos, notificações, follow-up, avarias, dashboard e orquestração              |
-| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check, recálculo de status, follow-up scheduler, envio de e-mail, dashboard consolidation e jobs |
-| `packages/domain`             | implementado parcialmente | entidades, enums centrais e serviços (TemplateRenderer, OrderStatusEngine)                                                             |
-| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                                                                                             |
-| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                                                                                                           |
-| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                                                                                                          |
+| Módulo                        | Estado                    | Responsabilidade principal                                                                                                                          |
+| ----------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                    | implementado parcialmente | SPA do portal/backoffice com auth, users, integração, auditoria (PRD-09), cotações, pedidos, notificações, follow-up, avarias e dashboards (PRD-08) |
+| `apps/api`                    | implementado parcialmente | auth, RBAC, webhooks, integração, auditoria PRD-09, cotações, entregas, pedidos, notificações, follow-up, avarias, dashboard e orquestração         |
+| `workers`                     | implementado parcialmente | polling, reconciliação, retry, expire-check, recálculo de status, follow-up scheduler, envio de e-mail, dashboard consolidation e jobs              |
+| `packages/domain`             | implementado parcialmente | entidades, enums centrais e serviços (TemplateRenderer, OrderStatusEngine)                                                                          |
+| `packages/integration-sienge` | implementado parcialmente | cliente e adaptação do ERP                                                                                                                          |
+| `packages/shared`             | implementado parcialmente | schemas, tipos e utilitários                                                                                                                        |
+| `supabase`                    | implementado parcialmente | banco, auth, migrações e seed                                                                                                                       |
 
 ## Capacidades confirmadas no código
 
@@ -65,6 +65,7 @@ Rotas protegidas (layout administrativo):
 - `/admin/users/new` (Administrador)
 - `/admin/users/:id` (Administrador)
 - `/admin/integration` (Administrador, Compras)
+- `/admin/audit` (Administrador, Compras) — trilha de auditoria operacional (PRD-09)
 - `/admin/quotations` (Administrador, Compras)
 - `/admin/quotations/:id` (Administrador, Compras)
 - `/admin/notifications` (Administrador, Compras) — layout com sub-rotas
@@ -116,6 +117,8 @@ Componentes:
 - `POST /webhooks/sienge`
 - `GET /api/integration/events`
 - `POST /api/integration/events/:id/retry`
+- `GET /api/backoffice/integrations` (alias PRD-09 — mesma listagem que `integration/events`)
+- `POST /api/backoffice/integrations/:id/retry` (alias PRD-09)
 - `GET/PUT /api/integration/credentials`
 - `POST /api/integration/negotiations/write`
 - `GET /api/quotations` (backoffice — lista)
@@ -132,6 +135,7 @@ Aliases de compatibilidade (PRD-09):
 
 - `/api/backoffice/quotations/*` → `/api/quotations/*`
 - `/api/supplier-portal/quotations/*` → `/api/supplier/quotations/*`
+- `/api/supplier-portal/orders/*` → `/api/orders/*` (Fornecedor com RBAC)
 
 Entregas e pedidos (PRD-05):
 
@@ -150,6 +154,11 @@ Alias backoffice de pedidos (PRD-09; espelha `/api/orders`):
 - `POST /api/backoffice/orders/:purchaseOrderId/cancel` (cancelamento/devolução total)
 - `GET /api/backoffice/orders/:purchaseOrderId/status-history` (histórico de status)
 - `POST /api/backoffice/orders/:purchaseOrderId/avaria` (recepção de status EM_AVARIA / REPOSICAO — stub PRD-05 complementado pelo módulo damages PRD-06)
+
+Auditoria operacional transversal (PRD-09 — Compras, Administrador):
+
+- `GET /api/backoffice/audit` (listagem paginada com filtros)
+- `GET /api/backoffice/audit/:audit_event_id` (detalhe; somente leitura)
 
 Notificações (PRD-03):
 

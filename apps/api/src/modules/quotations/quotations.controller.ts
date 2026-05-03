@@ -39,6 +39,14 @@ async function getProfileSupplierId(supabase: Supabase, profileId: string): Prom
 
 import { NotificationService } from '../notifications/notification.service.js';
 
+/** PRD-09 RN-08 — negotiation statuses that require backoffice action (quotation slice). */
+const QUOTATION_REQUIRE_ACTION_STATUSES = [
+  'AGUARDANDO_REVISAO',
+  'CORRECAO_SOLICITADA',
+  'FORNECEDOR_INVALIDO_MAPA',
+  'AGUARDANDO_REENVIO_SIENGE',
+] as const;
+
 export class QuotationsController {
   constructor(
     private audit: AuditService,
@@ -54,7 +62,17 @@ export class QuotationsController {
     reply: FastifyReply,
   ) {
     const supabase = request.server.supabase;
-    const { status, supplier_id, date_from, date_to, page = 1, limit = 20 } = request.query;
+    const {
+      status,
+      supplier_id,
+      date_from,
+      date_to,
+      require_action,
+      page = 1,
+      limit = 20,
+    } = request.query;
+
+    const negotiationInner = !!(status || supplier_id || require_action);
 
     const selectQuery = `
       id,
@@ -67,7 +85,7 @@ export class QuotationsController {
       buyer_id,
       sienge_status,
       consistency,
-      supplier_negotiations${status || supplier_id ? '!inner' : ''} (
+      supplier_negotiations${negotiationInner ? '!inner' : ''} (
         id,
         supplier_id,
         status,
@@ -85,7 +103,21 @@ export class QuotationsController {
 
     if (date_from) q = q.gte('quotation_date', date_from);
     if (date_to) q = q.lte('quotation_date', date_to);
-    if (status) q = q.eq('supplier_negotiations.status', status);
+    if (require_action) {
+      if (status) {
+        if (!QUOTATION_REQUIRE_ACTION_STATUSES.includes(status as (typeof QUOTATION_REQUIRE_ACTION_STATUSES)[number])) {
+          return reply.code(200).send({
+            data: [],
+            pagination: { total: 0, page, limit },
+          });
+        }
+        q = q.eq('supplier_negotiations.status', status);
+      } else {
+        q = q.in('supplier_negotiations.status', [...QUOTATION_REQUIRE_ACTION_STATUSES]);
+      }
+    } else if (status) {
+      q = q.eq('supplier_negotiations.status', status);
+    }
     if (supplier_id) q = q.eq('supplier_negotiations.supplier_id', supplier_id);
 
     const from = (page - 1) * limit;
@@ -247,9 +279,12 @@ export class QuotationsController {
       );
     }
 
-    await this.audit.log({
+    await this.audit.registerEvent({
       eventType: 'quotation.sent',
       actorId,
+      actorType: 'user',
+      purchaseQuotationId: quotationId,
+      summary: `Envio da cotação ${quotationId} a ${eligibleSupplierIds.length} fornecedor(es)`,
       metadata: {
         purchase_quotation_id: quotationId,
         suppliers_sent: eligibleSupplierIds.length,
@@ -353,9 +388,20 @@ export class QuotationsController {
       request.log.warn({ err: updNegError }, 'Failed to update supplier_negotiations status');
     }
 
-    await this.audit.log({
+    const reviewSummary =
+      reviewStatus === 'approved'
+        ? `Aprovação da resposta do fornecedor ${supplier_id} na cotação ${quotation_id}`
+        : reviewStatus === 'rejected'
+          ? `Reprovação da resposta do fornecedor ${supplier_id} na cotação ${quotation_id}`
+          : `Solicitação de correção ao fornecedor ${supplier_id} na cotação ${quotation_id}`;
+
+    await this.audit.registerEvent({
       eventType: `quotation.response.${reviewStatus}`,
       actorId,
+      actorType: 'user',
+      purchaseQuotationId: quotation_id,
+      supplierId: supplier_id,
+      summary: reviewSummary,
       metadata: {
         purchase_quotation_id: quotation_id,
         supplier_id,
@@ -608,9 +654,13 @@ export class QuotationsController {
       { retryLimit: 0, expireInHours: 1 },
     );
 
-    await this.audit.log({
+    await this.audit.registerEvent({
       eventType: 'quotation.integration.retry',
       actorId,
+      actorType: 'user',
+      purchaseQuotationId: quotation_id,
+      supplierId: supplier_id,
+      summary: `Reprocessamento de integração da cotação ${quotation_id} (fornecedor ${supplier_id})`,
       metadata: {
         purchase_quotation_id: quotation_id,
         supplier_id,
@@ -763,9 +813,13 @@ export class QuotationsController {
 
     if (updError) return reply.code(500).send({ message: 'Erro ao marcar leitura' });
 
-    await this.audit.log({
+    await this.audit.registerEvent({
       eventType: 'quotation.read',
       actorId,
+      actorType: 'user',
+      purchaseQuotationId: quotationId,
+      supplierId,
+      summary: `Leitura da cotação ${quotationId} pelo fornecedor ${supplierId}`,
       metadata: { purchase_quotation_id: quotationId, supplier_id: supplierId },
     });
 
@@ -941,9 +995,13 @@ export class QuotationsController {
       })
       .eq('id', negotiation.id);
 
-    await this.audit.log({
+    await this.audit.registerEvent({
       eventType: 'quotation.response.submitted',
       actorId,
+      actorType: 'user',
+      purchaseQuotationId: quotationId,
+      supplierId,
+      summary: `Resposta do fornecedor ${supplierId} na cotação ${quotationId} (versão ${nextVersion})`,
       metadata: {
         purchase_quotation_id: quotationId,
         supplier_id: supplierId,

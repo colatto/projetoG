@@ -146,9 +146,13 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
         .eq('purchase_quotation_id', payload.purchaseQuotationId)
         .eq('supplier_id', payload.supplierId);
 
-      // Audit trail for supplier invalid in map
       await supabase.from('audit_logs').insert({
         event_type: 'supplier_invalid_map',
+        actor_type: 'integration',
+        actor_id: payload.actorId ?? null,
+        purchase_quotation_id: payload.purchaseQuotationId,
+        supplier_id: payload.supplierId,
+        summary: `Fornecedor ${payload.supplierId} inválido no mapa da cotação ${payload.purchaseQuotationId}`,
         entity_type: IntegrationEntityType.QUOTATION,
         entity_id: String(payload.purchaseQuotationId),
         metadata: {
@@ -300,9 +304,14 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
     }
 
     await supabase.from('audit_logs').insert({
+      event_type: 'integration_success',
+      actor_type: 'integration',
+      actor_id: payload.actorId ?? null,
+      purchase_quotation_id: payload.purchaseQuotationId,
+      supplier_id: payload.supplierId,
+      summary: `Integração Sienge concluída (cotação ${payload.purchaseQuotationId}, negociação ${negotiationNumber})`,
       entity_type: IntegrationEntityType.QUOTATION,
       entity_id: String(payload.purchaseQuotationId),
-      event_type: 'quotation_integration_success',
       metadata: {
         supplier_id: payload.supplierId,
         negotiation_number: negotiationNumber,
@@ -387,14 +396,22 @@ export async function processOutboundNegotiation(job: PgBoss.Job<OutboundJobData
       await supabase.from('audit_logs').insert([
         {
           event_type: 'integration.failure_exhausted',
-          actor_id: payload.actorId,
+          actor_type: 'integration',
+          actor_id: payload.actorId ?? null,
+          purchase_quotation_id: payload.purchaseQuotationId,
+          supplier_id: payload.supplierId,
+          summary: `Tentativas de integração esgotadas (evento ${payload.integrationEventId})`,
           entity_type: 'integration_event',
           entity_id: payload.integrationEventId,
           metadata: { error: err.message } as unknown as import('@projetog/shared').Json,
         },
         {
-          event_type: 'quotation_integration_failed',
-          actor_id: payload.actorId,
+          event_type: 'integration_failure',
+          actor_type: 'integration',
+          actor_id: payload.actorId ?? null,
+          purchase_quotation_id: payload.purchaseQuotationId,
+          supplier_id: payload.supplierId,
+          summary: `Falha de integração Sienge na cotação ${payload.purchaseQuotationId}`,
           entity_type: IntegrationEntityType.QUOTATION,
           entity_id: String(payload.purchaseQuotationId),
           metadata: {

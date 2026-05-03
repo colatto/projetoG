@@ -9,3 +9,8 @@ export function canOperateOrderDeliveries(role: UserRole | undefined): boolean {
 export function canUseOrdersRequireActionFilter(role: UserRole | undefined): boolean {
   return role === UserRole.ADMINISTRADOR || role === UserRole.COMPRAS;
 }
+
+/** Filtro "Exigem ação" na lista de cotações — PRD-09 RN-08 (mesmos perfis que pedidos). */
+export function canUseQuotationsRequireActionFilter(role: UserRole | undefined): boolean {
+  return canUseOrdersRequireActionFilter(role);
+}

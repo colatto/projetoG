@@ -212,6 +212,9 @@ export async function buildTestApp(): Promise<TestAppContext> {
   app.register((await import('../modules/orders/index.js')).ordersRoutes, {
     prefix: '/api/backoffice/orders',
   });
+  app.register((await import('../modules/orders/index.js')).ordersRoutes, {
+    prefix: '/api/supplier-portal/orders',
+  });
   app.register((await import('../modules/damages/index.js')).damagesRoutes, {
     prefix: '/api/damages',
   });

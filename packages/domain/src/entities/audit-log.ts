@@ -1,3 +1,22 @@
+/** PRD-09 §4.1 actor classification */
+export type AuditActorType = 'user' | 'system' | 'integration';
+
+/** Parameters for persisting an audit row (API / workers). PRD-09 operational fields optional. */
+export interface AuditLogWriteParams {
+  eventType: string;
+  actorId?: string | null;
+  targetUserId?: string | null;
+  metadata?: Record<string, unknown>;
+  summary?: string | null;
+  actorType?: AuditActorType;
+  eventTimestamp?: Date | string;
+  purchaseQuotationId?: number | null;
+  purchaseOrderId?: number | null;
+  supplierId?: number | null;
+  entityType?: string | null;
+  entityId?: string | null;
+}
+
 export interface AuditLogProps {
   id: string;
   eventType: string;

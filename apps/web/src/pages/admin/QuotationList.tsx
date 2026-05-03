@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getApiErrorMessage } from '../../lib/error-utils';
+import { useAuth } from '../../contexts/AuthContext';
+import { canUseQuotationsRequireActionFilter } from '../../lib/rbac-ui';
 import {
   getStatusLabel,
   getStatusBadgeClass,
@@ -48,6 +50,9 @@ const STATUS_OPTIONS = [
 ];
 
 export default function QuotationList() {
+  const { user } = useAuth();
+  const allowRequireAction = canUseQuotationsRequireActionFilter(user?.role);
+
   const [data, setData] = useState<QuotationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,15 +64,17 @@ export default function QuotationList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [requireActionOnly, setRequireActionOnly] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const params: Record<string, string | number> = { page, limit };
+      const params: Record<string, string | number | boolean> = { page, limit };
       if (statusFilter) params.status = statusFilter;
-      if (dateFrom) params.date_from = dateFrom;
-      if (dateTo) params.date_to = dateTo;
+      if (dateFrom) params.date_from = `${dateFrom}T00:00:00.000Z`;
+      if (dateTo) params.date_to = `${dateTo}T23:59:59.999Z`;
+      if (allowRequireAction && requireActionOnly) params.require_action = true;
 
       const res = await api.get('/quotations', { params });
       setData(res.data.data ?? []);
@@ -77,7 +84,7 @@ export default function QuotationList() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, dateFrom, dateTo]);
+  }, [page, statusFilter, dateFrom, dateTo, requireActionOnly, allowRequireAction]);
 
   useEffect(() => {
     load();
@@ -148,12 +155,28 @@ export default function QuotationList() {
             }}
           />
         </div>
+        {allowRequireAction && (
+          <div className="form-group" style={{ alignSelf: 'end' }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={requireActionOnly}
+                onChange={(e) => {
+                  setRequireActionOnly(e.target.checked);
+                  setPage(1);
+                }}
+              />
+              Exigem ação
+            </label>
+          </div>
+        )}
         <button
           className="btn btn-outline btn-sm"
           onClick={() => {
             setStatusFilter('');
             setDateFrom('');
             setDateTo('');
+            setRequireActionOnly(false);
             setPage(1);
           }}
         >

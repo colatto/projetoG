@@ -15,6 +15,7 @@ import {
   DamageStatus,
   UserRole,
 } from '@projetog/domain';
+import { AuditService } from '../audit/audit.service.js';
 
 type AuthenticatedRequest = FastifyRequest;
 type JsonObject = { [key: string]: Json | undefined };
@@ -44,7 +45,11 @@ function mapStatusFromDb(status: DamageStatus): string {
 }
 
 export class DamagesController {
-  constructor(private app: FastifyInstance) {}
+  private readonly audit: AuditService;
+
+  constructor(private app: FastifyInstance) {
+    this.audit = new AuditService(app);
+  }
 
   private async resolveSupplierId(profileId: string): Promise<number | null> {
     const { data } = await this.app.supabase
@@ -74,11 +79,13 @@ export class DamagesController {
       await this.app.supabase.from('notifications').insert(rows);
     }
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'damage_notification_dispatched',
-      entity_type: 'damage',
-      entity_id: String(metadata.damageId || ''),
-      metadata,
+    await this.audit.registerEvent({
+      eventType: 'damage_notification_dispatched',
+      actorType: 'system',
+      entityType: 'damage',
+      entityId: String(metadata.damageId || ''),
+      summary: 'Notificação operacional de avaria enviada',
+      metadata: metadata as Record<string, unknown>,
     });
   }
 
@@ -240,11 +247,15 @@ export class DamagesController {
 
     await this.recomputeOrderStatusFromDamages(body.purchase_order_id, user.sub);
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'damage_registered',
-      actor_id: user.sub,
-      entity_type: 'damage',
-      entity_id: created.id,
+    await this.audit.registerEvent({
+      eventType: 'damage_registered',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: body.purchase_order_id,
+      supplierId: order.supplier_id,
+      entityType: 'damage',
+      entityId: created.id,
+      summary: `Registro de avaria no pedido ${body.purchase_order_id}`,
       metadata: {
         purchaseOrderId: body.purchase_order_id,
         itemNumber: body.purchase_order_item_number,
@@ -382,6 +393,21 @@ export class DamagesController {
       details: { final_action: body.final_action, replacement_id: replacementId },
       purchaseOrderId: damage.purchase_order_id,
       supplierId: damage.supplier_id,
+    });
+
+    await this.audit.registerEvent({
+      eventType: 'corrective_action_defined',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: damage.purchase_order_id,
+      supplierId: damage.supplier_id,
+      entityType: 'damage',
+      entityId: damageId,
+      summary: `Ação corretiva definida: ${body.final_action} (avaria ${damageId})`,
+      metadata: {
+        final_action: body.final_action,
+        replacement_id: replacementId,
+      },
     });
 
     if (damage.suggested_action) {

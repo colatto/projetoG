@@ -9,28 +9,28 @@ Monorepo da GRF para portal do fornecedor, backoffice interno e integracao opera
 
 ## Estado Atual
 
-Atualizado em `2026-04-30`.
+Atualizado em `2026-05-03`.
 
 O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge, CI/CD e manifests Kubernetes. Build, lint e testes passam em todos os workspaces.
 
-| Area            | Estado                                                                                  |
-| --------------- | --------------------------------------------------------------------------------------- |
-| Funcionalidades | PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06, PRD-07 e PRD-08 implementados no codigo |
-| Testes          | Passam em todos os workspaces                                                           |
-| Build           | Passa em todos os workspaces                                                            |
-| Lint            | Passa em todos os workspaces                                                            |
-| Auditoria       | `pnpm audit --audit-level=moderate` reporta vulnerabilidades moderadas                  |
-| Licenca         | Nao ha arquivo `LICENSE` no repositorio                                                 |
+| Area            | Estado                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| Funcionalidades | PRD-01 a PRD-09 implementados no codigo (PRD-09: auditoria operacional, aliases HTTP e UX transversal) |
+| Testes          | Passam em todos os workspaces                                                                          |
+| Build           | Passa em todos os workspaces                                                                           |
+| Lint            | Passa em todos os workspaces                                                                           |
+| Auditoria       | `pnpm audit --audit-level=moderate` reporta vulnerabilidades moderadas                                 |
+| Licenca         | Nao ha arquivo `LICENSE` no repositorio                                                                |
 
 ## Modulos
 
-- `apps/web`: SPA React + Vite para login, recuperacao de senha, rotas protegidas, gestao de usuarios, monitoramento de integracao, fluxo de cotacoes, pedidos, follow-up logistico, notificacoes, avarias e dashboards (PRD-08).
+- `apps/web`: SPA React + Vite para login, recuperacao de senha, rotas protegidas, gestao de usuarios, monitoramento de integracao, trilha de auditoria operacional (`/admin/audit`), fluxo de cotacoes, pedidos, follow-up logistico, notificacoes, avarias e dashboards (PRD-08).
 - `apps/api`: API Fastify com autenticacao, RBAC, auditoria, webhooks Sienge, orquestracao de jobs, cotacoes, entregas, pedidos, notificacoes, follow-up, avarias, dashboards (PRD-08), health check, Swagger e metricas Prometheus.
 - `workers`: runtime Node.js + `pg-boss` para polling Sienge, reconciliacao, retries, processamento de webhooks, escrita outbound de negociacoes, expiracao de cotacoes, envio de e-mail, follow-up diario, recalculo de status de pedido e consolidacao diaria do dashboard (PRD-08).
 - `packages/domain`: enums, entidades e servicos de dominio, incluindo `OrderStatusEngine` e `TemplateRenderer`.
 - `packages/shared`: schemas Zod, tipos Supabase e utilitarios compartilhados.
 - `packages/integration-sienge`: cliente HTTP, clientes especializados, mapeadores, health check de integracao e criptografia de credenciais Sienge.
-- `supabase`: configuracao local, seed e 17 migracoes versionadas, incluindo PRD-08 de dashboards e indicadores.
+- `supabase`: configuracao local, seed e 19 migracoes versionadas, incluindo PRD-08 (dashboards) e PRD-09 (`audit_logs` operacional).
 - `deploy/k8s`: manifests Kubernetes para API e workers.
 
 ## Topologia
@@ -84,22 +84,23 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 - PRD-06: avarias, acoes corretivas, reposicoes, auditoria especifica e telas de backoffice/fornecedor.
 - PRD-07: integracao Sienge por polling, webhooks, reconciliacao, retries e escrita outbound.
 - PRD-08: snapshots diarios de KPIs, ranking, lead time, atrasos, criticidade e avarias; consolidacao atomica (pg), graficos de evolucao (recharts), cards com cores operacionais; API `/api/dashboard/*` e telas `/admin/dashboard/*`.
-- PRD-09: aliases de compatibilidade para rotas de cotacoes.
+- PRD-09: trilha de auditoria operacional (`audit_logs` enriquecido, `GET /api/backoffice/audit*`), aliases `/api/backoffice/integrations*` e `/api/supplier-portal/orders*` (espelho dos canonicos), filtro "Exigem acao" em cotacoes backoffice, cooldown de retry manual na UI de integracao; retenção 1 ano documentada em `docs/runbooks/prd09-audit-retention.md`.
 
 ## Principais Endpoints
 
-| Area                    | Rotas                                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Saude e observabilidade | `GET /health`, `GET /metrics`, `GET /docs`                                                                             |
-| Auth                    | `/api/auth/*`                                                                                                          |
-| Usuarios                | `/api/users/*`                                                                                                         |
-| Integracao              | `/api/integration/*`, `POST /webhooks/sienge`                                                                          |
-| Cotacoes                | `/api/quotations/*`, `/api/backoffice/quotations/*`, `/api/supplier/quotations/*`, `/api/supplier-portal/quotations/*` |
-| Pedidos e entregas      | `/api/orders/*`, `/api/deliveries/*`                                                                                   |
-| Notificacoes            | `/api/notifications/*`                                                                                                 |
-| Follow-up               | `/api/followup/*`                                                                                                      |
-| Avarias                 | `/api/damages/*`                                                                                                       |
-| Dashboard (PRD-08)      | `/api/dashboard/*`                                                                                                     |
+| Area                    | Rotas                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Saude e observabilidade | `GET /health`, `GET /metrics`, `GET /docs`                                                                                                        |
+| Auth                    | `/api/auth/*`                                                                                                                                     |
+| Usuarios                | `/api/users/*`                                                                                                                                    |
+| Integracao              | `/api/integration/*`, `GET /api/backoffice/integrations`, `POST /api/backoffice/integrations/:id/retry` (aliases PRD-09), `POST /webhooks/sienge` |
+| Cotacoes                | `/api/quotations/*`, `/api/backoffice/quotations/*`, `/api/supplier/quotations/*`, `/api/supplier-portal/quotations/*`                            |
+| Pedidos e entregas      | `/api/orders/*`, `/api/backoffice/orders/*`, `/api/supplier-portal/orders/*` (alias), `/api/deliveries/*`                                         |
+| Auditoria (PRD-09)      | `GET /api/backoffice/audit`, `GET /api/backoffice/audit/:audit_event_id`                                                                          |
+| Notificacoes            | `/api/notifications/*`                                                                                                                            |
+| Follow-up               | `/api/followup/*`                                                                                                                                 |
+| Avarias                 | `/api/damages/*`                                                                                                                                  |
+| Dashboard (PRD-08)      | `/api/dashboard/*`                                                                                                                                |
 
 ## Pre-requisitos
 

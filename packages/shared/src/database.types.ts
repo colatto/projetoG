@@ -36,32 +36,50 @@ export type Database = {
       audit_logs: {
         Row: {
           actor_id: string | null;
+          actor_type: string;
           created_at: string | null;
           entity_id: string | null;
           entity_type: string | null;
+          event_timestamp: string;
           event_type: string;
           id: string;
           metadata: Json | null;
+          purchase_order_id: number | null;
+          purchase_quotation_id: number | null;
+          summary: string | null;
+          supplier_id: number | null;
           target_user_id: string | null;
         };
         Insert: {
           actor_id?: string | null;
+          actor_type?: string;
           created_at?: string | null;
           entity_id?: string | null;
           entity_type?: string | null;
+          event_timestamp?: string;
           event_type: string;
           id?: string;
           metadata?: Json | null;
+          purchase_order_id?: number | null;
+          purchase_quotation_id?: number | null;
+          summary?: string | null;
+          supplier_id?: number | null;
           target_user_id?: string | null;
         };
         Update: {
           actor_id?: string | null;
+          actor_type?: string;
           created_at?: string | null;
           entity_id?: string | null;
           entity_type?: string | null;
+          event_timestamp?: string;
           event_type?: string;
           id?: string;
           metadata?: Json | null;
+          purchase_order_id?: number | null;
+          purchase_quotation_id?: number | null;
+          summary?: string | null;
+          supplier_id?: number | null;
           target_user_id?: string | null;
         };
         Relationships: [

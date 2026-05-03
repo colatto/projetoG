@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { NotificationType, UserRole } from '@projetog/domain';
+import { AuditService } from '../audit/audit.service.js';
 import {
   dateChangeParamsSchema as dateChangeParamsSchemaRuntime,
   dateDecisionBodySchema as dateDecisionBodySchemaRuntime,
@@ -28,7 +29,11 @@ function isWeekend(date: Date): boolean {
 }
 
 export class FollowupController {
-  constructor(private app: FastifyInstance) {}
+  private readonly audit: AuditService;
+
+  constructor(private app: FastifyInstance) {
+    this.audit = new AuditService(app);
+  }
 
   private getOperationalPriority(
     localStatus: string | null | undefined,
@@ -295,12 +300,16 @@ export class FollowupController {
       });
     }
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'followup_confirmation_received',
-      actor_id: user.sub,
-      entity_type: 'follow_up_tracker',
-      entity_id: tracker.id,
-      metadata: { purchaseOrderId },
+    await this.audit.registerEvent({
+      eventType: 'delivery_confirmed',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId,
+      supplierId: tracker.supplier_id as number,
+      entityType: 'follow_up_tracker',
+      entityId: tracker.id,
+      summary: `Fornecedor confirmou entrega no prazo (pedido ${purchaseOrderId})`,
+      metadata: { purchaseOrderId, tracker_id: tracker.id },
     });
 
     return reply.send({ status: 'confirmed', followup_tracking_id: tracker.id });
@@ -389,11 +398,15 @@ export class FollowupController {
       });
     }
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'followup_new_date_suggested',
-      actor_id: user.sub,
-      entity_type: 'follow_up_tracker',
-      entity_id: tracker.id,
+    await this.audit.registerEvent({
+      eventType: 'followup_new_date_suggested',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId,
+      supplierId: ownSupplierId,
+      entityType: 'follow_up_tracker',
+      entityId: tracker.id,
+      summary: `Sugestão de nova data ${suggested_date} para pedido ${purchaseOrderId}`,
       metadata: { purchaseOrderId, suggested_date, reason: reason || null },
     });
 
@@ -512,11 +525,15 @@ export class FollowupController {
         })
         .eq('id', tracker.id);
 
-      await this.app.supabase.from('audit_logs').insert({
-        event_type: 'followup_new_date_approved',
-        actor_id: user.sub,
-        entity_type: 'follow_up_tracker',
-        entity_id: tracker.id,
+      await this.audit.registerEvent({
+        eventType: 'promised_date_changed',
+        actorId: user.sub,
+        actorType: 'user',
+        purchaseOrderId: tracker.purchase_order_id as number,
+        supplierId: tracker.supplier_id as number,
+        entityType: 'follow_up_tracker',
+        entityId: tracker.id,
+        summary: `Data prometida alterada para ${dateChange.suggested_date} (pedido ${tracker.purchase_order_id})`,
         metadata: {
           previousDate: dateChange.previous_date,
           newDate: dateChange.suggested_date,
@@ -536,11 +553,15 @@ export class FollowupController {
       })
       .eq('id', tracker.id);
 
-    await this.app.supabase.from('audit_logs').insert({
-      event_type: 'followup_new_date_rejected',
-      actor_id: user.sub,
-      entity_type: 'follow_up_tracker',
-      entity_id: tracker.id,
+    await this.audit.registerEvent({
+      eventType: 'followup_new_date_rejected',
+      actorId: user.sub,
+      actorType: 'user',
+      purchaseOrderId: tracker.purchase_order_id as number,
+      supplierId: tracker.supplier_id as number,
+      entityType: 'follow_up_tracker',
+      entityId: tracker.id,
+      summary: `Nova data sugerida reprovada para pedido ${tracker.purchase_order_id}`,
       metadata: {
         previousDate: dateChange.previous_date,
         rejectedDate: dateChange.suggested_date,

@@ -59,12 +59,15 @@ describe('AuditService', () => {
     });
 
     expect(mockFrom).toHaveBeenCalledWith('audit_logs');
-    expect(mockInsert).toHaveBeenCalledWith({
-      event_type: 'user.created',
-      actor_id: '00000000-0000-0000-0000-000000000001',
-      target_user_id: '00000000-0000-0000-0000-000000000002',
-      metadata: { role: 'compras', email: 'compras@grf.com.br' },
-    });
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event_type: 'user.created',
+        actor_id: '00000000-0000-0000-0000-000000000001',
+        target_user_id: '00000000-0000-0000-0000-000000000002',
+        metadata: { role: 'compras', email: 'compras@grf.com.br' },
+        actor_type: 'user',
+      }),
+    );
   });
 
   it('should persist log with null actor_id for system events', async () => {

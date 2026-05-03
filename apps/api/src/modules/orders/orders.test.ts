@@ -37,6 +37,24 @@ describe('Orders Module', () => {
     ]);
   });
 
+  it('GET /api/supplier-portal/orders mirrors GET /api/orders for FORNECEDOR', async () => {
+    context.supabase
+      .table('profiles')
+      .single.mockResolvedValue({ data: { supplier_id: 10 }, error: null });
+    context.supabase
+      .table('purchase_orders')
+      ._mockResolvedValue({ data: [{ id: 7, supplier_id: 10, local_status: 'PENDENTE' }], error: null });
+
+    const token = await generateTestToken(context.app, { role: UserRole.FORNECEDOR });
+    const response = await context.app.inject({
+      method: 'GET',
+      url: '/api/supplier-portal/orders',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
   it('GET /api/backoffice/orders mirrors GET /api/orders', async () => {
     context.supabase
       .table('purchase_orders')

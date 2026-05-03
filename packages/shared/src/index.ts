@@ -9,3 +9,4 @@ export * from './schemas/followup.js';
 export * from './schemas/damages.js';
 export * from './schemas/dashboard.js';
 export * from './schemas/orders.js';
+export * from './schemas/audit.js';

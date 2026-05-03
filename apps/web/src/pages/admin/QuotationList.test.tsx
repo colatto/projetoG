@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { UserRole } from '@projetog/domain';
 import QuotationList from './QuotationList';
 
 const { getMock } = vi.hoisted(() => ({
@@ -12,6 +13,10 @@ vi.mock('../../lib/api', () => ({
   api: {
     get: getMock,
   },
+}));
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: UserRole.ADMINISTRADOR } }),
 }));
 
 describe('QuotationList', () => {
@@ -168,6 +173,27 @@ describe('QuotationList', () => {
     await waitFor(() => {
       expect(getMock).toHaveBeenCalledWith('/quotations', {
         params: { page: 1, limit: 20, status: 'FORNECEDOR_INVALIDO_MAPA' },
+      });
+    });
+  });
+
+  it('sends require_action when Exigem ação is checked', async () => {
+    getMock.mockResolvedValue({
+      data: { data: [], pagination: { total: 0 } },
+    });
+
+    render(
+      <MemoryRouter>
+        <QuotationList />
+      </MemoryRouter>,
+    );
+
+    const cb = await screen.findByRole('checkbox', { name: /Exigem ação/i });
+    fireEvent.click(cb);
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledWith('/quotations', {
+        params: { page: 1, limit: 20, require_action: true },
       });
     });
   });
