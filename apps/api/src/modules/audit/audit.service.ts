@@ -34,22 +34,46 @@ export class AuditService {
       entity_id: params.entityId ?? null,
     };
 
-    const { error } = await this.fastify.supabase.from('audit_logs').insert(logEntry);
+    try {
+      const { error } = await this.fastify.supabase.from('audit_logs').insert(logEntry);
 
-    if (error) {
+      if (error) {
+        this.fastify.log.error(
+          { err: error, context: 'AuditService' },
+          'Falha ao registrar log de auditoria — tentando enfileirar via pg-boss',
+        );
+
+        // PRD-09 §9.6: enqueue locally for deferred retry when audit write fails.
+        try {
+          if (this.fastify.boss) {
+            await this.fastify.boss.send('audit:retry', logEntry, {
+              retryLimit: 3,
+              retryDelay: 60,
+            });
+            this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry');
+          }
+        } catch (enqueueError: unknown) {
+          this.fastify.log.error(
+            { err: enqueueError, context: 'AuditService.enqueue' },
+            'Falha ao enfileirar evento de auditoria — evento perdido',
+          );
+        }
+      }
+    } catch (thrown: unknown) {
+      // Guard against thrown exceptions (e.g., network errors, client crashes).
+      // Audit must NEVER break the primary request flow (PRD-09 §9.6 best-effort).
       this.fastify.log.error(
-        { err: error, context: 'AuditService' },
-        'Falha ao registrar log de auditoria — tentando enfileirar via pg-boss',
+        { err: thrown, context: 'AuditService' },
+        'Exceção ao registrar log de auditoria — tentando enfileirar via pg-boss',
       );
 
-      // PRD-09 §9.6: enqueue locally for deferred retry when audit write fails.
       try {
         if (this.fastify.boss) {
           await this.fastify.boss.send('audit:retry', logEntry, {
             retryLimit: 3,
             retryDelay: 60,
           });
-          this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry');
+          this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry (after exception)');
         }
       } catch (enqueueError: unknown) {
         this.fastify.log.error(
