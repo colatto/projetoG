@@ -1,5 +1,13 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import axiosRetry, { isNetworkOrIdempotentRequestError } from 'axios-retry';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import axiosRetryModule, { isNetworkOrIdempotentRequestError } from 'axios-retry';
+
+// Resolve ESM/CJS interop: in CJS context, the default export is nested
+// under `.default`; in ESM context, it's the module itself.
+const axiosRetry = (
+  typeof axiosRetryModule === 'function'
+    ? axiosRetryModule
+    : (axiosRetryModule as unknown as { default: typeof axiosRetryModule }).default
+) as typeof axiosRetryModule;
 import Bottleneck from 'bottleneck';
 import { SiengeConfig, siengeConfigSchema } from './config/env.js';
 import type { SiengePaginatedResponse } from './types/sienge-types.js';
@@ -69,7 +77,7 @@ export class SiengeClient {
         // the persistence orchestration layer handles transaction state.
         return isNetworkOrIdempotentRequestError(error);
       },
-      onRetry: (retryCount, _error, requestConfig) => {
+      onRetry: (retryCount: number, _error: AxiosError, requestConfig: AxiosRequestConfig) => {
         const correlationId =
           (requestConfig as InternalAxiosRequestConfig & { _correlationId?: string })
             ._correlationId || 'unknown';
