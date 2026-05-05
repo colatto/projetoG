@@ -131,6 +131,15 @@ Se usar cluster externo (não Hostinger VPS), ver manifests em [`deploy/k8s`](..
 
 ## Troubleshooting
 
+### Log de build mostra `hostinger-entry.js` e `Done`, mas o deploy falha
+
+Na hospedagem partilhada (`public_html` / `.builds`), o passo `pnpm run build` pode terminar com sucesso enquanto o painel ainda reporta falha. Para isolar a causa:
+
+1. Copie o **log completo** até ao fim do pipeline (inclui exit code ou última linha de erro).
+2. Confirme o comando **start** configurado (deve apontar para o bundle, por exemplo `node apps/api/dist/hostinger-entry.js` na raiz do repositório após o build, ou o caminho equivalente que o painel usa).
+3. Verifique a **versão do Node** no host (o bundle usa target Node 20 — ver [`scripts/build-hostinger-api.mjs`](../../scripts/build-hostinger-api.mjs)).
+4. Ignore como falha os avisos `WARN … peer dependencies` ou `5.3mb ⚠️` do esbuild (bundle grande): não impedem o build; falhas reais costumam estar no arranque da API ou num passo seguinte ao bundle.
+
 - **API sem pg-boss:** `DATABASE_URL` vazio na API → logs avisam; jobs assíncronos não são enfileirados.
 - **Workers não sobem:** validar `DATABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; inspecionar `docker compose logs workers`.
 - **401/403 GHCR no pull:** configurar `GHCR_USERNAME` + `GHCR_PULL_TOKEN` no workflow ou fazer `docker login ghcr.io` manualmente na VPS.
