@@ -1,10 +1,23 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 
 const esbuildBin = 'node_modules/.pnpm/esbuild@0.27.7/node_modules/esbuild/bin/esbuild';
 const outdir = 'apps/api/dist';
 
 mkdirSync(outdir, { recursive: true });
+
+const pnpmStore = 'node_modules/.pnpm';
+for (const entry of existsSync(pnpmStore) ? readdirSync(pnpmStore) : []) {
+  if (!entry.startsWith('@esbuild+')) {
+    continue;
+  }
+
+  const binary = join(pnpmStore, entry, 'node_modules', entry.replace('+', '/'), 'bin', 'esbuild');
+  if (existsSync(binary)) {
+    chmodSync(binary, 0o755);
+  }
+}
 
 const result = spawnSync(
   esbuildBin,
