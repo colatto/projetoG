@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "build": "pnpm --dir apps/api run build",
+    "build": "cd apps/api && npm run build",
     "start:api": "node apps/api/dist/server.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
