@@ -4,6 +4,15 @@ Runbook para VPS Hostinger com Docker Compose, imagens no GHCR e bases em **Supa
 
 Referências: [`deploy/README.md`](../../deploy/README.md), [`docs/architecture.md`](../architecture.md).
 
+## Ambiente: VPS com Docker vs hospedagem partilhada
+
+| Indício                                                             | Ambiente provável                                                                     |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Caminho de build contém `public_html`, `.builds/source/repository`  | Hospedagem web partilhada (Git Deploy / painel), **não** o fluxo Docker deste runbook |
+| SSH para máquina com Docker, stack em `/opt/...` + `docker compose` | **VPS** — alinhado a este documento                                                   |
+
+Recomendação de produto: **API e workers em VPS com Docker** (imagens GHCR + workflow abaixo). Rodar `pnpm run build` na árvore `public_html` da partilhada costuma falhar ao executar binários nativos (ver secção _Troubleshooting → EACCES no esbuild_).
+
 ## Pré-requisitos
 
 - Repositório GitHub com Actions a construir imagens ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) → `ghcr.io/<owner>/<repo>-api` e `-workers`).
@@ -125,3 +134,24 @@ Se usar cluster externo (não Hostinger VPS), ver manifests em [`deploy/k8s`](..
 - **API sem pg-boss:** `DATABASE_URL` vazio na API → logs avisam; jobs assíncronos não são enfileirados.
 - **Workers não sobem:** validar `DATABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; inspecionar `docker compose logs workers`.
 - **401/403 GHCR no pull:** configurar `GHCR_USERNAME` + `GHCR_PULL_TOKEN` no workflow ou fazer `docker login ghcr.io` manualmente na VPS.
+
+### EACCES no esbuild durante `pnpm run build` (hospedagem partilhada)
+
+Sintoma: `Error: spawnSync .../node_modules/.../bin/esbuild EACCES` (ou `execFileSync` equivalente) ao correr o script [`scripts/build-hostinger-api.mjs`](../../scripts/build-hostinger-api.mjs).
+
+**Causa:** o SO recusa **executar** o binário nativo do esbuild nesse volume (p.ex. montagem `noexec` em `public_html` / `.builds`). Ajustar `chmod` não contorna `noexec`.
+
+**Opções:**
+
+1. **Automático / WebAssembly:** o script tenta o binário nativo e, em caso de `EACCES`, passa para o pacote **`esbuild-wasm`** (CLI via `node`), que faz o bundle com WebAssembly e não precisa marcar o binário GO como executável no disco. Opcionalmente forçar apenas WASM: definir **`HOSTINGER_ESBUILD_WASM=1`** na variável de ambiente do build no painel.
+2. **Artefacto pré-compilado (CI):** workflow [**Hostinger API bundle artifact**](../../.github/workflows/hostinger-api-bundle-artifact.yml) (`workflow_dispatch`) — corre `pnpm run build`, faz upload de `apps/api/dist/hostinger-entry.js` e `apps/api/dist/package.json`. Copie para o servidor e evite rodar esbuild lá.
+3. **VPS + Docker:** manter este runbook principal — imagens construídas no GitHub Actions sem depender da pasta `public_html`.
+
+**Confirmar montagem no servidor (SSH):**
+
+```bash
+mount | grep -E 'builds|public_html|domains' || true
+stat -c '%a %n' node_modules/.pnpm/@esbuild+*/node_modules/@esbuild/*/bin/esbuild 2>/dev/null | head -1
+```
+
+Se as permissões forem executáveis (ex.: `755`) e o erro persistir, reforça a hipótese de **`noexec`** ou política equivalente no host.
