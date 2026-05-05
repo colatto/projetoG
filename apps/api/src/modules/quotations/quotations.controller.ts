@@ -105,7 +105,11 @@ export class QuotationsController {
     if (date_to) q = q.lte('quotation_date', date_to);
     if (require_action) {
       if (status) {
-        if (!QUOTATION_REQUIRE_ACTION_STATUSES.includes(status as (typeof QUOTATION_REQUIRE_ACTION_STATUSES)[number])) {
+        if (
+          !QUOTATION_REQUIRE_ACTION_STATUSES.includes(
+            status as (typeof QUOTATION_REQUIRE_ACTION_STATUSES)[number],
+          )
+        ) {
           return reply.code(200).send({
             data: [],
             pagination: { total: 0, page, limit },

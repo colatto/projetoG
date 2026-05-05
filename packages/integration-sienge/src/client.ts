@@ -1,4 +1,9 @@
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import axiosRetryModule, { isNetworkOrIdempotentRequestError } from 'axios-retry';
 
 // Resolve ESM/CJS interop: in CJS context, the default export is nested

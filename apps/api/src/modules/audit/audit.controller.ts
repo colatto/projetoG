@@ -53,10 +53,7 @@ export class AuditController {
     });
   }
 
-  async getById(
-    request: FastifyRequest<{ Params: AuditEventIdParamDto }>,
-    reply: FastifyReply,
-  ) {
+  async getById(request: FastifyRequest<{ Params: AuditEventIdParamDto }>, reply: FastifyReply) {
     const supabase = request.server.supabase;
     const { audit_event_id } = request.params;
 

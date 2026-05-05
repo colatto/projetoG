@@ -101,9 +101,9 @@ export default function DashboardCriticidade() {
             Urgentes: {data.total_urgentes} | Padrão: {data.total_padrao}
           </div>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Prazo obra (dias úteis): proxy até a data de entrega do pedido da linha. Média histórica:
-            média de lead times de outros pedidos entregues com o mesmo item (mín. 2 amostras; caso
-            contrário, Padrão — RN-19).
+            Prazo obra (dias úteis): proxy até a data de entrega do pedido da linha. Média
+            histórica: média de lead times de outros pedidos entregues com o mesmo item (mín. 2
+            amostras; caso contrário, Padrão — RN-19).
           </p>
           <div className="table-wrapper" style={{ marginTop: '1rem' }}>
             <table className="dashboard-table">
@@ -119,7 +119,9 @@ export default function DashboardCriticidade() {
               </thead>
               <tbody>
                 {data.itens.map((row) => (
-                  <tr key={`${row.item_identifier}-${row.building_id ?? 'n'}-${row.item_description ?? ''}`}>
+                  <tr
+                    key={`${row.item_identifier}-${row.building_id ?? 'n'}-${row.item_description ?? ''}`}
+                  >
                     <td>{row.item_identifier}</td>
                     <td>{row.item_description || '—'}</td>
                     <td>

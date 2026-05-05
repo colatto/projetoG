@@ -92,14 +92,21 @@ export default function OrderList() {
 
       <div className="o-filters">
         {allowRequireAction ? (
-          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <div
+            className="form-group"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          >
             <input
               id="filter-require-action"
               type="checkbox"
               checked={requireActionOnly}
               onChange={(e) => setRequireActionOnly(e.target.checked)}
             />
-            <label className="form-label" htmlFor="filter-require-action" style={{ marginBottom: 0 }}>
+            <label
+              className="form-label"
+              htmlFor="filter-require-action"
+              style={{ marginBottom: 0 }}
+            >
               Exigem ação
             </label>
           </div>

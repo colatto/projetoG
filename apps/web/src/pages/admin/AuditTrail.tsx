@@ -55,7 +55,16 @@ export default function AuditTrail() {
     } finally {
       setLoading(false);
     }
-  }, [page, eventType, purchaseQuotationId, purchaseOrderId, supplierId, actorId, dateStart, dateEnd]);
+  }, [
+    page,
+    eventType,
+    purchaseQuotationId,
+    purchaseOrderId,
+    supplierId,
+    actorId,
+    dateStart,
+    dateEnd,
+  ]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -82,14 +91,26 @@ export default function AuditTrail() {
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
         }}
       >
-        <Input label="Tipo de evento" value={eventType} onChange={(e) => setEventType(e.target.value)} />
+        <Input
+          label="Tipo de evento"
+          value={eventType}
+          onChange={(e) => setEventType(e.target.value)}
+        />
         <Input
           label="Cotação (ID)"
           value={purchaseQuotationId}
           onChange={(e) => setPurchaseQuotationId(e.target.value)}
         />
-        <Input label="Pedido (ID)" value={purchaseOrderId} onChange={(e) => setPurchaseOrderId(e.target.value)} />
-        <Input label="Fornecedor (ID)" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} />
+        <Input
+          label="Pedido (ID)"
+          value={purchaseOrderId}
+          onChange={(e) => setPurchaseOrderId(e.target.value)}
+        />
+        <Input
+          label="Fornecedor (ID)"
+          value={supplierId}
+          onChange={(e) => setSupplierId(e.target.value)}
+        />
         <Input label="Ator (UUID)" value={actorId} onChange={(e) => setActorId(e.target.value)} />
         <Input
           label="Data inicial"
@@ -193,12 +214,19 @@ export default function AuditTrail() {
               ))}
             </tbody>
           </table>
-          {rows.length === 0 && <p style={{ marginTop: '1rem', color: '#64748b' }}>Nenhum evento encontrado.</p>}
+          {rows.length === 0 && (
+            <p style={{ marginTop: '1rem', color: '#64748b' }}>Nenhum evento encontrado.</p>
+          )}
         </div>
       )}
 
       <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}>
-        <Button type="button" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
           Anterior
         </Button>
         <span style={{ fontSize: '0.875rem' }}>

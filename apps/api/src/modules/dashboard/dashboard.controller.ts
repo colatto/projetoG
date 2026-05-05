@@ -64,9 +64,10 @@ function aggregateLatestPerBuilding<T extends { building_id: number; snapshot_da
 /** Latest global snapshot row in range (by snapshot_date). */
 function pickLatestGlobalRow(rows: any[]): any | null {
   if (!rows.length) return null;
-  return rows.reduce((best: any, row: any) =>
-    String(row.snapshot_date) > String(best.snapshot_date) ? row : best,
-  rows[0]);
+  return rows.reduce(
+    (best: any, row: any) => (String(row.snapshot_date) > String(best.snapshot_date) ? row : best),
+    rows[0],
+  );
 }
 
 type DashboardDimensionalQuery = {
@@ -187,7 +188,9 @@ export class DashboardController {
     return { primary, monitorBase };
   }
 
-  private async allowedRankingSupplierIds(query: DashboardDimensionalQuery): Promise<Set<number> | null> {
+  private async allowedRankingSupplierIds(
+    query: DashboardDimensionalQuery,
+  ): Promise<Set<number> | null> {
     const constraints: Set<number>[] = [];
     if (query.supplier_id) constraints.push(new Set([Number(query.supplier_id)]));
     if (query.building_id) {
@@ -373,8 +376,7 @@ export class DashboardController {
       pedidosNoPrazo = latest?.pedidos_no_prazo ?? 0;
       pedidosAtrasados = latest?.pedidos_atrasados ?? 0;
       pedidosComAvaria = latest?.pedidos_com_avaria ?? 0;
-      const sumPrazo =
-        (latest?.pedidos_no_prazo ?? 0) + (latest?.pedidos_atrasados ?? 0);
+      const sumPrazo = (latest?.pedidos_no_prazo ?? 0) + (latest?.pedidos_atrasados ?? 0);
       totalPedidosMonitorados =
         typeof latest?.total_pedidos_monitorados === 'number'
           ? latest.total_pedidos_monitorados
@@ -396,9 +398,9 @@ export class DashboardController {
       leadTimeMedio =
         leadRows.length > 0
           ? Number(
-              (leadRows.reduce((acc: number, cur: number) => acc + cur, 0) / leadRows.length).toFixed(
-                2,
-              ),
+              (
+                leadRows.reduce((acc: number, cur: number) => acc + cur, 0) / leadRows.length
+              ).toFixed(2),
             )
           : 0;
     }
@@ -475,7 +477,9 @@ export class DashboardController {
         .filter((value: number) => Number.isFinite(value));
       globalAvg =
         vals.length > 0
-          ? Number((vals.reduce((acc: number, cur: number) => acc + cur, 0) / vals.length).toFixed(2))
+          ? Number(
+              (vals.reduce((acc: number, cur: number) => acc + cur, 0) / vals.length).toFixed(2),
+            )
           : 0;
     } else {
       const leadValues = (globalRows || [])
@@ -607,8 +611,7 @@ export class DashboardController {
         return reply.badRequest('Fornecedor não corresponde ao pedido informado.');
       }
     }
-    const snapshotDate =
-      query.data_referencia ?? (await this.resolveLatestSnapshotDate());
+    const snapshotDate = query.data_referencia ?? (await this.resolveLatestSnapshotDate());
     if (!snapshotDate) {
       await this.auditAccess(request, 'criticidade');
       return reply.send({
@@ -705,7 +708,7 @@ export class DashboardController {
         building_id: row.building_id,
         building_name:
           row.building_id != null
-            ? buildingNameById.get(row.building_id) ?? `Obra ${row.building_id}`
+            ? (buildingNameById.get(row.building_id) ?? `Obra ${row.building_id}`)
             : null,
         prazo_obra_dias_uteis: row.prazo_obra_dias_uteis,
         media_historica_dias_uteis: row.media_historica_dias_uteis,
@@ -855,4 +858,3 @@ export class DashboardController {
     });
   }
 }
-

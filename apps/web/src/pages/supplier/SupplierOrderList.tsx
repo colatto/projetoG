@@ -85,8 +85,21 @@ export default function SupplierOrderList() {
                       {getOrderStatusLabel(o.local_status)}
                     </span>
                     {o.has_divergence && <span style={{ marginLeft: 8, color: '#c2410c' }}>⚠</span>}
-                    {o.local_status === 'ATRASADO' && <span style={{ marginLeft: 4, color: '#dc2626', fontSize: '0.75rem', fontWeight: 600 }}>🔴</span>}
-                    {(o.local_status === 'EM_AVARIA' || o.local_status === 'REPOSICAO') && <span style={{ marginLeft: 4, fontSize: '0.75rem' }}>🛠️</span>}
+                    {o.local_status === 'ATRASADO' && (
+                      <span
+                        style={{
+                          marginLeft: 4,
+                          color: '#dc2626',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        🔴
+                      </span>
+                    )}
+                    {(o.local_status === 'EM_AVARIA' || o.local_status === 'REPOSICAO') && (
+                      <span style={{ marginLeft: 4, fontSize: '0.75rem' }}>🛠️</span>
+                    )}
                   </td>
                   <td>{o.building_name ?? (o.building_id ? `Obra #${o.building_id}` : '—')}</td>
                   <td>{formatDate(o.promised_date_current)}</td>

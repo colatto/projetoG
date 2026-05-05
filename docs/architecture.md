@@ -350,7 +350,7 @@ Planejamento controlado:
 
 ### 9.1 GitHub Actions
 
-- `ci.yml`: format → lint → test → build
+- `ci.yml`: format:check → lint → typecheck → test → build (Node 20, pnpm 10, `pnpm/action-setup@v4`, alinhado com `e2e.yml` / `security.yml`)
 - `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, artefactos dos bundles `hostinger-entry.js`
 - `security.yml`: pnpm audit → gitleaks → dependency review
 
@@ -391,8 +391,9 @@ Pipeline CI:
 5. `pnpm install --frozen-lockfile`
 6. `pnpm run format:check`
 7. `pnpm run lint`
-8. `pnpm run test`
-9. `pnpm -r run build`
+8. `pnpm run typecheck`
+9. `pnpm run test`
+10. `pnpm -r run build`
 
 Artefactos de bundle (opcional, manual): workflows `hostinger-*-bundle-artifact.yml` na raiz do GitHub Actions.
 

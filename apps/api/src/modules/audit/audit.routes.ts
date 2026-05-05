@@ -25,10 +25,7 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
       preValidation: [typed.verifyRole([UserRole.COMPRAS, UserRole.ADMINISTRADOR])],
     },
     async (request, reply) =>
-      controller.list(
-        request as FastifyRequest & { query: AuditEventsListQueryDto },
-        reply,
-      ),
+      controller.list(request as FastifyRequest & { query: AuditEventsListQueryDto }, reply),
   );
 
   typed.get(
@@ -38,9 +35,6 @@ export const auditRoutes: FastifyPluginAsync = async (app) => {
       preValidation: [typed.verifyRole([UserRole.COMPRAS, UserRole.ADMINISTRADOR])],
     },
     async (request, reply) =>
-      controller.getById(
-        request as FastifyRequest & { params: AuditEventIdParamDto },
-        reply,
-      ),
+      controller.getById(request as FastifyRequest & { params: AuditEventIdParamDto }, reply),
   );
 };

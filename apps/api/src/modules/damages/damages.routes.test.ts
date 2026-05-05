@@ -473,9 +473,9 @@ describe('damages routes', () => {
         final_action_notes: reason,
       }),
     );
-    const auditInserts = context.supabase.table('damage_audit_logs').insert.mock.calls.map(
-      (c) => c[0] as { event_type?: string },
-    );
+    const auditInserts = context.supabase
+      .table('damage_audit_logs')
+      .insert.mock.calls.map((c) => c[0] as { event_type?: string });
     expect(auditInserts.some((row) => row.event_type === 'reposicao_cancelada')).toBe(true);
     expect(auditInserts.some((row) => row.event_type === 'cancelamento_aplicado')).toBe(true);
   });
@@ -512,9 +512,9 @@ describe('damages routes', () => {
     });
 
     expect(context.supabase.table('damages').in).toHaveBeenCalled();
-    expect(context.supabase.table('purchase_orders').single.mock.calls.length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(
+      context.supabase.table('purchase_orders').single.mock.calls.length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('recompute prefers EM_AVARIA when EM_REPOSICAO and REGISTRADA coexist on same order (PRD-06 §14)', async () => {

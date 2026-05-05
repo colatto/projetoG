@@ -274,7 +274,8 @@ Mitigacoes ja presentes em `package.json`:
 
 Workflows em `.github/workflows/`:
 
-- `ci.yml`: `format:check`, lint, test e build em push/PR para `main`.
+- `ci.yml`: `format:check`, lint, typecheck, test e build em push/PR para `main` (Node 20, pnpm 10, `pnpm/action-setup@v4`).
+- `e2e.yml`: Playwright (Chromium) em `apps/web` nos mesmos gatilhos.
 - `security.yml`: `pnpm audit --audit-level=moderate`, gitleaks e dependency review em PRs.
 - `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, upload de `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` como artefactos (alternativa a rodar esbuild no servidor).
 

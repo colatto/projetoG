@@ -68,9 +68,18 @@ async function check17_1(): Promise<void> {
     const startDate = sixMonthsAgo.toISOString().split('T')[0];
     const endDate = today.toISOString().split('T')[0];
 
-    interface SupplierEntry { supplierId: number; supplierName: string }
-    interface NegotiationResult { purchaseQuotationId: number; suppliers: SupplierEntry[] }
-    interface PaginatedResponse<T> { resultSetMetadata: { count: number }; results: T[] }
+    interface SupplierEntry {
+      supplierId: number;
+      supplierName: string;
+    }
+    interface NegotiationResult {
+      purchaseQuotationId: number;
+      suppliers: SupplierEntry[];
+    }
+    interface PaginatedResponse<T> {
+      resultSetMetadata: { count: number };
+      results: T[];
+    }
 
     const negotiations = await client.get<PaginatedResponse<NegotiationResult>>(
       '/purchase-quotations/all/negotiations',
@@ -95,12 +104,18 @@ async function check17_1(): Promise<void> {
 
     for (const s of suppliers) {
       try {
-        interface CreditorContact { email?: string }
-        interface CreditorResponse { id: number; name: string; contacts: CreditorContact[] }
-        const creditor = await client.get<CreditorResponse>(
-          `/creditors/${s.supplierId}`,
-          { correlationId: `h17-1-${s.supplierId}`, source: 'unknown' },
-        );
+        interface CreditorContact {
+          email?: string;
+        }
+        interface CreditorResponse {
+          id: number;
+          name: string;
+          contacts: CreditorContact[];
+        }
+        const creditor = await client.get<CreditorResponse>(`/creditors/${s.supplierId}`, {
+          correlationId: `h17-1-${s.supplierId}`,
+          source: 'unknown',
+        });
         resolved++;
         const email = creditor.contacts?.find((c) => c.email && c.email.trim() !== '');
         if (email) withEmail++;
@@ -117,8 +132,14 @@ async function check17_1(): Promise<void> {
     ];
     if (failures.length > 0) details.push(`Unresolved: ${failures.join(', ')}`);
 
-    const status: CheckStatus = failures.length === 0 ? 'PASS' : resolved / suppliers.length > 0.8 ? 'PARTIAL' : 'FAIL';
-    addResult('§17.1', status, `supplierId ↔ creditorId mapping: ${resolved}/${suppliers.length} resolved`, details);
+    const status: CheckStatus =
+      failures.length === 0 ? 'PASS' : resolved / suppliers.length > 0.8 ? 'PARTIAL' : 'FAIL';
+    addResult(
+      '§17.1',
+      status,
+      `supplierId ↔ creditorId mapping: ${resolved}/${suppliers.length} resolved`,
+      details,
+    );
 
     console.log(`  Status: ${status}`);
     details.forEach((d) => console.log(`    ${d}`));
@@ -142,7 +163,10 @@ function check17_2(): void {
     '§17.2',
     'MANUAL',
     'Requires declarative confirmation from Compras that first contacts[].email = operational contact',
-    ['Script evidence from §17.1 shows email availability', 'Pending: formal confirmation from Compras team'],
+    [
+      'Script evidence from §17.1 shows email availability',
+      'Pending: formal confirmation from Compras team',
+    ],
   );
   console.log('  Status: MANUAL — awaiting Compras team confirmation');
 }
@@ -188,7 +212,10 @@ async function check17_3_4(): Promise<void> {
       return;
     }
 
-    interface WebhookRow { webhook_type: string; created_at: string }
+    interface WebhookRow {
+      webhook_type: string;
+      created_at: string;
+    }
     const rows = (await res.json()) as WebhookRow[];
 
     const TARGET_TYPES = [
@@ -206,7 +233,10 @@ async function check17_3_4(): Promise<void> {
       byType.set(row.webhook_type, cur);
     }
 
-    const details: string[] = [`Window: last 30 days (since ${isoSince})`, `Total rows: ${rows.length}`];
+    const details: string[] = [
+      `Window: last 30 days (since ${isoSince})`,
+      `Total rows: ${rows.length}`,
+    ];
     let allPresent = true;
 
     for (const t of TARGET_TYPES) {
@@ -216,7 +246,12 @@ async function check17_3_4(): Promise<void> {
     }
 
     const status: CheckStatus = allPresent ? 'PASS' : rows.length > 0 ? 'PARTIAL' : 'SKIP';
-    addResult('§17.3/17.4', status, `Webhook history: ${allPresent ? 'both types received' : 'some types missing'}`, details);
+    addResult(
+      '§17.3/17.4',
+      status,
+      `Webhook history: ${allPresent ? 'both types received' : 'some types missing'}`,
+      details,
+    );
 
     console.log(`  Status: ${status}`);
     details.forEach((d) => console.log(`    ${d}`));
@@ -261,9 +296,17 @@ async function check17_5(): Promise<void> {
     const startDate = sixMonthsAgo.toISOString().split('T')[0];
     const endDate = today.toISOString().split('T')[0];
 
-    interface SupplierEntry { supplierId: number }
-    interface NegotiationResult { purchaseQuotationId: number; suppliers: SupplierEntry[] }
-    interface PaginatedResponse<T> { resultSetMetadata: { count: number }; results: T[] }
+    interface SupplierEntry {
+      supplierId: number;
+    }
+    interface NegotiationResult {
+      purchaseQuotationId: number;
+      suppliers: SupplierEntry[];
+    }
+    interface PaginatedResponse<T> {
+      resultSetMetadata: { count: number };
+      results: T[];
+    }
 
     const negotiations = await client.get<PaginatedResponse<NegotiationResult>>(
       '/purchase-quotations/all/negotiations',
@@ -283,9 +326,12 @@ async function check17_5(): Promise<void> {
     const ids = row.suppliers.map((s) => s.supplierId);
     const present = ids.includes(sid);
 
-    addResult('§17.5', present ? 'PASS' : 'PARTIAL', `Supplier ${sid} ${present ? 'present' : 'absent'} in map for quotation ${qid}`, [
-      `Suppliers in map: ${ids.join(', ')}`,
-    ]);
+    addResult(
+      '§17.5',
+      present ? 'PASS' : 'PARTIAL',
+      `Supplier ${sid} ${present ? 'present' : 'absent'} in map for quotation ${qid}`,
+      [`Suppliers in map: ${ids.join(', ')}`],
+    );
     console.log(`  Status: ${present ? 'PASS' : 'PARTIAL'}`);
     console.log(`    Supplier ${sid} → ${present ? '✅ present' : '❌ absent'}`);
   } catch (err: unknown) {
@@ -304,16 +350,11 @@ function check17_6(): void {
   console.log('  §17.6 — Negotiation Write (POST/PUT/PATCH sequence)');
   console.log(SECTION_DIV);
 
-  addResult(
-    '§17.6',
-    'MANUAL',
-    'Requires real mutation in Sienge — no readonly script',
-    [
-      'Execute approved write flow in homologation environment',
-      'Record quotation/supplier IDs and HTTP results per step',
-      'See docs/runbooks/sienge-homologation.md §17.6',
-    ],
-  );
+  addResult('§17.6', 'MANUAL', 'Requires real mutation in Sienge — no readonly script', [
+    'Execute approved write flow in homologation environment',
+    'Record quotation/supplier IDs and HTTP results per step',
+    'See docs/runbooks/sienge-homologation.md §17.6',
+  ]);
   console.log('  Status: MANUAL — requires real write session with Compras');
 }
 
@@ -366,7 +407,12 @@ async function check17_7(): Promise<void> {
     ];
 
     const status: CheckStatus = multi > 0 ? 'PASS' : page.results.length > 0 ? 'PARTIAL' : 'SKIP';
-    addResult('§17.7', status, `Multi-quotation orders: ${multi > 0 ? `${multi} found` : 'none in sample'}`, details);
+    addResult(
+      '§17.7',
+      status,
+      `Multi-quotation orders: ${multi > 0 ? `${multi} found` : 'none in sample'}`,
+      details,
+    );
 
     console.log(`  Status: ${status}`);
     details.forEach((d) => console.log(`    ${d}`));
@@ -444,8 +490,20 @@ async function check17_8(): Promise<void> {
       `Missing locally: ${missing}`,
     ];
 
-    const status: CheckStatus = missing === 0 && matched > 0 ? 'PASS' : matched > 0 ? 'PARTIAL' : page.results.length === 0 ? 'SKIP' : 'FAIL';
-    addResult('§17.8', status, `Deliveries coverage: ${matched}/${page.results.length} matched`, details);
+    const status: CheckStatus =
+      missing === 0 && matched > 0
+        ? 'PASS'
+        : matched > 0
+          ? 'PARTIAL'
+          : page.results.length === 0
+            ? 'SKIP'
+            : 'FAIL';
+    addResult(
+      '§17.8',
+      status,
+      `Deliveries coverage: ${matched}/${page.results.length} matched`,
+      details,
+    );
 
     console.log(`  Status: ${status}`);
     details.forEach((d) => console.log(`    ${d}`));
@@ -500,14 +558,25 @@ async function check17_9(): Promise<void> {
         source: 'unknown',
       });
       for (const row of rows) {
-        const t = row.openQuantity === null || row.openQuantity === undefined ? 'nullish' : typeof row.openQuantity;
+        const t =
+          row.openQuantity === null || row.openQuantity === undefined
+            ? 'nullish'
+            : typeof row.openQuantity;
         hist.set(t, (hist.get(t) ?? 0) + 1);
       }
     }
 
-    const details = [`Samples: ${samples.length}`, `Types: ${JSON.stringify(Object.fromEntries(hist))}`];
+    const details = [
+      `Samples: ${samples.length}`,
+      `Types: ${JSON.stringify(Object.fromEntries(hist))}`,
+    ];
     const status: CheckStatus = hist.size > 0 ? 'PASS' : 'SKIP';
-    addResult('§17.9', status, `openQuantity types: ${JSON.stringify(Object.fromEntries(hist))}`, details);
+    addResult(
+      '§17.9',
+      status,
+      `openQuantity types: ${JSON.stringify(Object.fromEntries(hist))}`,
+      details,
+    );
 
     console.log(`  Status: ${status}`);
     details.forEach((d) => console.log(`    ${d}`));
@@ -529,8 +598,14 @@ async function run(): Promise<void> {
   console.log(DIVIDER);
 
   // Validate minimum credentials
-  if (!process.env.SIENGE_BASE_URL || !process.env.SIENGE_API_KEY || !process.env.SIENGE_API_SECRET) {
-    console.error('\n❌ Sienge credentials (SIENGE_BASE_URL, SIENGE_API_KEY, SIENGE_API_SECRET) are required.');
+  if (
+    !process.env.SIENGE_BASE_URL ||
+    !process.env.SIENGE_API_KEY ||
+    !process.env.SIENGE_API_SECRET
+  ) {
+    console.error(
+      '\n❌ Sienge credentials (SIENGE_BASE_URL, SIENGE_API_KEY, SIENGE_API_SECRET) are required.',
+    );
     process.exit(1);
   }
 

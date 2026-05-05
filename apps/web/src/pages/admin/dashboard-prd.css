@@ -73,7 +73,9 @@
   gap: 0.35rem;
   color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .dashboard-card:hover {
@@ -94,11 +96,11 @@
 }
 
 .dashboard-card--turquesa {
-  background: linear-gradient(135deg, #19B4BE, #6ED8E0);
+  background: linear-gradient(135deg, #19b4be, #6ed8e0);
 }
 
 .dashboard-card--azul {
-  background: linear-gradient(135deg, #324598, #465EBE);
+  background: linear-gradient(135deg, #324598, #465ebe);
 }
 
 .dashboard-card--vermelho {
@@ -108,4 +110,3 @@
 .dashboard-card--roxo {
   background: linear-gradient(135deg, #7c3aed, #8b5cf6);
 }
-

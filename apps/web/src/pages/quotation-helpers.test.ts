@@ -12,9 +12,9 @@ describe('getDominantNegotiationStatus', () => {
   });
 
   it('prioritizes FORNECEDOR_INVALIDO_MAPA over INTEGRADA_SIENGE (RN-30)', () => {
-    expect(
-      getDominantNegotiationStatus(['INTEGRADA_SIENGE', 'FORNECEDOR_INVALIDO_MAPA']),
-    ).toBe('FORNECEDOR_INVALIDO_MAPA');
+    expect(getDominantNegotiationStatus(['INTEGRADA_SIENGE', 'FORNECEDOR_INVALIDO_MAPA'])).toBe(
+      'FORNECEDOR_INVALIDO_MAPA',
+    );
   });
 
   it('returns only integrated when no invalid supplier', () => {
@@ -72,18 +72,14 @@ describe('formatSupplierNamesCell', () => {
 describe('quotationRowHasClosedSupplier', () => {
   it('detects FORNECEDOR_FECHADO', () => {
     expect(
-      quotationRowHasClosedSupplier([
-        { status: 'FORNECEDOR_FECHADO', closed_order_id: null },
-      ]),
+      quotationRowHasClosedSupplier([{ status: 'FORNECEDOR_FECHADO', closed_order_id: null }]),
     ).toBe(true);
   });
 
   it('detects closed_order_id', () => {
-    expect(
-      quotationRowHasClosedSupplier([
-        { status: 'APROVADA', closed_order_id: 900 },
-      ]),
-    ).toBe(true);
+    expect(quotationRowHasClosedSupplier([{ status: 'APROVADA', closed_order_id: 900 }])).toBe(
+      true,
+    );
   });
 
   it('false when neither', () => {

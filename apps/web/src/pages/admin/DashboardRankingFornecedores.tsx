@@ -138,7 +138,9 @@ export default function DashboardRankingFornecedores() {
                   <td>{row.pedidos_com_avaria}</td>
                   <td>{row.lead_time_medio}</td>
                   <td>
-                    <span className={confiabilidadeClass(row.confiabilidade)}>{row.confiabilidade}</span>
+                    <span className={confiabilidadeClass(row.confiabilidade)}>
+                      {row.confiabilidade}
+                    </span>
                   </td>
                 </tr>
               ))}

@@ -16,7 +16,9 @@ config({ path: envPath });
 
 const DIVIDER = '─'.repeat(70);
 
-function parseSamples(raw: string | undefined): { purchaseRequestId: number; itemNumber: number }[] {
+function parseSamples(
+  raw: string | undefined,
+): { purchaseRequestId: number; itemNumber: number }[] {
   if (!raw?.trim()) return [];
   const out: { purchaseRequestId: number; itemNumber: number }[] = [];
   for (const part of raw.split(',')) {

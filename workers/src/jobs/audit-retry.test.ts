@@ -56,9 +56,9 @@ describe('processAuditRetry', () => {
   });
 
   it('throws when event_type is missing', async () => {
-    await expect(
-      processAuditRetry(makeJob({} as AuditRetryJobData)),
-    ).rejects.toThrow('audit:retry payload missing event_type');
+    await expect(processAuditRetry(makeJob({} as AuditRetryJobData))).rejects.toThrow(
+      'audit:retry payload missing event_type',
+    );
     expect(insertMock).not.toHaveBeenCalled();
   });
 });

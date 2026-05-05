@@ -20,9 +20,10 @@ describe('Orders Module', () => {
   });
 
   it('GET /api/orders should list orders for ADMIN', async () => {
-    context.supabase
-      .table('purchase_orders')
-      ._mockResolvedValue({ data: [{ id: 100, local_status: 'PENDENTE', created_at: '2026-01-01' }], error: null });
+    context.supabase.table('purchase_orders')._mockResolvedValue({
+      data: [{ id: 100, local_status: 'PENDENTE', created_at: '2026-01-01' }],
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.ADMINISTRADOR });
     const response = await context.app.inject({
@@ -41,9 +42,10 @@ describe('Orders Module', () => {
     context.supabase
       .table('profiles')
       .single.mockResolvedValue({ data: { supplier_id: 10 }, error: null });
-    context.supabase
-      .table('purchase_orders')
-      ._mockResolvedValue({ data: [{ id: 7, supplier_id: 10, local_status: 'PENDENTE' }], error: null });
+    context.supabase.table('purchase_orders')._mockResolvedValue({
+      data: [{ id: 7, supplier_id: 10, local_status: 'PENDENTE' }],
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.FORNECEDOR });
     const response = await context.app.inject({
@@ -56,9 +58,10 @@ describe('Orders Module', () => {
   });
 
   it('GET /api/backoffice/orders mirrors GET /api/orders', async () => {
-    context.supabase
-      .table('purchase_orders')
-      ._mockResolvedValue({ data: [{ id: 7, local_status: 'ENTREGUE', created_at: '2026-02-01' }], error: null });
+    context.supabase.table('purchase_orders')._mockResolvedValue({
+      data: [{ id: 7, local_status: 'ENTREGUE', created_at: '2026-02-01' }],
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
     const response = await context.app.inject({
@@ -92,9 +95,10 @@ describe('Orders Module', () => {
   });
 
   it('GET /api/orders should list orders for VISUALIZADOR_PEDIDOS', async () => {
-    context.supabase
-      .table('purchase_orders')
-      ._mockResolvedValue({ data: [{ id: 55, local_status: 'PENDENTE', created_at: '2026-01-02' }], error: null });
+    context.supabase.table('purchase_orders')._mockResolvedValue({
+      data: [{ id: 55, local_status: 'PENDENTE', created_at: '2026-01-02' }],
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.VISUALIZADOR_PEDIDOS });
     const response = await context.app.inject({
@@ -111,7 +115,10 @@ describe('Orders Module', () => {
 
   it('GET /api/orders require_action=true applies local_status filter for COMPRAS', async () => {
     const po = context.supabase.table('purchase_orders');
-    po._mockResolvedValue({ data: [{ id: 1, local_status: 'ATRASADO', created_at: '2026-01-01' }], error: null });
+    po._mockResolvedValue({
+      data: [{ id: 1, local_status: 'ATRASADO', created_at: '2026-01-01' }],
+      error: null,
+    });
 
     const token = await generateTestToken(context.app, { role: UserRole.COMPRAS });
     const response = await context.app.inject({

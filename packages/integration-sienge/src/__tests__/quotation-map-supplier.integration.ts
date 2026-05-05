@@ -75,7 +75,9 @@ async function run(): Promise<void> {
 
   console.log(`\nCotação ${qid}: ${row.suppliers.length} fornecedor(es) no mapa.`);
   console.log(`supplierIds: ${ids.join(', ') || '—'}`);
-  console.log(`\nHOMOLOG_SUPPLIER_ID=${sid} → ${present ? '✅ presente no mapa' : '❌ ausente do mapa'}`);
+  console.log(
+    `\nHOMOLOG_SUPPLIER_ID=${sid} → ${present ? '✅ presente no mapa' : '❌ ausente do mapa'}`,
+  );
   console.log(DIVIDER);
 }
 

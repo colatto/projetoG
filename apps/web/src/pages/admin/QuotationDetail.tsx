@@ -315,10 +315,13 @@ export default function QuotationDetail() {
                 </div>
 
                 {sn.status === 'FORNECEDOR_INVALIDO_MAPA' && (
-                  <div className="q-notice q-notice--error" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
-                    <strong>Atenção:</strong> {INVALID_SUPPLIER_MAP_ALERT_MESSAGE}. O envio ao Sienge foi
-                    bloqueado para este fornecedor; verifique o mapa da cotação no Sienge antes de novas
-                    tentativas.
+                  <div
+                    className="q-notice q-notice--error"
+                    style={{ marginTop: '0.5rem', marginBottom: 0 }}
+                  >
+                    <strong>Atenção:</strong> {INVALID_SUPPLIER_MAP_ALERT_MESSAGE}. O envio ao
+                    Sienge foi bloqueado para este fornecedor; verifique o mapa da cotação no Sienge
+                    antes de novas tentativas.
                   </div>
                 )}
 

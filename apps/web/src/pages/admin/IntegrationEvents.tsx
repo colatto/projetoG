@@ -53,7 +53,17 @@ function formatEventType(eventType: string) {
 function formatDateForApiBoundary(dateStr: string, endOfDay: boolean): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   if (!y || !m || !d) return '';
-  const dt = new Date(Date.UTC(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0));
+  const dt = new Date(
+    Date.UTC(
+      y,
+      m - 1,
+      d,
+      endOfDay ? 23 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 999 : 0,
+    ),
+  );
   return dt.toISOString();
 }
 
@@ -230,7 +240,11 @@ export default function IntegrationEvents() {
           </p>
         </div>
 
-        <button className="btn btn-secondary" onClick={() => void loadEvents(pagination.page)} disabled={isLoading}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => void loadEvents(pagination.page)}
+          disabled={isLoading}
+        >
           {isLoading ? 'Atualizando...' : 'Atualizar'}
         </button>
       </div>
@@ -246,7 +260,14 @@ export default function IntegrationEvents() {
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Status
             <select
               className="input"
@@ -262,7 +283,14 @@ export default function IntegrationEvents() {
               ))}
             </select>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Tipo de evento
             <select
               className="input"
@@ -278,7 +306,14 @@ export default function IntegrationEvents() {
               ))}
             </select>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Direção
             <select
               className="input"
@@ -294,7 +329,14 @@ export default function IntegrationEvents() {
               ))}
             </select>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Data inicial
             <input
               className="input"
@@ -304,7 +346,14 @@ export default function IntegrationEvents() {
               aria-label="Data inicial"
             />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
             Data final
             <input
               className="input"

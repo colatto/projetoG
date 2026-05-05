@@ -159,7 +159,10 @@ export default function QuotationList() {
         </div>
         {allowRequireAction && (
           <div className="form-group" style={{ alignSelf: 'end' }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label
+              className="form-label"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
               <input
                 type="checkbox"
                 checked={requireActionOnly}
@@ -211,7 +214,10 @@ export default function QuotationList() {
                   const negs = q.supplier_negotiations ?? [];
                   const statuses = negs.map((n) => n.status);
                   const dominantStatus = getDominantNegotiationStatus(statuses);
-                  const showInvalidMixedChip = shouldShowInvalidMapMixedChip(statuses, dominantStatus);
+                  const showInvalidMixedChip = shouldShowInvalidMapMixedChip(
+                    statuses,
+                    dominantStatus,
+                  );
                   const readCount = negs.filter((n) => n.read_at).length;
                   const responseCount = negs.filter((n) => n.latest_response_id).length;
                   const orderIds = negs

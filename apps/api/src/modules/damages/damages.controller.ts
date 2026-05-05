@@ -138,9 +138,7 @@ export class DamagesController {
         DamageStatus.ACAO_DEFINIDA,
       ].includes(d.status as DamageStatus),
     );
-    const hasReposicao = (activeDamages || []).some(
-      (d) => d.status === DamageStatus.EM_REPOSICAO,
-    );
+    const hasReposicao = (activeDamages || []).some((d) => d.status === DamageStatus.EM_REPOSICAO);
 
     const targetStatus = hasAvaria ? 'EM_AVARIA' : hasReposicao ? 'REPOSICAO' : null;
     if (!targetStatus || targetStatus === order.local_status) return;

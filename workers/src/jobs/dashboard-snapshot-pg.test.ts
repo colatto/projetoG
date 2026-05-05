@@ -66,9 +66,9 @@ describe('replaceDashboardSnapshotBundle', () => {
     );
     expect(texts.some((t) => t.includes('DELETE FROM public.dashboard_snapshot'))).toBe(true);
     expect(texts.some((t) => t.includes('INSERT INTO public.dashboard_snapshot'))).toBe(true);
-    expect(texts.some((t) => t.includes('INSERT INTO public.dashboard_snapshot_por_fornecedor'))).toBe(
-      true,
-    );
+    expect(
+      texts.some((t) => t.includes('INSERT INTO public.dashboard_snapshot_por_fornecedor')),
+    ).toBe(true);
     expect(texts[texts.length - 1]).toContain('COMMIT');
     expect(hoisted.mockRelease).toHaveBeenCalled();
   });

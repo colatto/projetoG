@@ -1,8 +1,7 @@
 /** Quotation status display helpers — PRD-02 §8 */
 
 /** PRDGlobal §9.9 / PRD-02 RN-30 — full wording for alerts (detail). */
-export const INVALID_SUPPLIER_MAP_ALERT_MESSAGE =
-  'Fornecedor inválido no mapa de cotação';
+export const INVALID_SUPPLIER_MAP_ALERT_MESSAGE = 'Fornecedor inválido no mapa de cotação';
 
 /**
  * Aggregated status for one quotation row (multiple supplier_negotiations).
@@ -32,10 +31,7 @@ export function getDominantNegotiationStatus(statuses: string[]): string {
 }
 
 /** Secondary chip when invalid-map exists but dominant differs (defensive / future tweaks). */
-export function shouldShowInvalidMapMixedChip(
-  statuses: string[],
-  dominant: string,
-): boolean {
+export function shouldShowInvalidMapMixedChip(statuses: string[], dominant: string): boolean {
   return statuses.includes('FORNECEDOR_INVALIDO_MAPA') && dominant !== 'FORNECEDOR_INVALIDO_MAPA';
 }
 
@@ -51,9 +47,7 @@ export function formatSupplierNamesCell(names: string[]): { title: string; prima
 export function quotationRowHasClosedSupplier(
   negotiations: Array<{ status: string; closed_order_id: number | null }>,
 ): boolean {
-  return negotiations.some(
-    (n) => n.status === 'FORNECEDOR_FECHADO' || n.closed_order_id != null,
-  );
+  return negotiations.some((n) => n.status === 'FORNECEDOR_FECHADO' || n.closed_order_id != null);
 }
 
 const STATUS_LABELS: Record<string, string> = {

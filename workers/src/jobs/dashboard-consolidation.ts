@@ -1,4 +1,3 @@
-
 import PgBoss from 'pg-boss';
 import { getSupabase } from '../supabase.js';
 import { countBusinessDays, holidaysToSet } from '../utils/business-days.js';
@@ -113,8 +112,13 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
     );
 
     const trackedStatuses = new Set([
-      'PENDENTE', 'PARCIALMENTE_ENTREGUE', 'ATRASADO', 'ENTREGUE',
-      'EM_AVARIA', 'REPOSICAO', 'DIVERGENCIA',
+      'PENDENTE',
+      'PARCIALMENTE_ENTREGUE',
+      'ATRASADO',
+      'ENTREGUE',
+      'EM_AVARIA',
+      'REPOSICAO',
+      'DIVERGENCIA',
     ]);
     const trackedOrders = orders.filter((o) =>
       trackedStatuses.has(String(o.local_status || '').toUpperCase()),
@@ -159,9 +163,7 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
         .from('suppliers')
         .select('id, name')
         .in('id', supplierIds);
-      supplierNames = new Map(
-        (suppliers || []).map((s) => [s.id, s.name || `Fornecedor ${s.id}`]),
-      );
+      supplierNames = new Map((suppliers || []).map((s) => [s.id, s.name || `Fornecedor ${s.id}`]));
     }
 
     const threeMonthsAgo = new Date();
@@ -188,7 +190,9 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
     const damagesInDayBySupplier = (supplierId: number) =>
       damages.filter(
         (d) =>
-          d.supplier_id === supplierId && (d.created_at ?? '') >= start && (d.created_at ?? '') <= end,
+          d.supplier_id === supplierId &&
+          (d.created_at ?? '') >= start &&
+          (d.created_at ?? '') <= end,
       );
     const pedidosComAvariaNoDia = (supplierId: number) =>
       new Set(damagesInDayBySupplier(supplierId).map((d) => d.purchase_order_id)).size;
@@ -213,8 +217,7 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
         supplier_id: supplierId,
         supplier_name: supplierNames.get(supplierId) || `Fornecedor ${supplierId}`,
         cotacoes_enviadas: supplierNegotiations.filter((n) => n.sent_at).length,
-        cotacoes_respondidas: supplierNegotiations.filter((n) => n.supplier_answer_date)
-          .length,
+        cotacoes_respondidas: supplierNegotiations.filter((n) => n.supplier_answer_date).length,
         pedidos_no_prazo: supplierOrders.filter(
           (o) => String(o.local_status).toUpperCase() === 'ENTREGUE',
         ).length,
@@ -254,26 +257,30 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
 
       const damagesObraDia = damages.filter(
         (d) =>
-          d.building_id === buildingId && (d.created_at ?? '') >= start && (d.created_at ?? '') <= end,
+          d.building_id === buildingId &&
+          (d.created_at ?? '') >= start &&
+          (d.created_at ?? '') <= end,
       );
 
       return {
         snapshot_date: snapshotDate,
         building_id: buildingId,
         building_name: `Obra ${buildingId}`,
-        pedidos_no_prazo: rows.filter(
-          (o) => String(o.local_status).toUpperCase() === 'ENTREGUE',
-        ).length,
-        pedidos_atrasados: rows.filter(
-          (o) => String(o.local_status).toUpperCase() === 'ATRASADO',
-        ).length,
+        pedidos_no_prazo: rows.filter((o) => String(o.local_status).toUpperCase() === 'ENTREGUE')
+          .length,
+        pedidos_atrasados: rows.filter((o) => String(o.local_status).toUpperCase() === 'ATRASADO')
+          .length,
         pedidos_com_avaria: new Set(damagesObraDia.map((d) => d.purchase_order_id)).size,
         lead_time_medio_dias_uteis: rowLeadAvg,
         created_at: referenceNow,
       };
     });
 
-    type OrderItemRow = { purchase_order_id: number; item_number: number; description: string | null };
+    type OrderItemRow = {
+      purchase_order_id: number;
+      item_number: number;
+      description: string | null;
+    };
     const allOrderItems: OrderItemRow[] = [];
     const pageSize = 1000;
     for (let from = 0; ; from += pageSize) {
@@ -311,9 +318,7 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
       const avgHistory = others.length >= MIN_HISTORY_SAMPLES ? mean(others) : null;
       const remainingDays = remainingBusinessDaysToDelivery(order, holidaySet);
       const isUrgent =
-        typeof remainingDays === 'number' &&
-        avgHistory !== null &&
-        remainingDays < avgHistory;
+        typeof remainingDays === 'number' && avgHistory !== null && remainingDays < avgHistory;
 
       return {
         snapshot_date: snapshotDate,
@@ -358,8 +363,7 @@ export async function processDashboardConsolidation(job: PgBoss.Job): Promise<vo
         supplier_rows: supplierSnapshotRows.length,
         building_rows: buildingSnapshotRows.length,
         criticality_rows: criticalityRows.length,
-        integration_failures: integrations.filter((event) => event.status === 'failure')
-          .length,
+        integration_failures: integrations.filter((event) => event.status === 'failure').length,
       },
     });
   } catch (error: unknown) {

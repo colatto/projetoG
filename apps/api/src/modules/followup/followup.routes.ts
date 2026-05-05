@@ -20,11 +20,7 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
     {
       schema: { querystring: followupOrdersQuerySchema },
       preValidation: [
-        typedApp.verifyRole([
-          UserRole.ADMINISTRADOR,
-          UserRole.COMPRAS,
-          UserRole.FORNECEDOR,
-        ]),
+        typedApp.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR]),
       ],
     },
     controller.listOrders.bind(controller),
@@ -35,11 +31,7 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
     {
       schema: { params: followupPurchaseOrderParamsSchema },
       preValidation: [
-        typedApp.verifyRole([
-          UserRole.ADMINISTRADOR,
-          UserRole.COMPRAS,
-          UserRole.FORNECEDOR,
-        ]),
+        typedApp.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR]),
       ],
     },
     controller.getOrderDetail.bind(controller),
@@ -86,11 +78,7 @@ export const followupRoutes: FastifyPluginAsync = async (app) => {
     {
       schema: { params: followupPurchaseOrderParamsSchema },
       preValidation: [
-        typedApp.verifyRole([
-          UserRole.ADMINISTRADOR,
-          UserRole.COMPRAS,
-          UserRole.FORNECEDOR,
-        ]),
+        typedApp.verifyRole([UserRole.ADMINISTRADOR, UserRole.COMPRAS, UserRole.FORNECEDOR]),
       ],
     },
     controller.listNotifications.bind(controller),

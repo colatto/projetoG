@@ -38,6 +38,9 @@ export default async function integrationPrd09Routes(fastify: FastifyInstance) {
       schema: { params: integrationEventIdParamSchema },
     },
     async (request, reply) =>
-      controller.retryEvent(request as typeof request & { params: IntegrationEventIdParamDto }, reply),
+      controller.retryEvent(
+        request as typeof request & { params: IntegrationEventIdParamDto },
+        reply,
+      ),
   );
 }

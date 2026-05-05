@@ -33,7 +33,10 @@ describe('Dashboard Routes', () => {
       await request.jwtVerify();
     });
     app.decorate('verifyRole', function (allowedRoles: UserRole[]) {
-      return async function (request: { user: { role: UserRole } }, reply: { code: (n: number) => { send: (b: unknown) => unknown } }) {
+      return async function (
+        request: { user: { role: UserRole } },
+        reply: { code: (n: number) => { send: (b: unknown) => unknown } },
+      ) {
         await request.jwtVerify();
         if (!allowedRoles.includes(request.user.role)) {
           return reply.code(403).send({ error: 'Forbidden' });
@@ -329,9 +332,7 @@ describe('Dashboard Routes', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.total_atrasados).toBe(22);
-    expect(body.taxa_atraso).toBe(
-      Number((((22 / 62) * 100).toFixed(2))),
-    );
+    expect(body.taxa_atraso).toBe(Number(((22 / 62) * 100).toFixed(2)));
     expect(body.atrasos_por_fornecedor).toHaveLength(1);
     expect(body.atrasos_por_obra).toHaveLength(1);
     expect(body.evolucao_diaria).toEqual([]);

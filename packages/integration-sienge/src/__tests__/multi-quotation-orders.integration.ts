@@ -51,13 +51,17 @@ async function run(): Promise<void> {
     else multi += 1;
   }
 
-  console.log(`\nAmostra: ${page.results.length} pedidos (limit=${limit}, offset na primeira página).`);
+  console.log(
+    `\nAmostra: ${page.results.length} pedidos (limit=${limit}, offset na primeira página).`,
+  );
   console.log(`  purchaseQuotations.length === 0 → ${zero}`);
   console.log(`  purchaseQuotations.length === 1 → ${single}`);
   console.log(`  purchaseQuotations.length > 1  → ${multi}`);
 
   if (multi > 0) {
-    console.log('\n✅ Existem pedidos com >1 cotação vinculada na amostra — útil para validar divergência de vínculo.');
+    console.log(
+      '\n✅ Existem pedidos com >1 cotação vinculada na amostra — útil para validar divergência de vínculo.',
+    );
   } else {
     console.log('\n⚠️ Nenhum pedido com >1 cotação nesta página — ampliar janela ou offset.');
   }

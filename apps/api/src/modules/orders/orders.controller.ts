@@ -4,7 +4,12 @@ import { ordersListQuerySchema } from '@projetog/shared';
 import { AuditService } from '../audit/audit.service.js';
 
 /** RN-08 — statuses represented on purchase_orders.local_status (orders slice; quotation statuses live in PRD-02). */
-const REQUIRE_ACTION_LOCAL_STATUSES = ['ATRASADO', 'DIVERGENCIA', 'EM_AVARIA', 'REPOSICAO'] as const;
+const REQUIRE_ACTION_LOCAL_STATUSES = [
+  'ATRASADO',
+  'DIVERGENCIA',
+  'EM_AVARIA',
+  'REPOSICAO',
+] as const;
 
 type PurchaseOrderListRow = {
   id: number;

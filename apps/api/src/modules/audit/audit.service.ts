@@ -50,7 +50,10 @@ export class AuditService {
               retryLimit: 3,
               retryDelay: 60,
             });
-            this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry');
+            this.fastify.log.info(
+              { eventType: params.eventType },
+              'Audit event enqueued for retry',
+            );
           }
         } catch (enqueueError: unknown) {
           this.fastify.log.error(
@@ -73,7 +76,10 @@ export class AuditService {
             retryLimit: 3,
             retryDelay: 60,
           });
-          this.fastify.log.info({ eventType: params.eventType }, 'Audit event enqueued for retry (after exception)');
+          this.fastify.log.info(
+            { eventType: params.eventType },
+            'Audit event enqueued for retry (after exception)',
+          );
         }
       } catch (enqueueError: unknown) {
         this.fastify.log.error(

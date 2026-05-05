@@ -290,9 +290,7 @@ describe('IntegrationEvents', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Reprocessar' }));
 
-    expect(
-      screen.getByText(/Tem certeza que deseja reprocessar este evento/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Tem certeza que deseja reprocessar este evento/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
 

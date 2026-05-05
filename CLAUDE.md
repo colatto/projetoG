@@ -359,6 +359,7 @@ Identificadores mínimos persistidos:
 
 Em `2026-05-05` (última verificação local, pós-alinhamento Vitest, E2E e regras `react-hooks` em `apps/web`):
 
+- `pnpm run format:check`: OK (remediação CI: ficheiros realinhados com Prettier; removido `db.js` de teste na raiz que não pertencia ao repo)
 - `pnpm -r run typecheck`: OK (workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
 - `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 53 testes (Vitest — inclui 6 cenários AuditTrail + 3 cenários OrderList §14.1)
@@ -368,6 +369,8 @@ Em `2026-05-05` (última verificação local, pós-alinhamento Vitest, E2E e reg
 **Lint `apps/web` e `eslint-plugin-react-hooks` 7.x:** o preset `flat.recommended` inclui `set-state-in-effect`, `refs`, `purity` e `incompatible-library`. O código foi alinhado sem desligar regras: carregamentos disparados por `useEffect` usam `queueMicrotask(() => { void load…(); })`; `IntegrationEvents` sincroniza `filtersRef` num `useEffect`; expiração de prazo em `SupplierQuotationDetail` evita `Date.now()` no render (`end < new Date()`); `UserCreate` usa `useWatch` em vez de `watch()` para o papel selecionado.
 
 Bundles Hostinger (sem Docker): `pnpm run build:api` e `pnpm run build:workers` geram `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` (smoke local de arranque validado após build).
+
+> **Nota (2026-05-05 — remediação CI GitHub Actions):** o workflow [`ci.yml`](.github/workflows/ci.yml) falhava no passo **Check Formatting** (`prettier --check .`). Foram aplicados `pnpm run format` nos ficheiros afetados, removido o script acidental `db.js` na raiz da árvore e alinhado `pnpm/action-setup@v4` em `ci.yml` com `e2e.yml` e `security.yml`. O mesmo pipeline do CI foi reproduzido localmente (`format:check` → lint → typecheck → test → build) antes do push.
 
 ## Auditoria de dependências
 
@@ -397,7 +400,7 @@ Política atual do monorepo:
 
 ### CI/CD (GitHub Actions)
 
-- `ci.yml`: format, lint, test, build em `push`/`pull_request` para `main`
+- `ci.yml`: format, lint, typecheck, test, build em `push`/`pull_request` para `main` (Node 20, pnpm 10, `pnpm/action-setup@v4`)
 - `e2e.yml`: Playwright (Chromium) em `apps/web` em `push`/`pull_request` para `main`
 - `hostinger-api-bundle-artifact.yml`: `workflow_dispatch` — build `pnpm run build:api`, artefacto `apps/api/dist/hostinger-entry.js` + `package.json`
 - `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch` — build `pnpm run build:workers`, artefacto `workers/dist/hostinger-entry.js` + `package.json`
