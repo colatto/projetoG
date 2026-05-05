@@ -32,6 +32,7 @@ Servir o backend dedicado do projeto com Fastify 5.
 
 - `src/server.ts`: bootstrap do servidor
 - `src/app.ts`: factory usada em runtime e testes
+- `apps/api/dist/hostinger-entry.js`: bundle CJS único gerado por `pnpm run build:api` na raiz ([`scripts/build-hostinger-api.mjs`](../../scripts/build-hostinger-api.mjs)) para deploy Node.js sem Docker (ex.: Hostinger); arranque com `pnpm run start:api`
 
 ## Plugins registrados
 

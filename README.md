@@ -2,16 +2,16 @@
 
 [![CI](https://github.com/colatto/projetoG/actions/workflows/ci.yml/badge.svg)](https://github.com/colatto/projetoG/actions/workflows/ci.yml)
 [![Security](https://github.com/colatto/projetoG/actions/workflows/security.yml/badge.svg)](https://github.com/colatto/projetoG/actions/workflows/security.yml)
-[![Deploy](https://github.com/colatto/projetoG/actions/workflows/deploy.yml/badge.svg)](https://github.com/colatto/projetoG/actions/workflows/deploy.yml)
+[![Hostinger API bundle](https://github.com/colatto/projetoG/actions/workflows/hostinger-api-bundle-artifact.yml/badge.svg)](https://github.com/colatto/projetoG/actions/workflows/hostinger-api-bundle-artifact.yml)
 ![License](https://img.shields.io/badge/license-not%20defined-lightgrey)
 
 Monorepo da GRF para portal do fornecedor, backoffice interno e integracao operacional com o Sienge.
 
 ## Estado Atual
 
-Atualizado em `2026-05-03`.
+Atualizado em `2026-05-05`.
 
-O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge, CI/CD e manifests Kubernetes. Build, lint e testes passam em todos os workspaces.
+O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge e CI/CD. Build, lint e testes passam em todos os workspaces. Deploy de API e workers em producao documenta-se como **bundles Node 20** (Hostinger «Setup Node.js App»).
 
 | Area            | Estado                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------ |
@@ -31,7 +31,7 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 - `packages/shared`: schemas Zod, tipos Supabase e utilitarios compartilhados.
 - `packages/integration-sienge`: cliente HTTP, clientes especializados, mapeadores, health check de integracao e criptografia de credenciais Sienge.
 - `supabase`: configuracao local, seed e 19 migracoes versionadas, incluindo PRD-08 (dashboards) e PRD-09 (`audit_logs` operacional).
-- `deploy/k8s`: manifests Kubernetes para API e workers.
+- `deploy/`: exemplos de variaveis (`deploy/compose/*.env.example`) e scripts de smoke.
 
 ## Topologia
 
@@ -41,7 +41,8 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 │   ├── api/
 │   └── web/
 ├── deploy/
-│   └── k8s/
+│   ├── compose/
+│   └── scripts/
 ├── docs/
 │   ├── architecture.md
 │   ├── decisions/
@@ -61,16 +62,16 @@ Observacao: o pacote `apps/` raiz ainda contem resquicios de scaffold Vite e nao
 
 ## Stack
 
-| Camada     | Tecnologias principais                                                            |
-| ---------- | --------------------------------------------------------------------------------- |
-| Workspace  | pnpm workspace, Node.js 20, TypeScript                                            |
-| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide, Recharts   |
-| API        | Fastify 5, `@fastify/jwt`, Swagger, Zod, Supabase JS, pg-boss, Resend, Prometheus |
-| Workers    | Node.js, pg-boss 9, pg (transacoes atomicas), Supabase JS, Resend, Prometheus     |
-| Integracao | Axios, axios-retry, Bottleneck, cliente Sienge proprio                            |
-| Banco      | Supabase/PostgreSQL 17, RLS, migrations SQL                                       |
-| Qualidade  | Vitest, ESLint 9, Prettier 3, Husky, lint-staged, gitleaks                        |
-| Deploy     | Docker, GHCR, Kubernetes, GitHub Actions                                          |
+| Camada     | Tecnologias principais                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Workspace  | pnpm workspace, Node.js 20, TypeScript                                                                        |
+| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide, Recharts                               |
+| API        | Fastify 5, `@fastify/jwt`, Swagger, Zod, Supabase JS, pg-boss, Resend, Prometheus                             |
+| Workers    | Node.js, pg-boss 9, pg (transacoes atomicas), Supabase JS, Resend, Prometheus                                 |
+| Integracao | Axios, axios-retry, Bottleneck, cliente Sienge proprio                                                        |
+| Banco      | Supabase/PostgreSQL 17, RLS, migrations SQL                                                                   |
+| Qualidade  | Vitest, ESLint 9, Prettier 3, Husky, lint-staged, gitleaks                                                    |
+| Deploy     | GitHub Actions (CI, artefactos de bundle, seguranca); producao via bundles Node 20 na Hostinger (ver runbook) |
 
 Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `typescript`, `@types/node`, `zod` e `@supabase/supabase-js`.
 
@@ -171,6 +172,8 @@ SIENGE_API_KEY=
 SIENGE_API_SECRET=
 SIENGE_ENCRYPTION_KEY=
 NODE_ENV=development
+# PORT tem precedencia sobre WORKER_METRICS_PORT quando definido (ex.: Phusion Passenger na Hostinger injeta PORT)
+# HOST opcional; bind do servidor /health (default 0.0.0.0)
 WORKER_METRICS_PORT=9080
 EMAIL_PROVIDER_API_KEY=
 EMAIL_FROM_ADDRESS=GRF Cotações <cotacoes@grfincorporadora.com>
@@ -178,6 +181,8 @@ COMPRAS_EMAIL=compras@grfincorporadora.com
 ```
 
 `DATABASE_URL` e obrigatorio nos workers.
+
+Em producao na Hostinger «Setup Node.js App», normalmente **nao** definir `PORT` manualmente — o runtime injeta; use `WORKER_METRICS_PORT` apenas como fallback em ambientes sem `PORT`.
 
 ## Execucao Local
 
@@ -271,17 +276,9 @@ Workflows em `.github/workflows/`:
 
 - `ci.yml`: `format:check`, lint, test e build em push/PR para `main`.
 - `security.yml`: `pnpm audit --audit-level=moderate`, gitleaks e dependency review em PRs.
-- `deploy.yml`: build e push de imagens Docker para GHCR e `kubectl apply -k deploy/k8s` quando `KUBE_CONFIG` estiver configurado.
+- `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, upload de `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` como artefactos (alternativa a rodar esbuild no servidor).
 
-Containers:
-
-- `apps/api/Dockerfile`
-- `workers/Dockerfile`
-
-Kubernetes:
-
-- manifests em `deploy/k8s/`
-- `kustomization.yaml` para aplicar API, workers, services, configmaps e exemplos de secrets
+Bundles Node 20: `pnpm run build:api` e `pnpm run build:workers` na raiz geram os entrypoints; arranque com `pnpm run start:api` / `pnpm run start:workers`. Ver `docs/runbooks/deploy-hostinger.md`.
 
 ## Desenvolvimento E Contribuicao
 
@@ -318,6 +315,7 @@ Referencia: `docs/runbooks/branching-and-review.md`.
 - `docs/runbooks/sienge-inventory.md`: inventario da integracao.
 - `docs/runbooks/branching-and-review.md`: branching e review.
 - `docs/runbooks/typecheck-and-supabase-types.md`: instrucoes para validacao e geracao de tipos Supabase.
+- `docs/runbooks/deploy-hostinger.md`: deploy na Hostinger (duas Node.js Apps + bundles).
 - `docs/prd/`: PRDs por modulo.
 - `deploy/README.md`: deploy.
 - `workers/README.md`: workers.

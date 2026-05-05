@@ -49,7 +49,7 @@ O repositorio ja ultrapassou a fase de scaffold. Possui implementacao funcional 
 - Os tipos do Supabase (`database.types.ts`) estão gerados no pacote `packages/shared`.
 - O pacote de integração (`packages/integration-sienge`) possui cliente HTTP com retry, rate limit (bottleneck), paginação, 6 clientes especializados (quotation, creditor, order, invoice, delivery-requirement, negotiation), 5 mapeadores, criptografia AES para credenciais, testes unitários + integração live, e 8 scripts de homologação §17 (7 readonly + 1 runner consolidado `homologation-checklist.integration.ts`).
 - O pacote de domínio (`packages/domain`) possui entidades, enums centrais (`OrderOperationalStatus`, `NotificationType`, `NotificationStatus`, `UserRole`, `DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`, etc.), `OrderStatusEngine` com regras de precedência de status, `TemplateRenderer` para renderização e validação de templates de notificação (PRD-03), enums PRD-04 (`FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), e testes unitários.
-- Existe infraestrutura de deploy: Dockerfiles para API e workers, manifests Kubernetes em `deploy/k8s/`, e pipelines GitHub Actions para CI, deploy e segurança.
+- Deploy de API e workers documenta-se como bundles Node 20 (Hostinger «Setup Node.js App»); GitHub Actions cobre CI, artefactos opcionais de bundle e segurança.
 
 Consequencia pratica:
 
@@ -123,6 +123,7 @@ O repositorio foi definido como monorepo com estas fronteiras:
 - workspace manager: `pnpm`;
 - observabilidade: `prom-client` (metricas) em API e workers;
 - idioma do repositorio: portugues para documentacao e UI; ingles para identificadores, comentarios e mensagens tecnicas de codigo.
+- deploy em producao: **Hostinger «Setup Node.js App»** com bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js`, `workers/dist/hostinger-entry.js`) gerados por `pnpm run build:api` / `pnpm run build:workers`, workflows opcionais `hostinger-api-bundle-artifact.yml` e `hostinger-workers-bundle-artifact.yml`, runbook `docs/runbooks/deploy-hostinger.md`.
 
 Antes de sugerir tecnologia adicional, valide se ela realmente e necessaria e se nao conflita com as ADRs ja aceitas.
 
@@ -300,7 +301,7 @@ Nunca proponha modelagem que elimine esses identificadores sem justificativa for
 - **Pre-commit**: O monorepo possui **Husky** e **Lint-Staged** configurados na raiz. Commits na linha de comando corrigem a formatação e despacham o lint automaticamente para o workspace correto.
 - **Integração Contínua (CI)**: Pipelines ativas via **GitHub Actions** (`.github/workflows/`):
   - `ci.yml`: format, lint, test, build em PRs e push para `main`
-  - `deploy.yml`: build Docker, push para GHCR, deploy K8s em push para `main` ou manual
+  - `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, artefactos dos bundles `hostinger-entry.js` (alternativa a build no servidor)
   - `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
 - **Execucao de binarios**: usar `pnpm dlx` no lugar de `npx` para nao quebrar o `pnpm-lock.yaml`. <!-- ADR-0003: misturar npm/npx com pnpm quebra o lockfile -->
 
@@ -399,24 +400,28 @@ O workspace pnpm ja foi inicializado. Os comandos de referencia sao:
 
 <!-- ADR-0003: usar sempre pnpm; pnpm dlx substitui npx; misturar npm/yarn quebra o pnpm-lock.yaml -->
 
-| Acao                      | Comando                                 |
-| ------------------------- | --------------------------------------- |
-| Instalar dependencias     | `pnpm install`                          |
-| Iniciar frontend (dev)    | `pnpm --filter @projetog/web dev`       |
-| Iniciar API (dev)         | `pnpm --filter @projetog/api dev`       |
-| Iniciar workers (dev)     | `pnpm --filter @projetog/workers dev`   |
-| Build frontend            | `pnpm --filter @projetog/web build`     |
-| Build API                 | `pnpm --filter @projetog/api build`     |
-| Build workers             | `pnpm --filter @projetog/workers build` |
-| Testes (todos os modulos) | `pnpm -r run test`                      |
-| Lint (todos os modulos)   | `pnpm -r run lint`                      |
-| Format (todos os modulos) | `pnpm run format`                       |
-| Autenticar Supabase       | `pnpm run db:login`                     |
-| Ligar Supabase            | `pnpm run db:link`                      |
-| Migracoes (Supabase)      | `pnpm run db:push`                      |
-| Gerar tipos Supabase      | `pnpm run db:types`                     |
-| Adicionar dep a um modulo | `pnpm --filter <modulo> add <pacote>`   |
-| Adicionar devDep global   | `pnpm add -D <pacote> -w`               |
+| Acao                            | Comando                                                           |
+| ------------------------------- | ----------------------------------------------------------------- |
+| Instalar dependencias           | `pnpm install`                                                    |
+| Iniciar frontend (dev)          | `pnpm --filter @projetog/web dev`                                 |
+| Iniciar API (dev)               | `pnpm --filter @projetog/api dev`                                 |
+| Iniciar workers (dev)           | `pnpm --filter @projetog/workers dev`                             |
+| Build frontend                  | `pnpm --filter @projetog/web build`                               |
+| Build API                       | `pnpm --filter @projetog/api build`                               |
+| Build workers                   | `pnpm --filter @projetog/workers build`                           |
+| Bundle API Hostinger (raiz)     | `pnpm run build:api` (gera `apps/api/dist/hostinger-entry.js`)    |
+| Bundle workers Hostinger (raiz) | `pnpm run build:workers` (gera `workers/dist/hostinger-entry.js`) |
+| Start bundle API (raiz)         | `pnpm run start:api`                                              |
+| Start bundle workers (raiz)     | `pnpm run start:workers`                                          |
+| Testes (todos os modulos)       | `pnpm -r run test`                                                |
+| Lint (todos os modulos)         | `pnpm -r run lint`                                                |
+| Format (todos os modulos)       | `pnpm run format`                                                 |
+| Autenticar Supabase             | `pnpm run db:login`                                               |
+| Ligar Supabase                  | `pnpm run db:link`                                                |
+| Migracoes (Supabase)            | `pnpm run db:push`                                                |
+| Gerar tipos Supabase            | `pnpm run db:types`                                               |
+| Adicionar dep a um modulo       | `pnpm --filter <modulo> add <pacote>`                             |
+| Adicionar devDep global         | `pnpm add -D <pacote> -w`                                         |
 
 Consulte `docs/runbooks/typecheck-and-supabase-types.md` para as regras de manutencao dos tipos Supabase.
 

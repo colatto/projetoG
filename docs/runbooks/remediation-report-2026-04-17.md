@@ -262,10 +262,7 @@ Data de referência: 2026-04-17
 
 ### Entregas implementadas
 
-- `apps/api/Dockerfile`
-- `workers/Dockerfile`
-- `deploy/k8s/*`
-- Workflow `Deploy`
+- _(Atualização 2026-05: Dockerfiles, manifests Kubernetes e workflow `Deploy` foram removidos do repositório; produção documentada via bundles Hostinger.)_
 - Endpoint `/metrics` na API
 - Servidor de observabilidade do worker:
   - `/health`
@@ -275,9 +272,7 @@ Data de referência: 2026-04-17
 
 ### Limitação importante
 
-- Os workspaces `@projetog/domain`, `@projetog/shared` e `@projetog/integration-sienge` ainda exportam TypeScript fonte.
-- Por isso, os Dockerfiles executam via `tsx` em vez de usar apenas artefatos JS compilados.
-- Isso é aceitável como baseline operacional, mas não é o destino final desejado.
+- Os workspaces `@projetog/domain`, `@projetog/shared` e `@projetog/integration-sienge` ainda exportam TypeScript fonte; desenvolvimento local usa `tsx` / `tsc`. Produção usa bundles `hostinger-entry.js` gerados na raiz.
 
 ## 6. Branching e code review
 

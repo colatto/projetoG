@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-05-03` para refletir o estado real do monorepo.
+Atualizado em `2026-05-05` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -18,6 +18,8 @@ O sistema foi desenhado para manter:
 - processamento assíncrono em `pg-boss`
 - dados operacionais locais no Supabase
 - Sienge como fonte de verdade externa para cotações, pedidos, entregas e credores
+
+A API (`apps/api`) e os `workers` são **processos Node.js** sem dependências nativas obrigatórias no runtime (Fastify, pg-boss, clientes HTTP em JS). Isso permite empacotar cada um num **bundle único** e executar em hospedagem gerenciada (ex.: Phusion Passenger na Hostinger «Setup Node.js App»).
 
 ### 1.1 Toolchain e dependências
 
@@ -175,7 +177,7 @@ sequenceDiagram
 
 - Há heterogeneidade de versões de `vitest`, `typescript`, `@types/node`, `zod` e `@supabase/supabase-js` entre workspaces.
 - O pacote `apps/` (raiz do diretório apps) permanece com um scaffold Vite genérico e não deve ser tratado como aplicação de produção.
-- `workers/dist` está presente no repositório; tratar como artefato gerado e não como fonte.
+- `workers/dist/` e `apps/api/dist/hostinger-entry.js` (bundle Hostinger) são artefatos de build (tipicamente ignorados pelo git); não são fonte.
 
 ## 5. Estrutura de diretórios e aderência
 
@@ -188,7 +190,7 @@ sequenceDiagram
 | `packages/integration-sienge` | infraestrutura de ERP    | boa                 | clientes e mapeadores bem segmentados; cobertura de testes                                                                                   |
 | `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                                                                |
 | `supabase`                    | plataforma de dados      | boa                 | 19 migrações versionadas; PRD-02, PRD-05, PRD-03, PRD-04, PRD-06, PRD-08 e PRD-09 com RLS                                                    |
-| `deploy`                      | infraestrutura de deploy | boa                 | K8s manifests com Kustomization                                                                                                              |
+| `deploy`                      | infraestrutura de deploy | boa                 | exemplos `.env`, scripts de smoke; bundles gerados na raiz do monorepo                                                                       |
 | `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                                                                       |
 
 ## 6. Banco de dados e Supabase
@@ -308,8 +310,7 @@ O worker `dashboard:consolidation` (cron diário) lê pedidos, cotações, avari
 - Supabase Auth e PostgreSQL
 - API REST do Sienge
 - webhooks Sienge (`x-sienge-id`, `x-sienge-event`, `x-sienge-hook-id`, `x-sienge-tenant`)
-- GitHub Actions para CI, deploy e segurança
-- GHCR (GitHub Container Registry) para imagens Docker
+- GitHub Actions para CI, artefactos de bundle e segurança
 
 ## 8. Auditoria de dependências
 
@@ -347,23 +348,22 @@ Planejamento controlado:
 
 ## 9. Infraestrutura de deploy
 
-### 9.1 Containers
-
-- `apps/api/Dockerfile`: imagem de produção da API
-- `workers/Dockerfile`: imagem de produção dos workers
-
-### 9.2 Kubernetes
-
-- `deploy/k8s/namespace.yaml`
-- `deploy/k8s/api-deployment.yaml` + `api-service.yaml` + `api-configmap.yaml` + `api-secret.example.yaml`
-- `deploy/k8s/workers-deployment.yaml` + `workers-service.yaml` + `workers-configmap.yaml` + `workers-secret.example.yaml`
-- `deploy/k8s/kustomization.yaml`
-
-### 9.3 GitHub Actions
+### 9.1 GitHub Actions
 
 - `ci.yml`: format → lint → test → build
-- `deploy.yml`: Docker build → GHCR push → K8s apply
+- `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, artefactos dos bundles `hostinger-entry.js`
 - `security.yml`: pnpm audit → gitleaks → dependency review
+
+### 9.2 Bundles Node.js (produção documentada)
+
+**esbuild** na raiz do monorepo produz um ficheiro CJS por serviço (target Node 20, fallback `esbuild-wasm` em FS `noexec`):
+
+| Artefacto                          | Script                                                                                                     | Start                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `apps/api/dist/hostinger-entry.js` | `pnpm run build:api` ([`scripts/build-hostinger-api.mjs`](../scripts/build-hostinger-api.mjs))             | `pnpm run start:api`     |
+| `workers/dist/hostinger-entry.js`  | `pnpm run build:workers` ([`scripts/build-hostinger-workers.mjs`](../scripts/build-hostinger-workers.mjs)) | `pnpm run start:workers` |
+
+`pnpm run build` na raiz executa `build:api` e `build:workers` em sequência. Operação e variáveis: [`docs/runbooks/deploy-hostinger.md`](../docs/runbooks/deploy-hostinger.md) (duas Node.js Apps na Hostinger, `PORT`/`HOST` nos workers, risco de idle do Passenger).
 
 ## 10. Fluxo de desenvolvimento até deployment
 
@@ -394,10 +394,7 @@ Pipeline CI:
 8. `pnpm run test`
 9. `pnpm -r run build`
 
-Pipeline Deploy:
-
-1. build e push de imagens Docker (API + workers) para GHCR
-2. apply de manifests K8s (quando `KUBE_CONFIG` está configurado)
+Artefactos de bundle (opcional, manual): workflows `hostinger-*-bundle-artifact.yml` na raiz do GitHub Actions.
 
 Pipeline Security:
 
@@ -451,7 +448,7 @@ Débitos técnicos confirmados:
 
 ## 13. Conclusão técnica
 
-O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas. O módulo de avarias e ação corretiva (PRD-06) está implementado (Fases 1–6) com todas as 21 regras de negócio verificadas, 8 endpoints de API, auditoria completa com 11 eventos, integração worker para confirmação automática de reposição, e telas frontend completas com badges e timeline de auditoria. O módulo de dashboards e indicadores (PRD-08) está implementado (Fases 1–4) com consolidação diária atômica (pg), 7 endpoints de API, telas frontend com gráficos Recharts, cards operacionais com paleta oficial, badges de confiabilidade e criticidade, e 6 testes. O backoffice operacional (PRD-09) está a ~95% de compliance após meta-auditoria: `AuditService` centralizado com summary obrigatório, zero inserts diretos, fallback pg-boss (§9.6), campos mínimos §14.1 completos nas listagens de pedidos (10 colunas backoffice, 8 colunas portal), e trilha append-only. A infraestrutura de deploy está pronta com Docker e Kubernetes. Build, lint e testes passam em todos os workspaces. Os principais pontos pendentes são:
+O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente para o escopo atual. O fluxo de cotações (PRD-02) foi implementado de ponta a ponta, com backoffice e portal do fornecedor. O fluxo de entregas, divergência e status de pedido (PRD-05) foi implementado no backend (API + workers + domínio) e no frontend (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail). O módulo de notificações (PRD-03) está funcional com templates, logs e envio via Resend. O follow-up logístico (PRD-04) está implementado (Fases 1–4) com todas as 25 regras de negócio verificadas. O módulo de avarias e ação corretiva (PRD-06) está implementado (Fases 1–6) com todas as 21 regras de negócio verificadas, 8 endpoints de API, auditoria completa com 11 eventos, integração worker para confirmação automática de reposição, e telas frontend completas com badges e timeline de auditoria. O módulo de dashboards e indicadores (PRD-08) está implementado (Fases 1–4) com consolidação diária atômica (pg), 7 endpoints de API, telas frontend com gráficos Recharts, cards operacionais com paleta oficial, badges de confiabilidade e criticidade, e 6 testes. O backoffice operacional (PRD-09) está a ~95% de compliance após meta-auditoria: `AuditService` centralizado com summary obrigatório, zero inserts diretos, fallback pg-boss (§9.6), campos mínimos §14.1 completos nas listagens de pedidos (10 colunas backoffice, 8 colunas portal), e trilha append-only. A infraestrutura de deploy documentada usa bundles Node 20 para a Hostinger (ver `docs/runbooks/deploy-hostinger.md`). Build, lint e testes passam em todos os workspaces. Os principais pontos pendentes são:
 
 - unificação de versões de dependências entre workspaces
 - expansão da cobertura de testes do módulo follow-up (cópia Compras Notificação 2+, reinício end-to-end da régua após aprovação de nova data). _Atualização 2026-05-02 (lacunas PRD-04 baixa severidade): migração `20260502120000_prd04_follow_up_trackers_suggested_date.sql` (`suggested_date`); parcial vs encerramento de tracker em `workers/src/utils/order-status-recalc.test.ts`; isolamento em `FollowupController.listNotifications` (`followup.routes.test.ts`); RBAC/logs PRD-03 (`notification.routes.test.ts`). Ver `CLAUDE.md` e PRD-04 §12.1._

@@ -64,6 +64,8 @@ SIENGE_ENCRYPTION_KEY=
 NODE_ENV=development
 ```
 
+Em desenvolvimento local use `WORKER_METRICS_PORT` (default efetivo `9080`) se não definir `PORT`. Em **Phusion Passenger** (ex.: Hostinger Node.js App), o runtime injeta **`PORT`** — esse valor tem **precedência** sobre `WORKER_METRICS_PORT`. Opcional: `HOST` para o bind do servidor `/health` (default `0.0.0.0`).
+
 ## 4. Supabase
 
 ### 4.1 Projeto local
@@ -234,10 +236,8 @@ Referências:
 
 ## 10. Deploy
 
-- Dockerfiles disponíveis em `apps/api/Dockerfile` e `workers/Dockerfile`
-- Manifests Kubernetes em `deploy/k8s/` com Kustomization
-- Pipeline de deploy via GitHub Actions (`deploy.yml`): Docker build → GHCR push → K8s apply
 - Pipeline de segurança (`security.yml`): pnpm audit, gitleaks, dependency review
+- **Hostinger** (duas Node.js Apps — API + workers): na raiz do repo, `pnpm run build:api` e `pnpm run build:workers` geram `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js`; arranque com `pnpm run start:api` / `pnpm run start:workers`. Runbook: [`deploy-hostinger.md`](deploy-hostinger.md). Exemplos de variáveis: `deploy/compose/api.env.example` e `deploy/compose/workers.env.example`.
 
 ## 11. Observações operacionais
 

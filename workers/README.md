@@ -57,6 +57,10 @@ SIENGE_API_KEY=
 SIENGE_API_SECRET=
 SIENGE_ENCRYPTION_KEY=
 NODE_ENV=development
+# Opcional: Phusion Passenger (ex.: Hostinger) injeta PORT — tem precedência sobre WORKER_METRICS_PORT
+# PORT=
+# WORKER_METRICS_PORT=9080
+# HOST=0.0.0.0
 ```
 
 ## Comandos
@@ -67,6 +71,15 @@ pnpm --filter @projetog/workers build
 pnpm --filter @projetog/workers test
 pnpm --filter @projetog/workers lint
 ```
+
+Na **raiz** do monorepo (bundle único para deploy sem Docker — Hostinger «Setup Node.js App»):
+
+```bash
+pnpm run build:workers
+pnpm run start:workers
+```
+
+Gera `workers/dist/hostinger-entry.js` via [`scripts/build-hostinger-workers.mjs`](../scripts/build-hostinger-workers.mjs). Ver [`docs/runbooks/deploy-hostinger.md`](../docs/runbooks/deploy-hostinger.md).
 
 ## Observações operacionais
 

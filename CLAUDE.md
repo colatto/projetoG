@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-03`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-05`.
 
 ## Ordem de consulta
 
@@ -9,7 +9,7 @@ Documento-base para agentes e mantenedores. Atualizado para refletir o estado re
 3. `docs/architecture.md`
 4. `docs/decisions/*.md`
 5. `docs/prd/*.md`
-6. `docs/runbooks/*.md` (incluindo `docs/runbooks/typecheck-and-supabase-types.md`, `docs/runbooks/prd09-audit-retention.md`)
+6. `docs/runbooks/*.md` (incluindo `docs/runbooks/typecheck-and-supabase-types.md`, `docs/runbooks/prd09-audit-retention.md`, `docs/runbooks/deploy-hostinger.md` quando o tema for deploy)
 7. `apps/*/CLAUDE.md`, `packages/*/CLAUDE.md`, `workers/CLAUDE.md`
 
 ## Objetivo do produto
@@ -35,7 +35,7 @@ O repositório não está mais em fase de scaffold. Hoje ele já contém:
 - `AuditService` centralizado com `registerEvent()`: summary obrigatório (fallback automático via `fallbackSummary()`), campos operacionais PRD-09, e enfileiramento via pg-boss (`audit:retry`) em caso de falha de escrita (§9.6). Guarda contra exceções lançadas (e.g., erros de rede) via `try/catch` externo — auditoria nunca bloqueia o fluxo principal
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
 - pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service, enums PRD-06 (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`) e testes unitários
-- infraestrutura de deploy com Dockerfiles, manifests Kubernetes e pipelines CI/CD (build, security, deploy)
+- deploy documentado como bundles Node 20 para Hostinger «Setup Node.js App»: `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` via [`scripts/build-hostinger-api.mjs`](scripts/build-hostinger-api.mjs) e [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `pnpm run build:api` / `build:workers` / `start:api` / `start:workers`, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md); CI com `ci.yml`, artefactos opcionais `hostinger-*-bundle-artifact.yml` e `security.yml`
 
 ## Módulos reais
 
@@ -338,6 +338,9 @@ Identificadores mínimos persistidos:
 - `EMAIL_PROVIDER_API_KEY`
 - `EMAIL_FROM_ADDRESS`
 - `COMPRAS_EMAIL`
+- `PORT` — opcional; em Phusion Passenger (ex.: Hostinger Node.js App) é **injetado** e tem **precedência** sobre `WORKER_METRICS_PORT` para o servidor HTTP de observabilidade (`/health`, `/ready`, `/metrics`)
+- `WORKER_METRICS_PORT` — opcional; fallback quando `PORT` não está definido (ex.: desenvolvimento local); default efetivo `9080`
+- `HOST` — opcional; bind do servidor de observabilidade (default `0.0.0.0` em [`workers/src/observability.ts`](workers/src/observability.ts))
 
 ## Convenções observadas
 
@@ -365,6 +368,8 @@ Em `2026-05-02` (última verificação local, pós-alinhamento Vitest e E2E):
 Observação residual de lint:
 
 - `apps/web`: 1 warning (`react-hooks/incompatible-library` em UserCreate por `watch()` do react-hook-form — não acionável)
+
+Bundles Hostinger (sem Docker): `pnpm run build:api` e `pnpm run build:workers` geram `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` (smoke local de arranque validado após build).
 
 ## Auditoria de dependências
 
@@ -396,20 +401,14 @@ Política atual do monorepo:
 
 - `ci.yml`: format, lint, test, build em `push`/`pull_request` para `main`
 - `e2e.yml`: Playwright (Chromium) em `apps/web` em `push`/`pull_request` para `main`
-- `deploy.yml`: build Docker + push GHCR + deploy K8s via `workflow_dispatch` ou `push` para `main`
-- `deploy-hostinger.yml`: SSH na VPS Hostinger → `docker compose pull && up` em `workflow_dispatch` (secrets `VPS_*`, opcional `GHCR_*` para pull privado)
+- `hostinger-api-bundle-artifact.yml`: `workflow_dispatch` — build `pnpm run build:api`, artefacto `apps/api/dist/hostinger-entry.js` + `package.json`
+- `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch` — build `pnpm run build:workers`, artefacto `workers/dist/hostinger-entry.js` + `package.json`
 - `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
 
-### Containers
+### Bundles e exemplos de env
 
-- `apps/api/Dockerfile`: imagem de produção da API
-- `workers/Dockerfile`: imagem de produção dos workers
-- `deploy/compose/docker-compose.prod.yml`: stack API + workers para VPS (ver `docs/runbooks/deploy-hostinger.md`)
-
-### Kubernetes
-
-- `deploy/k8s/`: manifests com deployments, services, configmaps e secrets para API e workers
-- Kustomization para aplicação declarativa (imagens exemplo `ghcr.io/example-org/example-repo-*`; ajustar ao repositório real ou usar bloco comentado `images:` em `kustomization.yaml`)
+- `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` — produzidos por `pnpm run build:api` e `pnpm run build:workers` na raiz (esbuild com fallback `esbuild-wasm` em FS `noexec`)
+- `deploy/compose/api.env.example` e `deploy/compose/workers.env.example` — referência de variáveis para o painel
 
 ### Templates do repositório
 
@@ -423,6 +422,8 @@ Política atual do monorepo:
 - heterogeneidade de versões de dependências entre workspaces pode causar comportamentos inesperados
 
 ## Mudanças recentes já incorporadas ao codebase
+
+> **Nota (2026-05-05 — deploy Hostinger sem Docker):** duas Node.js Apps no painel (API + workers), bundles únicos `hostinger-entry.js`, script [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `build` / `build:api` / `build:workers` / `start:api` / `start:workers`, workflows `hostinger-*-bundle-artifact.yml`, workers com `PORT` preferido a `WORKER_METRICS_PORT` e `HOST` configurável, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md) com secção «Setup Node.js App» e mitigação de idle shutdown do Passenger.
 
 ### Histórico Git observado
 

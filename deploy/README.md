@@ -1,34 +1,27 @@
 # Deploy
 
-## VPS (Docker Compose — ex. Hostinger)
+Produção da API e dos **workers** segue o runbook **Hostinger «Setup Node.js App»**: dois bundles CJS Node 20 (`hostinger-entry.js`) gerados na raiz do monorepo.
 
-Ficheiros em [`deploy/compose/`](compose/):
+## Ficheiros úteis
 
-- [`docker-compose.prod.yml`](compose/docker-compose.prod.yml) — API (`127.0.0.1:3000`) + workers (`127.0.0.1:9080`)
-- [`compose.env.example`](compose/compose.env.example) — tags das imagens GHCR
-- [`api.env.example`](compose/api.env.example) / [`workers.env.example`](compose/workers.env.example) — variáveis sensíveis (copiar para `api.env` / `workers.env` na VPS)
+Em [`deploy/compose/`](compose/):
 
-Runbook detalhado: [`docs/runbooks/deploy-hostinger.md`](../docs/runbooks/deploy-hostinger.md).
+- [`api.env.example`](compose/api.env.example) / [`workers.env.example`](compose/workers.env.example) — variáveis para copiar para o painel (não commitar ficheiros com segredos reais).
+- [`compose.env.example`](compose/compose.env.example) — nota histórica; o repo não mantém Docker Compose.
 
-Scripts: [`deploy/scripts/`](scripts/) (`deploy-vps.sh`, smoke).
+Runbook: [`docs/runbooks/deploy-hostinger.md`](../docs/runbooks/deploy-hostinger.md).
 
-## Kubernetes
+Scripts: [`deploy/scripts/`](scripts/) (`smoke-api.sh`, `smoke-workers.sh`).
 
-Os manifests em `deploy/k8s` assumem:
+## Bundles e CI
 
-- imagens `ghcr.io/example-org/example-repo-api` e `ghcr.io/example-org/example-repo-workers` (substituir pelo seu `ghcr.io/<github_owner>/<github_repo>-api|workers` ou usar `images:` em [`kustomization.yaml`](k8s/kustomization.yaml))
-- Kubernetes com Prometheus scraping via annotations
-- secrets injetados via `Secret` e variáveis não sensíveis via `ConfigMap`
-
-Build local:
+Na raiz do repositório:
 
 ```bash
-docker build -f apps/api/Dockerfile -t projetog-api:local .
-docker build -f workers/Dockerfile -t projetog-workers:local .
+pnpm run build:api
+pnpm run build:workers
+pnpm run start:api    # após configurar env
+pnpm run start:workers
 ```
 
-Aplicação:
-
-```bash
-kubectl apply -k deploy/k8s
-```
+Artefactos pré-compilados (GitHub Actions, disparo manual): `hostinger-api-bundle-artifact.yml` e `hostinger-workers-bundle-artifact.yml`.

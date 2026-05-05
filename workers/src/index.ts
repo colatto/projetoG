@@ -10,6 +10,18 @@ import {
 
 installConsoleJsonLogger();
 
+/** Phusion Passenger injects `PORT`; prefer it over `WORKER_METRICS_PORT` for Hostinger Node.js apps. */
+function resolveObservabilityPort(): number {
+  const raw = process.env.PORT ?? process.env.WORKER_METRICS_PORT;
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isNaN(n)) {
+      return n;
+    }
+  }
+  return 9080;
+}
+
 let shuttingDown = false;
 
 async function shutdown(signal: NodeJS.Signals) {
@@ -35,9 +47,7 @@ async function start() {
   console.log('Worker process starting...');
 
   try {
-    const observabilityPort = process.env.WORKER_METRICS_PORT
-      ? Number.parseInt(process.env.WORKER_METRICS_PORT, 10)
-      : 9080;
+    const observabilityPort = resolveObservabilityPort();
 
     await startObservabilityServer(observabilityPort);
     console.log('Worker observability server started', { port: observabilityPort });

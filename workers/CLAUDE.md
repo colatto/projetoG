@@ -20,7 +20,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Estrutura real
 
-- `src/index.ts`: bootstrap
+- `src/index.ts`: bootstrap — porta HTTP do servidor de observabilidade: `PORT` (ex.: Passenger injeta) > `WORKER_METRICS_PORT` > default `9080`
 - `src/boss.ts`: singleton `pg-boss`
 - `src/handlers/index.ts`: registro de workers e schedules
 - `src/jobs/*.ts`: implementações por fluxo
@@ -29,7 +29,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - `src/sienge.ts`: fábrica assíncrona do cliente Sienge com cache
 - `src/supabase.ts`: fábrica do cliente Supabase
 - `src/logger.ts`: logging estruturado
-- `src/observability.ts`: métricas e monitoramento
+- `src/observability.ts`: métricas e monitoramento — `listen` usa `HOST` do ambiente (default `0.0.0.0`)
 - `src/operational-notifications.ts`: notificações operacionais para `Compras`
 - `src/test-utils/`: fixtures, mocks de pg-boss e supabase
 
@@ -68,7 +68,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Regras locais
 
-- não expor HTTP neste módulo
+- HTTP limitado ao servidor mínimo de observabilidade (`/health`, `/ready`, `/metrics`) para métricas e healthchecks — não é API de negócio
 - não duplicar clientes Sienge fora de `packages/integration-sienge`
 - usar `integration_events` e `audit_logs` como trilha operacional
 - tratar `DATABASE_URL` como requisito obrigatório
@@ -78,6 +78,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - testes: 61 passando (`vitest ^4.1.4`, [`vitest.config.ts`](vitest.config.ts) com `pool: forks`) — inclui transação do snapshot PRD-08, `order-status-recalc`, **`process-webhook.test.ts`** (+6 cenários ACK-only PRD-07), `audit-retry.test.ts` (PRD-09 §9.6)
 - build: passa
 - lint: passa
+- deploy Node.js sem Docker: bundle único [`scripts/build-hostinger-workers.mjs`](../scripts/build-hostinger-workers.mjs) → `workers/dist/hostinger-entry.js`; aceita `PORT` injetado pelo Passenger (precedência sobre `WORKER_METRICS_PORT`)
 
 ## Funcionalidades pendentes
 

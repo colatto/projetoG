@@ -49,9 +49,11 @@ export async function startObservabilityServer(port: number) {
     response.end(JSON.stringify({ error: 'not_found' }));
   });
 
+  const host = process.env.HOST ?? '0.0.0.0';
+
   await new Promise<void>((resolve, reject) => {
     server?.once('error', reject);
-    server?.listen(port, '0.0.0.0', () => resolve());
+    server?.listen(port, host, () => resolve());
   });
 }
 

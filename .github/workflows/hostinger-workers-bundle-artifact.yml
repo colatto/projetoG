@@ -1,6 +1,6 @@
-name: Hostinger API bundle artifact
+name: Hostinger workers bundle artifact
 
-# Optional: build the Hostinger single-file API bundle on GitHub (Linux) and upload
+# Optional: build the Hostinger single-file workers bundle on GitHub (Linux) and upload
 # as a workflow artifact. Use when the deploy host cannot run native esbuild and
 # you prefer shipping a pre-built `hostinger-entry.js` instead of building on-server.
 
@@ -28,13 +28,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Hostinger API bundle
-        run: pnpm run build:api
+      - name: Build Hostinger workers bundle
+        run: pnpm run build:workers
 
       - name: Upload bundle
         uses: actions/upload-artifact@v4
         with:
-          name: hostinger-api-dist
+          name: hostinger-workers-dist
           path: |
-            apps/api/dist/hostinger-entry.js
-            apps/api/dist/package.json
+            workers/dist/hostinger-entry.js
+            workers/dist/package.json

@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "build": "node scripts/build-hostinger-api.mjs",
+    "build": "pnpm run build:api && pnpm run build:workers",
+    "build:api": "node scripts/build-hostinger-api.mjs",
+    "build:workers": "node scripts/build-hostinger-workers.mjs",
     "start:api": "node apps/api/dist/hostinger-entry.js",
+    "start:workers": "node workers/dist/hostinger-entry.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "security:secrets": "node scripts/check-no-secrets.mjs",
