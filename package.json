@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "build": "cd apps/api && npm run build && node -e \"require('node:fs').copyFileSync('hostinger-entry.js', 'dist/hostinger-entry.js')\"",
+    "build": "node -e \"const fs=require('node:fs');fs.mkdirSync('apps/api/dist',{recursive:true});fs.copyFileSync('apps/api/hostinger-entry.js','apps/api/dist/hostinger-entry.js')\"",
     "start:api": "node apps/api/dist/hostinger-entry.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
