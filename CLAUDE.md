@@ -370,7 +370,7 @@ Em `2026-05-05` (última verificação local, pós-alinhamento Vitest, E2E e reg
 
 Bundles Hostinger (sem Docker): `pnpm run build:api` e `pnpm run build:workers` geram `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` (smoke local de arranque validado após build).
 
-> **Nota (2026-05-05 — remediação CI GitHub Actions):** o workflow [`ci.yml`](.github/workflows/ci.yml) falhava no passo **Check Formatting** (`prettier --check .`). Foram aplicados `pnpm run format` nos ficheiros afetados, removido o script acidental `db.js` na raiz da árvore e alinhado `pnpm/action-setup@v4` em `ci.yml` com `e2e.yml` e `security.yml`. O mesmo pipeline do CI foi reproduzido localmente (`format:check` → lint → typecheck → test → build) antes do push.
+> **Nota (2026-05-05 — remediação CI GitHub Actions):** o workflow [`ci.yml`](.github/workflows/ci.yml) falhava no passo **Check Formatting** (`prettier --check .`). Foram aplicados `pnpm run format` nos ficheiros afetados, removido o script acidental `db.js` na raiz da árvore e alinhado `pnpm/action-setup@v4` em `ci.yml` com `e2e.yml` e `security.yml`. Após desbloquear esse passo, o CI passou a executar testes que falhavam só no runner UTC: `IntegrationEvents.test.tsx` (expectativas por chamada à API com filtro `status`) e follow-up (`apps/api/src/test/setup.ts` com `TZ=America/Sao_Paulo` para dias úteis PRD-04). O pipeline completo foi validado localmente na mesma ordem do CI.
 
 ## Auditoria de dependências
 

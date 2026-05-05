@@ -1,3 +1,6 @@
+/** PRD-04 follow-up business-day math uses local calendar; CI defaults to UTC without this. */
+process.env.TZ = 'America/Sao_Paulo';
+
 const unhandledRejectionHandlerInstalledKey = '__apiVitestUnhandledRejectionHandlerInstalled__';
 
 function isKnownTinypoolShutdownRangeError(

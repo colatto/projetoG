@@ -184,7 +184,11 @@ describe('IntegrationEvents', () => {
       }
       if (url === '/integration/events') {
         integrationCalls += 1;
-        if (integrationCalls <= 2) {
+        if (integrationCalls === 1) {
+          expect(config?.params).toEqual({ page: 1, limit: 20 });
+        } else if (integrationCalls === 2) {
+          expect(config?.params).toEqual({ page: 1, limit: 20, status: 'failure' });
+        } else if (integrationCalls === 3) {
           expect(config?.params).toEqual({ page: 1, limit: 20 });
         }
         return Promise.resolve(eventsListResponse());

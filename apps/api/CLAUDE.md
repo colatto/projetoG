@@ -95,7 +95,7 @@ Servir o backend dedicado do projeto com Fastify 5.
 - testes: inclui `audit.routes.test.ts` (PRD-09 leitura), `dashboard.routes.test.ts` (RBAC e filtros PRD-08), `notification.routes.test.ts` (PRD-03 §7.5), `followup.routes.test.ts`, `damages.routes.test.ts` (PRD-06), `webhooks.test.ts` (ACK-only), `integration.test.ts` (filtros + aliases PRD-09), `orders.test.ts` (PRD-05 + cancel/avaria via AuditService)
 - build: passa
 - lint: passa
-- vitest runner: estável — todas as suítes fazem teardown com `app.close()`, `pool: 'forks'` sem warnings de `MaxListeners` ou `tinypool`
+- vitest runner: estável — todas as suítes fazem teardown com `app.close()`, `pool: 'forks'` sem warnings de `MaxListeners` ou `tinypool`; `src/test/setup.ts` define `TZ=America/Sao_Paulo` para que o cálculo de dias úteis em follow-up (PRD-04) coincida com runners CI em UTC
 
 ## Funcionalidades ainda não implementadas
 
