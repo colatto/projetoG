@@ -68,9 +68,11 @@ export function buildApp(options: BuildAppOptions = {}) {
     transform: jsonSchemaTransform,
   });
 
-  app.register(swaggerUi, {
-    routePrefix: '/docs',
-  });
+  if (process.env.HOSTINGER_BUNDLE !== '1') {
+    app.register(swaggerUi, {
+      routePrefix: '/docs',
+    });
+  }
 
   // Plugins
   // Importante: Ler SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e JWT_SECRET de variaveis de ambiente
