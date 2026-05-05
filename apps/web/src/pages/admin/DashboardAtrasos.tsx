@@ -58,7 +58,9 @@ export default function DashboardAtrasos() {
   }, [dataInicio, dataFim, supplierId, buildingId, purchaseOrderId, itemIdentifier]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

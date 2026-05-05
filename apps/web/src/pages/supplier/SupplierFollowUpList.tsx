@@ -35,7 +35,9 @@ export default function SupplierFollowUpList() {
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

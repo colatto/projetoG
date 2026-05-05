@@ -87,13 +87,15 @@ export default function IntegrationEvents() {
     dateFrom,
     dateTo,
   });
-  filtersRef.current = {
-    statusFilter,
-    eventTypeFilter,
-    directionFilter,
-    dateFrom,
-    dateTo,
-  };
+  useEffect(() => {
+    filtersRef.current = {
+      statusFilter,
+      eventTypeFilter,
+      directionFilter,
+      dateFrom,
+      dateTo,
+    };
+  }, [statusFilter, eventTypeFilter, directionFilter, dateFrom, dateTo]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil((pagination.total || 0) / PAGE_LIMIT)),
@@ -146,7 +148,9 @@ export default function IntegrationEvents() {
   }, []);
 
   useEffect(() => {
-    void loadEvents(1);
+    queueMicrotask(() => {
+      void loadEvents(1);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- carrega apenas na montagem
   }, []);
 

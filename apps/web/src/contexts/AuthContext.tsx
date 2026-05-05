@@ -43,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     };
 
-    loadUser();
+    queueMicrotask(() => {
+      void loadUser();
+    });
   }, []);
 
   const login = async (credentials: LoginDto) => {

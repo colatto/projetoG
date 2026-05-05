@@ -66,7 +66,9 @@ export default function SupplierOrderDetail() {
   }, [purchaseOrderId]);
 
   useEffect(() => {
-    loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   if (loading) return <div className="o-loading">Carregando detalhes…</div>;

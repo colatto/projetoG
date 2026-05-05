@@ -43,7 +43,9 @@ export default function SupplierFollowUpDetail() {
   }, [purchaseOrderId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const confirmOnTime = async () => {

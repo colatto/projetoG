@@ -36,7 +36,9 @@ export default function UserList() {
   }, [search, roleFilter]);
 
   useEffect(() => {
-    loadUsers();
+    queueMicrotask(() => {
+      void loadUsers();
+    });
   }, [loadUsers]);
 
   const renderBadge = (status: UserStatus) => {

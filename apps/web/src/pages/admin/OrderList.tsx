@@ -72,7 +72,9 @@ export default function OrderList() {
   }, [statusFilter, search, requireActionOnly, allowRequireAction]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

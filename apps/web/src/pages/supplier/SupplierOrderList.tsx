@@ -40,7 +40,9 @@ export default function SupplierOrderList() {
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

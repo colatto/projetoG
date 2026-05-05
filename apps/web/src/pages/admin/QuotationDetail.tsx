@@ -119,7 +119,11 @@ export default function QuotationDetail() {
         setLoading(false);
       }
     };
-    if (!Number.isNaN(quotationId)) load();
+    if (!Number.isNaN(quotationId)) {
+      queueMicrotask(() => {
+        void load();
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quotationId]);
 

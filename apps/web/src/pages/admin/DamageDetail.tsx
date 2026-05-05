@@ -51,7 +51,9 @@ export default function DamageDetail() {
   }, [damageId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const resolveDamage = async (actionOverride?: string) => {

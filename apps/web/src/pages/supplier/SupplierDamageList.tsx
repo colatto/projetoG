@@ -33,7 +33,9 @@ export default function SupplierDamageList() {
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

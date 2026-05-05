@@ -36,7 +36,9 @@ export default function NotificationTemplates() {
   }
 
   useEffect(() => {
-    loadTemplates();
+    queueMicrotask(() => {
+      void loadTemplates();
+    });
   }, []);
 
   const handleEditClick = (template: NotificationTemplate) => {

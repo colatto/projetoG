@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserSchema, CreateUserDto } from '@projetog/shared';
 import { UserRole } from '@projetog/domain';
@@ -16,7 +16,6 @@ export default function UserCreate() {
   const {
     register,
     handleSubmit,
-    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserDto>({
@@ -26,7 +25,7 @@ export default function UserCreate() {
     },
   });
 
-  const selectedRole = watch('role');
+  const selectedRole = useWatch({ control, name: 'role', defaultValue: UserRole.FORNECEDOR });
 
   const onSubmit = async (data: CreateUserDto) => {
     try {

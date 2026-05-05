@@ -357,17 +357,15 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-05-02` (última verificação local, pós-alinhamento Vitest e E2E):
+Em `2026-05-05` (última verificação local, pós-alinhamento Vitest, E2E e regras `react-hooks` em `apps/web`):
 
 - `pnpm -r run typecheck`: OK (workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
 - `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 53 testes (Vitest — inclui 6 cenários AuditTrail + 3 cenários OrderList §14.1)
 - `pnpm --filter @projetog/web run test:e2e`: OK — 3 cenários Playwright (`login.spec.ts` + fluxos cross-módulo em `e2e/`)
-- `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` mantém 1 warning conhecido em `UserCreate`)
+- `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` sem erros nem warnings de `eslint-plugin-react-hooks` 7.x — ver nota abaixo)
 
-Observação residual de lint:
-
-- `apps/web`: 1 warning (`react-hooks/incompatible-library` em UserCreate por `watch()` do react-hook-form — não acionável)
+**Lint `apps/web` e `eslint-plugin-react-hooks` 7.x:** o preset `flat.recommended` inclui `set-state-in-effect`, `refs`, `purity` e `incompatible-library`. O código foi alinhado sem desligar regras: carregamentos disparados por `useEffect` usam `queueMicrotask(() => { void load…(); })`; `IntegrationEvents` sincroniza `filtersRef` num `useEffect`; expiração de prazo em `SupplierQuotationDetail` evita `Date.now()` no render (`end < new Date()`); `UserCreate` usa `useWatch` em vez de `watch()` para o papel selecionado.
 
 Bundles Hostinger (sem Docker): `pnpm run build:api` e `pnpm run build:workers` geram `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` (smoke local de arranque validado após build).
 
@@ -425,6 +423,8 @@ Política atual do monorepo:
 
 > **Nota (2026-05-05 — deploy Hostinger sem Docker):** duas Node.js Apps no painel (API + workers), bundles únicos `hostinger-entry.js`, script [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `build` / `build:api` / `build:workers` / `start:api` / `start:workers`, workflows `hostinger-*-bundle-artifact.yml`, workers com `PORT` preferido a `WORKER_METRICS_PORT` e `HOST` configurável, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md) com secção «Setup Node.js App» e mitigação de idle shutdown do Passenger.
 
+> **Nota (2026-05-05 — lint `react-hooks` em `apps/web`):** conformidade com `eslint-plugin-react-hooks` 7.x sem afrouxar regras (`queueMicrotask` nos efeitos que chamam loaders, ref de filtros apenas em efeito, pureza no render da cotação fornecedor, `useWatch` em `UserCreate`). Pormenores na secção «Estado dos checks» deste ficheiro e em [`apps/web/CLAUDE.md`](apps/web/CLAUDE.md).
+
 ### Histórico Git observado
 
 - `2026-04-10` `ada641a`: início da implementação do PRD-07, com tipos Sienge e migração de integração
@@ -442,6 +442,8 @@ Política atual do monorepo:
 Limpa — nenhuma alteração pendente após execução das correções da meta-auditoria PRD-09.
 
 > **Nota (2026-04-19):** saneamento de lint em `apps/web` concluído — helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo` para derivação de token e `useCallback` para deps de efeitos. Lint agora passa em todos os workspaces.
+>
+> **Atualização (2026-05-05):** após subida para regras `react-hooks` da série 7.x no preset recommended, o `apps/web` voltou a exigir ajustes (efeitos + refs + pureza + `UserCreate`); ver secção «Estado dos checks» e nota «lint react-hooks» acima.
 
 > **Nota (2026-04-21):** PRD-05 implementado (Fases 1–6). Inclui: migração de delivery_records e order_status_history, validação de entrega (OK/DIVERGENCIA), engine de cálculo de status com precedência (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), cancelamento de pedido com encerramento de régua de follow-up, recepção de status de avaria (stub para PRD-06), sinalização de follow-up após validação de entrega e recálculo de status no worker, testes de integração Phase 6.
 

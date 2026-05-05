@@ -83,7 +83,9 @@ export default function OrderDetail() {
   }, [purchaseOrderId]);
 
   useEffect(() => {
-    loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   const openValidationModal = (delivery: DeliveryRecord) => {

@@ -151,7 +151,11 @@ export default function SupplierQuotationDetail() {
         setLoading(false);
       }
     };
-    if (!Number.isNaN(quotationId)) load();
+    if (!Number.isNaN(quotationId)) {
+      queueMicrotask(() => {
+        void load();
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quotationId]);
 
@@ -234,7 +238,7 @@ export default function SupplierQuotationDetail() {
       : pq.end_date
         ? new Date(`${pq.end_date}T23:59:59.999Z`)
         : null;
-    return end ? end.getTime() < Date.now() : false;
+    return end ? end < new Date() : false;
   })();
   const isReadOnly =
     isTerminalStatus(data.status) || isExpired || latest?.review_status === 'approved';

@@ -96,7 +96,7 @@ Fornecer a SPA do portal/backoffice em React + Vite.
 - build: passa
 - testes: Vitest — `QuotationList.test.tsx`, `AuditTrail.test.tsx` (6 cenários: load, empty state, filtros, RN-12, error, metadata), `quotation-helpers.test.ts`, `AdminLayout.test.tsx`, `OrderList.test.tsx` (3 cenários: viewer, compras, §14.1 columns), `OrderDetail.test.tsx`, `orders-helpers.test.ts`, `NotificationLogs.test.tsx`, `IntegrationEvents.test.tsx`, `DashboardHome.test.tsx`
 - E2E: Playwright — `pnpm --filter @projetog/web run test:e2e` (login + fluxos cross-módulo mockados em [`e2e/`](e2e/); CI em [`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml)); runbook [`docs/runbooks/e2e-playwright-auth.md`](../../docs/runbooks/e2e-playwright-auth.md)
-- lint: passa (0 errors, 1 warning — `react-hooks/incompatible-library` em UserCreate por uso de `watch()` do react-hook-form; não acionável)
+- lint: passa (0 errors, 0 warnings; ESLint 9 + `eslint-plugin-react-hooks` 7.x `flat.recommended` — loaders iniciados em `useEffect` via `queueMicrotask`, ref de filtros em `IntegrationEvents` só em efeito, `SupplierQuotationDetail` sem `Date.now()` no render, `UserCreate` com `useWatch` para o papel)
 
 ## Funcionalidades ainda não implementadas
 

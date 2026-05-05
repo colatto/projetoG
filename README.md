@@ -232,7 +232,7 @@ Depois de alterar migrations, gere novamente `packages/shared/src/database.types
 
 ## Checks
 
-Estado verificado em `2026-05-03`:
+Estado verificado em `2026-05-05`:
 
 ```bash
 pnpm -r run test
@@ -250,7 +250,7 @@ Resultado atual:
 - `pnpm --filter @projetog/integration-sienge test`: passa, 53 testes.
 - `pnpm --filter @projetog/shared test`: passa sem arquivos de teste por `--passWithNoTests`.
 - `pnpm -r run build`: passa em todos os workspaces.
-- `pnpm -r run lint`: passa em todos os workspaces.
+- `pnpm -r run lint`: passa em todos os workspaces (inclui `apps/web` e regras `eslint-plugin-react-hooks` 7.x; ver [`CLAUDE.md`](CLAUDE.md) «Estado dos checks»).
 - `pnpm audit --audit-level=moderate`: reporta vulnerabilidades moderadas em dependencias transitivas.
 
 ## Auditoria De Dependencias

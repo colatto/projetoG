@@ -97,7 +97,9 @@ export default function NotificationLogs() {
   }
 
   useEffect(() => {
-    loadLogs();
+    queueMicrotask(() => {
+      void loadLogs();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, appliedFilters]);
 

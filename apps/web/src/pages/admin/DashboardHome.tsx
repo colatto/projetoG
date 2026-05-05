@@ -40,7 +40,9 @@ export default function DashboardHome() {
         setLoading(false);
       }
     }
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, []);
 
   return (

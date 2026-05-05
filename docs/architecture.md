@@ -441,7 +441,7 @@ Débitos técnicos confirmados:
 ### Mudanças de estado de qualidade
 
 - lint em `apps/api` e `workers`: **agora passa** (antes falhava)
-- lint em `apps/web`: **agora passa** (20 errors corrigidos em 2026-04-19: helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo`, `useCallback`)
+- lint em `apps/web`: **agora passa** (20 errors corrigidos em 2026-04-19: helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo`, `useCallback`; **2026-05-05:** conformidade adicional com `eslint-plugin-react-hooks` 7.x — `set-state-in-effect`/`refs`/`purity`/`incompatible-library` sem desligar regras, ver [`CLAUDE.md`](../CLAUDE.md) secção «Estado dos checks»)
 - security audit: **reduzido de 12 para 3 vulnerabilidades** (overrides aplicados)
 - `@fastify/jwt`: **atualizado de 9.0.1 para 10.0.0**
 - `fastify`: **atualizado de 5.8.4 para 5.8.5**

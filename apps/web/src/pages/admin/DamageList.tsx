@@ -56,7 +56,9 @@ export default function DamageList() {
   }, [status, supplierId, purchaseOrderId, buildingId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

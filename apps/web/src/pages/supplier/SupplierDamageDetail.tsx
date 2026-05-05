@@ -51,7 +51,9 @@ export default function SupplierDamageDetail() {
   }, [damageId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const sendSuggestion = async () => {

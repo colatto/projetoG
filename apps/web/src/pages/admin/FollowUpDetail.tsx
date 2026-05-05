@@ -59,7 +59,9 @@ export default function FollowUpDetail() {
   }, [purchaseOrderId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const decide = async (dateChangeId: string, action: 'approve' | 'reject') => {

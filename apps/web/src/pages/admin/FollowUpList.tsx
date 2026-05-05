@@ -55,7 +55,9 @@ export default function FollowUpList() {
   }, [status, supplierId, buildingId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

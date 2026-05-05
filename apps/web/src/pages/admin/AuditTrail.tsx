@@ -58,7 +58,9 @@ export default function AuditTrail() {
   }, [page, eventType, purchaseQuotationId, purchaseOrderId, supplierId, actorId, dateStart, dateEnd]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));

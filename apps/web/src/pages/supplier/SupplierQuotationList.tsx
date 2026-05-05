@@ -43,7 +43,9 @@ export default function SupplierQuotationList() {
         setLoading(false);
       }
     };
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, []);
 
   return (

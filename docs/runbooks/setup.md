@@ -117,11 +117,11 @@ pnpm -r run build
 pnpm -r run lint
 ```
 
-Situação observada em `2026-04-19`:
+Situação observada em `2026-05-05` (detalhe de contagens: [`CLAUDE.md`](../../CLAUDE.md) na raiz do repositório):
 
-- `test`: passa (40 testes em `apps/api`)
-- `build`: passa (6 workspaces)
-- `lint`: passa (1 warning residual em `apps/web` — `react-hooks/incompatible-library`, não acionável)
+- `test`: passa em todos os workspaces com script de teste
+- `build`: passa nos workspaces aplicáveis
+- `lint`: passa em todos os workspaces; `apps/web` está alinhado às regras `react-hooks` do `eslint-plugin-react-hooks` 7.x (`queueMicrotask` nos efeitos com fetch, sincronização de ref só em efeito onde aplicável, sem `Date.now()` impuro no render em `SupplierQuotationDetail`, `useWatch` em `UserCreate`)
 
 ## 7. Hooks de commit
 

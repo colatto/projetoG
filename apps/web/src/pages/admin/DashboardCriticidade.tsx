@@ -52,7 +52,9 @@ export default function DashboardCriticidade() {
   }, [dataReferencia, supplierId, buildingId, purchaseOrderId, itemIdentifier]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   return (

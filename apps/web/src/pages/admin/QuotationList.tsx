@@ -87,7 +87,9 @@ export default function QuotationList() {
   }, [page, statusFilter, dateFrom, dateTo, requireActionOnly, allowRequireAction]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));

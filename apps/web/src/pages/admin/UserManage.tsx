@@ -42,7 +42,9 @@ export default function UserManage() {
   }, [id]);
 
   useEffect(() => {
-    loadUser();
+    queueMicrotask(() => {
+      void loadUser();
+    });
   }, [loadUser]);
 
   const handleAction = async (
