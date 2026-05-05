@@ -35,20 +35,20 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Jobs registrados
 
-| Job                           | Cron           | Descrição                                                               |
-| ----------------------------- | -------------- | ----------------------------------------------------------------------- |
-| `sienge:sync-quotations`      | `*/15 * * * *` | polling de cotações do Sienge                                           |
-| `sienge:sync-orders`          | `*/15 * * * *` | polling de pedidos do Sienge                                            |
-| `sienge:sync-deliveries`      | `*/15 * * * *` | polling de entregas/NFs do Sienge + recálculo status                    |
-| `sienge:reconcile`            | sob demanda    | re-leitura detalhada pós-webhook                                        |
-| `sienge:process-webhook`      | sob demanda    | processamento assíncrono de webhook recebido                            |
-| `sienge:outbound-negotiation` | sob demanda    | escrita de negociação aprovada no Sienge                                |
-| `notification:send-email`     | sob demanda    | envio de e-mail via Resend (PRD-03)                                     |
-| `integration:retry`           | `0 * * * *`    | retry de eventos com falha                                              |
-| `follow-up`                   | `0 11 * * *`   | follow-up logístico diário com régua completa (PRD-04)                  |
-| `quotation:expire-check`      | `15 11 * * *`  | expiração automática de cotações sem resposta                           |
-| `dashboard:consolidation`     | `45 10 * * *`  | snapshots PRD-08 (transação única; requer `DATABASE_URL`)               |
-| `audit:retry`                 | sob demanda    | retry de evento de auditoria enfileirado por AuditService (PRD-09 §9.6) |
+| Job                           | Cron           | Descrição                                                    |
+| ----------------------------- | -------------- | ------------------------------------------------------------ |
+| `sienge:sync-quotations`      | `*/15 * * * *` | polling de cotações do Sienge                                |
+| `sienge:sync-orders`          | `*/15 * * * *` | polling de pedidos do Sienge                                 |
+| `sienge:sync-deliveries`      | `*/15 * * * *` | polling de entregas/NFs do Sienge + recálculo status         |
+| `sienge:reconcile`            | sob demanda    | re-leitura detalhada pós-webhook                             |
+| `sienge:process-webhook`      | sob demanda    | processamento assíncrono de webhook recebido                 |
+| `sienge:outbound-negotiation` | sob demanda    | escrita de negociação aprovada no Sienge                     |
+| `notification:send-email`     | sob demanda    | envio de e-mail via Resend (PRD-03)                          |
+| `integration:retry`           | `0 * * * *`    | retry de eventos com falha                                   |
+| `follow-up`                   | `0 11 * * *`   | follow-up logístico diário com régua completa (PRD-04)       |
+| `quotation:expire-check`      | `15 11 * * *`  | expiração automática de cotações sem resposta                |
+| `dashboard:consolidation`     | `45 10 * * *`  | snapshots PRD-08 (transação única; requer `DATABASE_URL`)    |
+| `audit:retry`                 | sob demanda    | `processAuditRetry` — reinsere em `audit_logs` (PRD-09 §9.6) |
 
 ## Testes
 
@@ -64,6 +64,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 - `business-days.test.ts` (5 testes: addBusinessDays, countBusinessDays, holidaysToSet)
 - `order-status-recalc.test.ts` (4 testes: follow-up após entrega total/parcial; PRD-06 §14 precedência damages)
 - `dashboard-snapshot-pg.test.ts`
+- `audit-retry.test.ts`
 
 ## Regras locais
 
@@ -74,7 +75,7 @@ Executar processamento assíncrono, agendado e resiliente fora do ciclo HTTP.
 
 ## Estado de qualidade
 
-- testes: 58 passando (`vitest ^4.1.4`, [`vitest.config.ts`](vitest.config.ts) com `pool: forks`) — inclui transação do snapshot PRD-08, `order-status-recalc`, **`process-webhook.test.ts`** (+6 cenários ACK-only PRD-07)
+- testes: 61 passando (`vitest ^4.1.4`, [`vitest.config.ts`](vitest.config.ts) com `pool: forks`) — inclui transação do snapshot PRD-08, `order-status-recalc`, **`process-webhook.test.ts`** (+6 cenários ACK-only PRD-07), `audit-retry.test.ts` (PRD-09 §9.6)
 - build: passa
 - lint: passa
 

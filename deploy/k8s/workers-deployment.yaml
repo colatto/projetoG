@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: workers
-          image: ghcr.io/owner/projetog-workers:latest
+          image: ghcr.io/example-org/example-repo-workers:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9080

@@ -8,9 +8,11 @@ export class AuthController {
 
   public async login(request: FastifyRequest<{ Body: LoginDto }>, reply: FastifyReply) {
     const { email, password } = request.body;
-    const { supabase } = request.server;
+    const { supabase, supabaseAuth } = request.server;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Usar supabaseAuth para login para não contaminar o client principal (service_role)
+    // com a sessão do usuário autenticado — isso quebraria RLS em queries posteriores.
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({
       email,
       password,
     });
@@ -92,10 +94,10 @@ export class AuthController {
     reply: FastifyReply,
   ) {
     const { email } = request.body;
-    const { supabase } = request.server;
+    const { supabaseAuth } = request.server;
 
     // Dispara via Supabase (usando service role gerencia admin auth)
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabaseAuth.auth.resetPasswordForEmail(email);
 
     if (error) {
       request.server.log.error(error);
@@ -115,14 +117,14 @@ export class AuthController {
     reply: FastifyReply,
   ) {
     const { token, new_password } = request.body;
-    const { supabase } = request.server;
+    const { supabaseAuth } = request.server;
 
     // Redefinição feita sem estar logado necessita da API admin do Supabase (UpdateUserById) ou
     // a própria supabase JS local chamando updateUser (isso funciona quando se usa PKCE, mas aqui receberemos apenas token).
     // OBS: Em SSR puro essa rota pode não rodar sem ter a sessão válida do callback code.
     // Usaremos a API Admin para trocar a senha assumindo que o token não precise de verificação mágica (ou usamos o flow padrão client-side)
     // Para mitigar de forma rápida se estamos recebendo só token e password, assumiremos uso nativo ou faremos proxy:
-    const { data, error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabaseAuth.auth.verifyOtp({
       token_hash: token,
       type: 'recovery',
       email: '',
@@ -132,7 +134,7 @@ export class AuthController {
       return reply.code(400).send({ error: 'Bad Request', message: 'Token inválido ou expirado' });
     }
 
-    const { error: updateError } = await supabase.auth.admin.updateUserById(data.user.id, {
+    const { error: updateError } = await supabaseAuth.auth.admin.updateUserById(data.user.id, {
       password: new_password,
     });
 

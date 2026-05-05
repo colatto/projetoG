@@ -9,6 +9,7 @@ import { processWebhook } from '../jobs/process-webhook.js';
 import { processOutboundNegotiation } from '../jobs/outbound-negotiation.js';
 import { processQuotationExpireCheck } from '../jobs/quotation-expire-check.js';
 import { processDashboardConsolidation } from '../jobs/dashboard-consolidation.js';
+import { processAuditRetry, type AuditRetryJobData } from '../jobs/audit-retry.js';
 
 /**
  * Job retry/expiration configuration per fronteira-integracao.md §9.3, Camada 2.
@@ -101,6 +102,9 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work<object>('dashboard:consolidation', async (job) =>
     processDashboardConsolidation(job),
   );
+
+  // Audit deferred retry — PRD-09 §9.6
+  await boss.work<AuditRetryJobData>('audit:retry', async (job) => processAuditRetry(job));
 
   // ── Schedule cron jobs ────────────────────────────────────────
   // Uses singletonKey to prevent duplicate runs when cron fires before

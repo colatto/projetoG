@@ -1,5 +1,5 @@
 import { createServer, Server } from 'node:http';
-import { Registry, Gauge, collectDefaultMetrics, contentType } from 'prom-client';
+import { Registry, Gauge, collectDefaultMetrics } from 'prom-client';
 
 const registry = new Registry();
 collectDefaultMetrics({
@@ -40,7 +40,7 @@ export async function startObservabilityServer(port: number) {
     }
 
     if (request.url === '/metrics') {
-      response.writeHead(200, { 'content-type': registry.contentType || contentType });
+      response.writeHead(200, { 'content-type': registry.contentType });
       response.end(await registry.metrics());
       return;
     }

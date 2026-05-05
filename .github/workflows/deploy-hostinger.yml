@@ -1,0 +1,40 @@
+name: Deploy Hostinger VPS
+
+# SSH na VPS para `docker compose pull && up` após imagens estarem no GHCR.
+# Pré-requisitos na VPS: Docker + Compose v2; ficheiros em VPS_COMPOSE_DIR (compose.env, api.env, workers.env).
+# Imagens: workflow Deploy (.github/workflows/deploy.yml) ou build manual.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hostinger-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ssh_compose_deploy:
+    name: SSH pull and compose up
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          envs: VPS_COMPOSE_DIR,GHCR_USERNAME,GHCR_PULL_TOKEN
+          script: |
+            set -euo pipefail
+            COMPOSE_DIR="${VPS_COMPOSE_DIR:-/opt/projetoG/deploy/compose}"
+            cd "$COMPOSE_DIR"
+            if [ -n "${GHCR_PULL_TOKEN:-}" ] && [ -n "${GHCR_USERNAME:-}" ]; then
+              echo "$GHCR_PULL_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            fi
+            docker compose -f docker-compose.prod.yml --env-file compose.env pull
+            docker compose -f docker-compose.prod.yml --env-file compose.env up -d
+            docker compose -f docker-compose.prod.yml ps
+        env:
+          VPS_COMPOSE_DIR: ${{ secrets.VPS_COMPOSE_DIR }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}

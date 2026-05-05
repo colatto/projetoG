@@ -1,3 +1,4 @@
+import ws from 'ws';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@projetog/shared';
 
@@ -23,6 +24,9 @@ export function getSupabase(): SupabaseClient<Database> {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      realtime: {
+        transport: ws as unknown as typeof WebSocket,
       },
     });
   }

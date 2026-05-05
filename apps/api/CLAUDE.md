@@ -99,4 +99,4 @@ Servir o backend dedicado do projeto com Fastify 5.
 ## Funcionalidades ainda não implementadas
 
 - Paginação e filtros `supplier_id` / `building_id` em `GET /api/orders` (evolução futura).
-- Job handler `audit:retry` para processar eventos enfileirados por pg-boss quando o insert primário falha — stub pronto para implementação no workers.
+- Worker `audit:retry` em `workers/src/jobs/audit-retry.ts` processa eventos enfileirados quando o insert primário na API falha (PRD-09 §9.6).

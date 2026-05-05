@@ -397,17 +397,19 @@ Política atual do monorepo:
 - `ci.yml`: format, lint, test, build em `push`/`pull_request` para `main`
 - `e2e.yml`: Playwright (Chromium) em `apps/web` em `push`/`pull_request` para `main`
 - `deploy.yml`: build Docker + push GHCR + deploy K8s via `workflow_dispatch` ou `push` para `main`
+- `deploy-hostinger.yml`: SSH na VPS Hostinger → `docker compose pull && up` em `workflow_dispatch` (secrets `VPS_*`, opcional `GHCR_*` para pull privado)
 - `security.yml`: `pnpm audit`, gitleaks e dependency review em PRs
 
 ### Containers
 
 - `apps/api/Dockerfile`: imagem de produção da API
 - `workers/Dockerfile`: imagem de produção dos workers
+- `deploy/compose/docker-compose.prod.yml`: stack API + workers para VPS (ver `docs/runbooks/deploy-hostinger.md`)
 
 ### Kubernetes
 
 - `deploy/k8s/`: manifests com deployments, services, configmaps e secrets para API e workers
-- Kustomization para aplicação declarativa
+- Kustomization para aplicação declarativa (imagens exemplo `ghcr.io/example-org/example-repo-*`; ajustar ao repositório real ou usar bloco comentado `images:` em `kustomization.yaml`)
 
 ### Templates do repositório
 

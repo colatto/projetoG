@@ -16,3 +16,10 @@ supabase/.temp/
 setup-admin.mjs
 .setup-admin.mjs.swo
 .setup-admin.mjs.swp
+.vercel
+.env*.local
+
+# Compose secrets na VPS (templates ficam como *.example)
+deploy/compose/compose.env
+deploy/compose/api.env
+deploy/compose/workers.env

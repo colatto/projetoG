@@ -27,6 +27,9 @@
       "@fastify/static": "9.1.1",
       "fast-jwt": "6.2.1",
       "follow-redirects": "1.16.0"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

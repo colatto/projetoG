@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/owner/projetog-api:latest
+          image: ghcr.io/example-org/example-repo-api:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

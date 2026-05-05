@@ -26,6 +26,7 @@ Runtime assíncrono do projeto usando Node.js + `pg-boss`.
 - `integration:retry`
 - `follow-up`
 - `quotation:expire-check`
+- `audit:retry` (PRD-09 §9.6 — replay em `audit_logs`)
 
 ## Schedules configurados
 
@@ -72,5 +73,5 @@ pnpm --filter @projetog/workers lint
 - `DATABASE_URL` é obrigatória
 - o worker lê credenciais ativas em `sienge_credentials` e usa fallback de env apenas em `development`
 - o follow-up scheduler é completo e implementa a régua do PRD-04 (notificações em dias úteis, detecção de atraso, encerramento automático)
-- testes: 58 passando (13 ficheiros; ver `vitest.config.ts` com `pool: forks`)
+- testes: 61 passando (14 ficheiros; ver `vitest.config.ts` com `pool: forks`)
 - build e lint passam

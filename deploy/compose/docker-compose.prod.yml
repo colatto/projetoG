@@ -1,0 +1,40 @@
+# Produção na VPS (ex.: Hostinger): API + workers apontando ao Supabase (Postgres/pg-boss).
+# Reverse proxy (Caddy/Nginx) na VPS deve escutar 443 e encaminhar para 127.0.0.1:3000.
+#
+# Uso:
+#   export API_IMAGE=ghcr.io/<owner>/<repo>-api:latest
+#   export WORKERS_IMAGE=ghcr.io/<owner>/<repo>-workers:latest
+#   docker compose -f docker-compose.prod.yml --env-file compose.env pull
+#   docker compose -f docker-compose.prod.yml --env-file compose.env up -d
+#
+# Variáveis sensíveis: ficheiros api.env e workers.env (ver *.env.example).
+
+name: projetog
+
+services:
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE to ghcr.io owner/repo-api:tag}
+    container_name: projetog-api
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3000:3000'
+    env_file:
+      - api.env
+    networks:
+      - projetog
+
+  workers:
+    image: ${WORKERS_IMAGE:?Set WORKERS_IMAGE to ghcr.io owner/repo-workers:tag}
+    container_name: projetog-workers
+    restart: unless-stopped
+    # Apenas localhost: métricas/health para smoke na VPS (não expor à internet)
+    ports:
+      - '127.0.0.1:9080:9080'
+    env_file:
+      - workers.env
+    networks:
+      - projetog
+
+networks:
+  projetog:
+    driver: bridge
