@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "build": "pnpm run build:api && pnpm run build:workers",
+    "build": "node scripts/build-hostinger-api.mjs && node scripts/build-hostinger-workers.mjs",
     "build:api": "node scripts/build-hostinger-api.mjs",
     "build:workers": "node scripts/build-hostinger-workers.mjs",
     "start:api": "node apps/api/dist/hostinger-entry.js",
