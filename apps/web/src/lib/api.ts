@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Variável base, mapeando para o .env local
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.ruatrez.com/api';
 
 export const api = axios.create({
   baseURL: API_URL,
