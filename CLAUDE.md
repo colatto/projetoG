@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-05`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-12`.
 
 ## Ordem de consulta
 
@@ -35,7 +35,9 @@ O repositório não está mais em fase de scaffold. Hoje ele já contém:
 - `AuditService` centralizado com `registerEvent()`: summary obrigatório (fallback automático via `fallbackSummary()`), campos operacionais PRD-09, e enfileiramento via pg-boss (`audit:retry`) em caso de falha de escrita (§9.6). Guarda contra exceções lançadas (e.g., erros de rede) via `try/catch` externo — auditoria nunca bloqueia o fluxo principal
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
 - pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service, enums PRD-06 (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`) e testes unitários
-- deploy documentado como bundles Node 20 para Hostinger «Setup Node.js App»: `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` via [`scripts/build-hostinger-api.mjs`](scripts/build-hostinger-api.mjs) e [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `pnpm run build:api` / `build:workers` / `start:api` / `start:workers`, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md); CI com `ci.yml`, artefactos opcionais `hostinger-*-bundle-artifact.yml` e `security.yml`
+- deploy em produção: **frontend** (`apps/web`) na **Vercel** em `grf.ruatrez.com` com `vercel.json` (SPA rewrite catch-all + headers de segurança); **API** e **workers** na **Hostinger** «Setup Node.js App» como bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js`) via [`scripts/build-hostinger-api.mjs`](scripts/build-hostinger-api.mjs) e [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `pnpm run build:api` / `build:workers` / `start:api` / `start:workers`, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md); CI com `ci.yml`, artefactos opcionais `hostinger-*-bundle-artifact.yml` e `security.yml`
+- CORS da API configurável via `CORS_ALLOWED_ORIGINS` (lista separada por vírgula); em desenvolvimento mantém `origin: '*'` como fallback
+- scaffold residual em `apps/` raiz (package.json "temp", index.html, vite.config.ts, tsconfig.\*, src/, public/) removido; `apps/` agora contém apenas `api/` e `web/`
 
 ## Módulos reais
 
@@ -324,6 +326,8 @@ Identificadores mínimos persistidos:
 - `EMAIL_FROM_ADDRESS`
 - `EMAIL_FROM_NAME`
 - `DATABASE_URL` opcional para publicar jobs via `pg-boss`
+- `CORS_ALLOWED_ORIGINS` — opcional; lista de origens CORS separadas por vírgula (ex.: `https://grf.ruatrez.com`); sem definir, mantém `origin: '*'`
+- `FRONTEND_URL` — URL do frontend para links em e-mails (ex.: `https://grf.ruatrez.com`)
 
 ### Workers
 
@@ -357,12 +361,12 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-05-05` (última verificação local, pós-alinhamento Vitest, E2E e regras `react-hooks` em `apps/web`):
+Em `2026-05-12` (última verificação local, pós-preparação deploy Vercel):
 
-- `pnpm run format:check`: OK (remediação CI: ficheiros realinhados com Prettier; removido `db.js` de teste na raiz que não pertencia ao repo)
-- `pnpm -r run typecheck`: OK (workspaces com script)
+- `pnpm run format:check`: OK
+- `pnpm -r run typecheck`: OK (6 workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 168 testes, `workers`: 58 testes, `packages/domain`: 16 testes, `packages/integration-sienge`: 53 testes, `apps/web`: 53 testes (Vitest — inclui 6 cenários AuditTrail + 3 cenários OrderList §14.1)
+- `pnpm -r run test`: OK — `apps/api`: 175 testes (18 test files), `workers`: 61 testes (14 test files), `packages/domain`: 16 testes (2 test files), `packages/integration-sienge`: 53 testes (8 test files), `apps/web`: 53 testes (16 test files) — total **358 testes, 58 test files**
 - `pnpm --filter @projetog/web run test:e2e`: OK — 3 cenários Playwright (`login.spec.ts` + fluxos cross-módulo em `e2e/`)
 - `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` sem erros nem warnings de `eslint-plugin-react-hooks` 7.x — ver nota abaixo)
 
@@ -398,6 +402,18 @@ Política atual do monorepo:
 
 ## Infraestrutura de deploy
 
+### Topologia de produção
+
+| Serviço                   | Plataforma    | Domínio               | Configuração                                                                                                                  |
+| ------------------------- | ------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Frontend (SPA React+Vite) | **Vercel**    | `grf.ruatrez.com`     | [`apps/web/vercel.json`](apps/web/vercel.json) — SPA rewrite catch-all + headers de segurança + cache imutável em assets      |
+| API (Fastify v5)          | **Hostinger** | `api.ruatrez.com`     | Bundle CJS Node 20 via `pnpm run build:api`; runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md) |
+| Workers (pg-boss)         | **Hostinger** | `workers.ruatrez.com` | Bundle CJS Node 20 via `pnpm run build:workers`; processo residente                                                           |
+
+Variáveis de ambiente do frontend (Vercel): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (`https://api.ruatrez.com/api`).
+
+CORS da API: configurável via `CORS_ALLOWED_ORIGINS` (ex.: `https://grf.ruatrez.com`); sem a variável, mantém `origin: '*'` para desenvolvimento.
+
 ### CI/CD (GitHub Actions)
 
 - `ci.yml`: format, lint, typecheck, test, build em `push`/`pull_request` para `main` (Node 20, pnpm 10, `pnpm/action-setup@v4`)
@@ -424,6 +440,8 @@ Política atual do monorepo:
 
 ## Mudanças recentes já incorporadas ao codebase
 
+> **Nota (2026-05-12 — preparação deploy Vercel):** scaffold residual removido de `apps/` (package.json "temp", vite.config.ts, tsconfig._, src/, public/). Criado [`apps/web/vercel.json`](apps/web/vercel.json) com SPA rewrite catch-all, cache imutável em `/assets/_`e headers de segurança (X-Content-Type-Options, X-Frame-Options, Referrer-Policy). CORS da API tornado configurável via`CORS_ALLOWED_ORIGINS` em [`apps/api/src/app.ts`](apps/api/src/app.ts) — em produção: `https://grf.ruatrez.com`; sem a variável, mantém `origin: '*'`. Adicionados `credentials: true` e método `PATCH` à lista de métodos CORS. Topologia de deploy: frontend na Vercel (`grf.ruatrez.com`), API na Hostinger (`api.ruatrez.com`), workers na Hostinger (`workers.ruatrez.com`).
+
 > **Nota (2026-05-05 — deploy Hostinger sem Docker):** duas Node.js Apps no painel (API + workers), bundles únicos `hostinger-entry.js`, script [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `build` / `build:api` / `build:workers` / `start:api` / `start:workers`, workflows `hostinger-*-bundle-artifact.yml`, workers com `PORT` preferido a `WORKER_METRICS_PORT` e `HOST` configurável, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md) com secção «Setup Node.js App» e mitigação de idle shutdown do Passenger.
 
 > **Nota (2026-05-05 — lint `react-hooks` em `apps/web`):** conformidade com `eslint-plugin-react-hooks` 7.x sem afrouxar regras (`queueMicrotask` nos efeitos que chamam loaders, ref de filtros apenas em efeito, pureza no render da cotação fornecedor, `useWatch` em `UserCreate`). Pormenores na secção «Estado dos checks» deste ficheiro e em [`apps/web/CLAUDE.md`](apps/web/CLAUDE.md).
@@ -437,15 +455,14 @@ Política atual do monorepo:
 - `2026-04-17` `855e118`: instalação do lint-staged, deploy workflows, K8s manifests, módulo de cotações (PRD-02), templates de PR/issue, plugin de métricas, portal do fornecedor
 - `2026-04-21`: implementação completa do PRD-05 (Entrega, Divergência e Status de Pedido) — migração `20260421223710_prd05_delivery_records.sql`, módulos API `deliveries` e `orders`, `OrderStatusEngine` e `OrderOperationalStatus` no domínio, utilitário `order-status-recalc` nos workers, sinalização de follow-up, testes unitários e de integração Phase 6
 - `2026-04-22`: implementação do PRD-03 (Notificações de Cotação) — migração `20260422145434_prd03_notification_templates_and_logs.sql`, enums `NotificationType`/`NotificationStatus` e `TemplateRenderer` no domínio, módulo API `notifications` (service, controller, routes, email-provider), plugin Fastify `email.ts` com Resend, worker job `notification:send-email`, integração no `QuotationsController.sendQuotation`, hook de envio tardio em `users.reactivate`, alerta de sem resposta via `sendNoResponseEmailAlert` no expire-check, schemas Zod no shared, telas frontend (NotificationTemplates, NotificationLogs, NotificationsLayout, AdminLayout atualizado), testes unitários e de integração
-- `2026-04-23`: implementação do PRD-04 (Follow-up Logístico, Fases 1–4) — migração `20260423110000_prd04_followup_logistico.sql` (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), NotificationType PRD-04 enums no domínio, schemas Zod de follow-up no shared, módulo API `followup` (controller, routes com 7 endpoints, RBAC, isolamento de fornecedor, auditoria, notificações), worker `follow-up.ts` completo (ensureTrackers, processTracker, régua de notificações, detecção de atraso, encerramento automático, integração com notification:send-email), utilitário `business-days.ts`, telas frontend (FollowUpList, FollowUpDetail no backoffice; SupplierFollowUpList, SupplierFollowUpDetail no portal do fornecedor), e telas de pedidos PRD-05 (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail com navegação no AdminLayout)
+- `2026-04-23`: implementação do PRD-04 (Follow-up Logístico, Fases 1–4) — migração `20260423110000_prd04_followup_logistico.sql` (extensão de `follow_up_trackers`, `follow_up_date_changes`, `business_days_holidays`, 4 novos tipos de notificação com templates seed), NotificationType PRD-04 enums no domínio, schemas Zod de follow-up no shared, módulo API `followup` (controller, routes com 7 endpoints, RBAC, isolamento de fornecedor, auditoria, notificações), worker `follow-up.ts` completo (ensureTrackers, processTracker, régua de notificações, detecção de atraso, encerramento automático, integração com notification:send-email), utilitário `business-days.ts`, telas frontend (FollowUpList, FollowUpDetail no backoffice; SupplierFollowUpList, SupplierFollowUpDetail no portal do fornecedor), e telas de pedidos PRD-05 (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail com navegação no AdminLayout)
 - `2026-04-28`: implementação do PRD-06 (Avaria e Ação Corretiva, Fases 1–6) — migração `20260428150000_prd06_damages_and_corrective_actions.sql` (extensão de `damages` com 10 novas colunas, tabelas `damage_replacements` e `damage_audit_logs` com RLS, constraints e índices), enums PRD-06 no domínio (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`), schemas Zod de avaria no shared, módulo API `damages` (controller com 595+ linhas, routes com 8 endpoints, RBAC, isolamento de fornecedor, auditoria completa com 11 eventos §10, cancelamento de reposição), integração worker `sync-deliveries.ts` para confirmação automática de reposição entregue, telas frontend (backoffice: DamageList com filtros status/fornecedor/pedido/obra e badges coloridos, DamageDetail com atalhos Aceitar/Recusar sugestão e timeline de auditoria; fornecedor: SupplierDamageList com badges, SupplierDamageDetail com sugestão, data de reposição e timeline de auditoria; compartilhado: DamageCreate para registro), helper `damages-helpers.ts` para mapeamento de badges, e 15 testes (API 12, worker 1, frontend 2)
+- `2026-05-12`: preparação deploy Vercel — scaffold residual removido de `apps/`, criado `apps/web/vercel.json`, CORS configurável via `CORS_ALLOWED_ORIGINS`
 
 ### Working tree atual
 
 Limpa — nenhuma alteração pendente após execução das correções da meta-auditoria PRD-09.
 
-> **Nota (2026-04-19):** saneamento de lint em `apps/web` concluído — helper `error-utils.ts`, eliminação de `any`, tipos concretos, `useMemo` para derivação de token e `useCallback` para deps de efeitos. Lint agora passa em todos os workspaces.
->
 > **Atualização (2026-05-05):** após subida para regras `react-hooks` da série 7.x no preset recommended, o `apps/web` voltou a exigir ajustes (efeitos + refs + pureza + `UserCreate`); ver secção «Estado dos checks» e nota «lint react-hooks» acima.
 
 > **Nota (2026-04-21):** PRD-05 implementado (Fases 1–6). Inclui: migração de delivery_records e order_status_history, validação de entrega (OK/DIVERGENCIA), engine de cálculo de status com precedência (CANCELADO > EM_AVARIA > DIVERGENCIA > REPOSICAO > ENTREGUE > ATRASADO > PARCIALMENTE_ENTREGUE > PENDENTE), cancelamento de pedido com encerramento de régua de follow-up, recepção de status de avaria (stub para PRD-06), sinalização de follow-up após validação de entrega e recálculo de status no worker, testes de integração Phase 6.

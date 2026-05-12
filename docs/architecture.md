@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-05-05` para refletir o estado real do monorepo.
+Atualizado em `2026-05-12` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -19,7 +19,7 @@ O sistema foi desenhado para manter:
 - dados operacionais locais no Supabase
 - Sienge como fonte de verdade externa para cotações, pedidos, entregas e credores
 
-A API (`apps/api`) e os `workers` são **processos Node.js** sem dependências nativas obrigatórias no runtime (Fastify, pg-boss, clientes HTTP em JS). Isso permite empacotar cada um num **bundle único** e executar em hospedagem gerenciada (ex.: Phusion Passenger na Hostinger «Setup Node.js App»).
+A API (`apps/api`) e os `workers` são **processos Node.js** sem dependências nativas obrigatórias no runtime (Fastify, pg-boss, clientes HTTP em JS). Isso permite empacotar cada um num **bundle único** e executar em hospedagem gerenciada (ex.: Phusion Passenger na Hostinger «Setup Node.js App»). O frontend (`apps/web`) é uma SPA React+Vite deployada na **Vercel** em `grf.ruatrez.com`.
 
 ### 1.1 Toolchain e dependências
 
@@ -176,7 +176,7 @@ sequenceDiagram
 ### Observações de arquitetura técnica
 
 - Há heterogeneidade de versões de `vitest`, `typescript`, `@types/node`, `zod` e `@supabase/supabase-js` entre workspaces.
-- O pacote `apps/` (raiz do diretório apps) permanece com um scaffold Vite genérico e não deve ser tratado como aplicação de produção.
+- O scaffold residual de `apps/` raiz (package.json "temp", vite.config.ts, etc.) foi removido em 2026-05-12; `apps/` agora contém apenas `api/` e `web/`.
 - `workers/dist/` e `apps/api/dist/hostinger-entry.js` (bundle Hostinger) são artefatos de build (tipicamente ignorados pelo git); não são fonte.
 
 ## 5. Estrutura de diretórios e aderência
@@ -191,7 +191,6 @@ sequenceDiagram
 | `packages/shared`             | contratos                | boa                 | schemas Zod e tipos compartilhados; inclui schemas de cotação                                                                                |
 | `supabase`                    | plataforma de dados      | boa                 | 19 migrações versionadas; PRD-02, PRD-05, PRD-03, PRD-04, PRD-06, PRD-08 e PRD-09 com RLS                                                    |
 | `deploy`                      | infraestrutura de deploy | boa                 | exemplos `.env`, scripts de smoke; bundles gerados na raiz do monorepo                                                                       |
-| `apps`                        | residual de template     | baixa               | manter só como diretório contêiner; não usar como referência funcional                                                                       |
 
 ## 6. Banco de dados e Supabase
 
@@ -365,6 +364,18 @@ Planejamento controlado:
 
 `pnpm run build` na raiz executa `build:api` e `build:workers` em sequência. Operação e variáveis: [`docs/runbooks/deploy-hostinger.md`](../docs/runbooks/deploy-hostinger.md) (duas Node.js Apps na Hostinger, `PORT`/`HOST` nos workers, risco de idle do Passenger).
 
+### 9.3 Frontend na Vercel
+
+O frontend (`apps/web`) é deployado na **Vercel** em `grf.ruatrez.com`. Configuração em [`apps/web/vercel.json`](../apps/web/vercel.json):
+
+- **Rewrite catch-all** (`/(.*) → /index.html`): necessário para SPA com `BrowserRouter`
+- **Cache imutável** em `/assets/*`: `max-age=31536000, immutable`
+- **Headers de segurança**: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
+
+Variáveis de ambiente (dashboard Vercel): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (`https://api.ruatrez.com/api`).
+
+CORS da API configurável via `CORS_ALLOWED_ORIGINS` (em produção: `https://grf.ruatrez.com`).
+
 ## 10. Fluxo de desenvolvimento até deployment
 
 ### 10.1 Desenvolvimento local
@@ -453,5 +464,4 @@ O codebase já ultrapassou a fase de bootstrap e tem uma arquitetura coerente pa
 
 - unificação de versões de dependências entre workspaces
 - expansão da cobertura de testes do módulo follow-up (cópia Compras Notificação 2+, reinício end-to-end da régua após aprovação de nova data). _Atualização 2026-05-02 (lacunas PRD-04 baixa severidade): migração `20260502120000_prd04_follow_up_trackers_suggested_date.sql` (`suggested_date`); parcial vs encerramento de tracker em `workers/src/utils/order-status-recalc.test.ts`; isolamento em `FollowupController.listNotifications` (`followup.routes.test.ts`); RBAC/logs PRD-03 (`notification.routes.test.ts`). Ver `CLAUDE.md` e PRD-04 §12.1._
-- formalização da estratégia de deploy de produção
 - regeneração de `database.types.ts` após novas migrações para manter tipos alinhados (ver `docs/runbooks/typecheck-and-supabase-types.md`)

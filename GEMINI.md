@@ -49,7 +49,9 @@ O repositorio ja ultrapassou a fase de scaffold. Possui implementacao funcional 
 - Os tipos do Supabase (`database.types.ts`) estão gerados no pacote `packages/shared`.
 - O pacote de integração (`packages/integration-sienge`) possui cliente HTTP com retry, rate limit (bottleneck), paginação, 6 clientes especializados (quotation, creditor, order, invoice, delivery-requirement, negotiation), 5 mapeadores, criptografia AES para credenciais, testes unitários + integração live, e 8 scripts de homologação §17 (7 readonly + 1 runner consolidado `homologation-checklist.integration.ts`).
 - O pacote de domínio (`packages/domain`) possui entidades, enums centrais (`OrderOperationalStatus`, `NotificationType`, `NotificationStatus`, `UserRole`, `DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`, etc.), `OrderStatusEngine` com regras de precedência de status, `TemplateRenderer` para renderização e validação de templates de notificação (PRD-03), enums PRD-04 (`FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), e testes unitários.
-- Deploy de API e workers documenta-se como bundles Node 20 (Hostinger «Setup Node.js App»); GitHub Actions cobre CI, artefactos opcionais de bundle e segurança.
+- Deploy de API e workers documenta-se como bundles Node 20 (Hostinger «Setup Node.js App»); frontend (`apps/web`) deploya na **Vercel** em `grf.ruatrez.com` com `vercel.json` (SPA rewrite catch-all + headers de segurança); GitHub Actions cobre CI, artefactos opcionais de bundle e segurança.
+- O scaffold residual em `apps/` raiz (package.json "temp", vite.config.ts, etc.) foi removido; `apps/` agora contém apenas `api/` e `web/`.
+- CORS da API configurável via `CORS_ALLOWED_ORIGINS` (lista separada por vírgula); em desenvolvimento mantém `origin: '*'` como fallback.
 
 Consequencia pratica:
 
@@ -87,7 +89,7 @@ Principios inviolaveis:
 
 O repositorio foi definido como monorepo com estas fronteiras:
 
-- `apps/web`: SPA em React + TypeScript + Vite, deploy principal na Vercel;
+- `apps/web`: SPA em React + TypeScript + Vite, deploy na **Vercel** (`grf.ruatrez.com`);
 - `apps/api`: backend dedicado em TypeScript com Fastify v5;
 - `supabase/`: artefatos de plataforma de dados, auth e suporte operacional;
 - `workers/`: jobs e processamento assincrono em Node.js + TypeScript com `pg-boss`;
@@ -123,7 +125,7 @@ O repositorio foi definido como monorepo com estas fronteiras:
 - workspace manager: `pnpm`;
 - observabilidade: `prom-client` (metricas) em API e workers;
 - idioma do repositorio: portugues para documentacao e UI; ingles para identificadores, comentarios e mensagens tecnicas de codigo.
-- deploy em producao: **Hostinger «Setup Node.js App»** com bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js`, `workers/dist/hostinger-entry.js`) gerados por `pnpm run build:api` / `pnpm run build:workers`, workflows opcionais `hostinger-api-bundle-artifact.yml` e `hostinger-workers-bundle-artifact.yml`, runbook `docs/runbooks/deploy-hostinger.md`.
+- deploy em producao: **frontend** na **Vercel** em `grf.ruatrez.com` com [`apps/web/vercel.json`](apps/web/vercel.json); **API** e **workers** na **Hostinger «Setup Node.js App»** com bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js`, `workers/dist/hostinger-entry.js`) gerados por `pnpm run build:api` / `pnpm run build:workers`, workflows opcionais `hostinger-api-bundle-artifact.yml` e `hostinger-workers-bundle-artifact.yml`, runbook `docs/runbooks/deploy-hostinger.md`.
 
 Antes de sugerir tecnologia adicional, valide se ela realmente e necessaria e se nao conflita com as ADRs ja aceitas.
 

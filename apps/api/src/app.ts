@@ -50,8 +50,11 @@ export function buildApp(options: BuildAppOptions = {}) {
   // Security and Utils plugins globais
   app.register(helmet, { global: true });
   app.register(cors, {
-    origin: '*', // Permitir todas em dev, ajustar no futuro (Supabase, Vercel app config)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: process.env.CORS_ALLOWED_ORIGINS
+      ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+      : '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
   app.register(sensible);
   app.register(metricsPlugin);
