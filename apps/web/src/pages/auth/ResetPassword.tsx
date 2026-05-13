@@ -126,6 +126,8 @@ export default function ResetPassword() {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
+          {token && <input type="hidden" value={token} readOnly {...register('token')} />}
+
           {!token && (
             <Input
               label="Token de Segurança"
