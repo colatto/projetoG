@@ -240,6 +240,77 @@ describe('Users Routes — RBAC & Lifecycle', () => {
       expect(response.statusCode).toBe(400);
       expect(response.json().message).toContain('Fornecedor');
     });
+
+    it('should return 500 and cleanup auth user when profile insert returns null (RLS block)', async () => {
+      const token = await getAdminToken(app);
+      const newUserId = '00000000-0000-0000-0000-000000000013';
+
+      // Check email conflict — no conflict
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery(null));
+
+      // inviteUserByEmail
+      mockInviteUserByEmail.mockResolvedValueOnce({
+        data: { user: { id: newUserId } },
+        error: null,
+      });
+
+      // Profile insert — returns null data (simulating silent RLS block)
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery(null));
+
+      // Auth cleanup (deleteUser) after failed profile insert
+      mockAuthAdminDeleteUser.mockResolvedValueOnce({ error: null });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/users',
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          name: 'Ghost User',
+          email: 'ghost@grf.com.br',
+          role: UserRole.COMPRAS,
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.json().message).toContain('dados não persistidos');
+      // Verify cleanup: auth user should be deleted to avoid orphan
+      expect(mockAuthAdminDeleteUser).toHaveBeenCalledWith(newUserId);
+    });
+
+    it('should return 500 and cleanup auth user when profile insert fails with error', async () => {
+      const token = await getAdminToken(app);
+      const newUserId = '00000000-0000-0000-0000-000000000014';
+
+      // Check email conflict — no conflict
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery(null));
+
+      // inviteUserByEmail
+      mockInviteUserByEmail.mockResolvedValueOnce({
+        data: { user: { id: newUserId } },
+        error: null,
+      });
+
+      // Profile insert — returns database error
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery(null, { message: 'FK violation' }));
+
+      // Auth cleanup (deleteUser) after failed profile insert
+      mockAuthAdminDeleteUser.mockResolvedValueOnce({ error: null });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/users',
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          name: 'Error User',
+          email: 'error@grf.com.br',
+          role: UserRole.COMPRAS,
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.json().message).toContain('Erro ao registrar perfil local');
+      expect(mockAuthAdminDeleteUser).toHaveBeenCalledWith(newUserId);
+    });
   });
 
   // ── GET /api/users/:id ──────────────────────────────────────────

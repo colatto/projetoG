@@ -319,7 +319,7 @@ describe('Auth Routes', () => {
   // ── POST /api/auth/reset-password ─────────────────────────────────
 
   describe('POST /api/auth/reset-password', () => {
-    it('should update password from Supabase session access token', async () => {
+    it('should update password and auto-activate pending profile', async () => {
       const userId = '00000000-0000-0000-0000-000000000077';
 
       mockGetUser.mockResolvedValueOnce({
@@ -328,7 +328,32 @@ describe('Auth Routes', () => {
       });
       mockUpdateUserById.mockResolvedValueOnce({ error: null });
 
-      // AuditService insert mock
+      // Profile lookup (auto-activation check) — returns pending
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            single: () =>
+              Promise.resolve({
+                data: { status: 'pendente' },
+                error: null,
+              }),
+          }),
+        }),
+      });
+
+      // Profile update (status → ativo)
+      mockFrom.mockReturnValueOnce({
+        update: () => ({
+          eq: () => Promise.resolve({ error: null }),
+        }),
+      });
+
+      // AuditService insert mock (user.auto_activated)
+      mockFrom.mockReturnValueOnce({
+        insert: () => Promise.resolve({ error: null }),
+      });
+
+      // AuditService insert mock (password.reset_completed)
       mockFrom.mockReturnValueOnce({
         insert: () => Promise.resolve({ error: null }),
       });
@@ -345,6 +370,43 @@ describe('Auth Routes', () => {
       expect(mockUpdateUserById).toHaveBeenCalledWith(userId, {
         password: 'newpassword123',
       });
+    });
+
+    it('should not alter status when profile is already ativo', async () => {
+      const userId = '00000000-0000-0000-0000-000000000078';
+
+      mockGetUser.mockResolvedValueOnce({
+        data: { user: { id: userId, email: 'active@grf.com.br' } },
+        error: null,
+      });
+      mockUpdateUserById.mockResolvedValueOnce({ error: null });
+
+      // Profile lookup — already active, should skip activation
+      mockFrom.mockReturnValueOnce({
+        select: () => ({
+          eq: () => ({
+            single: () =>
+              Promise.resolve({
+                data: { status: 'ativo' },
+                error: null,
+              }),
+          }),
+        }),
+      });
+
+      // AuditService insert mock (password.reset_completed only, no auto_activated)
+      mockFrom.mockReturnValueOnce({
+        insert: () => Promise.resolve({ error: null }),
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: 'header.payload.signature', new_password: 'newpassword123' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ success: true });
     });
 
     it('should return 400 with invalid or expired token', async () => {

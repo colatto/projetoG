@@ -70,6 +70,9 @@ export class UsersController {
     const payload = request.body;
     const adminId = request.user.sub;
     const supabase = request.server.supabase;
+    // Auth operations MUST use the dedicated auth client to avoid contaminating
+    // the service_role data client's internal session (see supabase.ts comments).
+    const supabaseAuth = request.server.supabaseAuth;
 
     // Verify email uniqueness in local profiles (pending, blocked, active)
     const { data: emailConflict } = await supabase
@@ -99,9 +102,9 @@ export class UsersController {
       }
     }
 
-    // Supabase Auth Creation
-    // Utilizing admin API to invite user, it generates user and emails the magic link
-    const { data: authUser, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+    // Supabase Auth Creation — uses supabaseAuth (dedicated auth client) to avoid
+    // contaminating the service_role data client's session, which would break RLS bypass.
+    const { data: authUser, error: authError } = await supabaseAuth.auth.admin.inviteUserByEmail(
       payload.email,
       { redirectTo: getPasswordRedirectUrl() },
     );
@@ -130,7 +133,19 @@ export class UsersController {
 
     if (dbError) {
       request.log.error(dbError);
+      // Cleanup: remove orphaned auth user since profile creation failed
+      await supabaseAuth.auth.admin.deleteUser(userId);
       return reply.code(500).send({ message: 'Erro ao registrar perfil local' });
+    }
+
+    if (!profile) {
+      request.log.error(
+        { userId, email: payload.email },
+        'Profile insert returned null — possible RLS block or silent failure',
+      );
+      // Cleanup: remove orphaned auth user since profile was not persisted
+      await supabaseAuth.auth.admin.deleteUser(userId);
+      return reply.code(500).send({ message: 'Erro ao registrar perfil local — dados não persistidos' });
     }
 
     await this.auditService.log({

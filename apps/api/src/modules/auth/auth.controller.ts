@@ -142,6 +142,36 @@ export class AuthController {
       return reply.code(400).send({ error: updateError.message });
     }
 
+    // Auto-activate pending profiles on first password setup (invite flow).
+    // This transitions status from 'pendente' → 'ativo' so the user can log in immediately.
+    const { supabase } = request.server;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profile && profile.status === 'pendente') {
+      const { error: activateError } = await supabase
+        .from('profiles')
+        .update({ status: 'ativo' })
+        .eq('id', data.user.id);
+
+      if (activateError) {
+        request.log.error(
+          { err: activateError, userId: data.user.id },
+          'Failed to auto-activate profile after password set',
+        );
+      } else {
+        await this.auditService.log({
+          eventType: 'user.auto_activated',
+          actorId: data.user.id,
+          targetUserId: data.user.id,
+          metadata: { trigger: 'password_set_on_invite' },
+        });
+      }
+    }
+
     await this.auditService.log({
       eventType: 'password.reset_completed',
       targetUserId: data.user.id,
