@@ -33,7 +33,13 @@ export default function ResetPassword() {
   const token = useMemo(() => {
     const queryParams = new URLSearchParams(location.search);
     const hashParams = new URLSearchParams(location.hash.replace('#', '?'));
-    return queryParams.get('token') || hashParams.get('access_token') || '';
+    return (
+      queryParams.get('token_hash') ||
+      hashParams.get('token_hash') ||
+      queryParams.get('token') ||
+      hashParams.get('access_token') ||
+      ''
+    );
   }, [location]);
 
   const {

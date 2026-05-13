@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { LoginDto, ForgotPasswordDto, ResetPasswordDto } from '@projetog/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { UserRole } from '@projetog/domain';
+import { getPasswordRedirectUrl } from '../../config/frontend-url.js';
 
 export class AuthController {
   constructor(private auditService: AuditService) {}
@@ -97,7 +98,9 @@ export class AuthController {
     const { supabaseAuth } = request.server;
 
     // Dispara via Supabase (usando service role gerencia admin auth)
-    const { error } = await supabaseAuth.auth.resetPasswordForEmail(email);
+    const { error } = await supabaseAuth.auth.resetPasswordForEmail(email, {
+      redirectTo: getPasswordRedirectUrl(),
+    });
 
     if (error) {
       request.server.log.error(error);
@@ -119,16 +122,13 @@ export class AuthController {
     const { token, new_password } = request.body;
     const { supabaseAuth } = request.server;
 
-    // Redefinição feita sem estar logado necessita da API admin do Supabase (UpdateUserById) ou
-    // a própria supabase JS local chamando updateUser (isso funciona quando se usa PKCE, mas aqui receberemos apenas token).
-    // OBS: Em SSR puro essa rota pode não rodar sem ter a sessão válida do callback code.
-    // Usaremos a API Admin para trocar a senha assumindo que o token não precise de verificação mágica (ou usamos o flow padrão client-side)
-    // Para mitigar de forma rápida se estamos recebendo só token e password, assumiremos uso nativo ou faremos proxy:
-    const { data, error } = await supabaseAuth.auth.verifyOtp({
-      token_hash: token,
-      type: 'recovery',
-      email: '',
-    });
+    const isJwtSessionToken = token.split('.').length === 3;
+    const { data, error } = isJwtSessionToken
+      ? await supabaseAuth.auth.getUser(token)
+      : await supabaseAuth.auth.verifyOtp({
+          token_hash: token,
+          type: 'recovery',
+        });
 
     if (error || !data.user) {
       return reply.code(400).send({ error: 'Bad Request', message: 'Token inválido ou expirado' });

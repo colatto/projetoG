@@ -65,7 +65,12 @@ function readStagedFile(file) {
 }
 
 function detectSecret(content) {
-  return SECRET_PATTERNS.find(({ pattern }) => pattern.test(content))?.name ?? null;
+  const scanContent = content
+    .split('\n')
+    .filter((line) => !/^\s*(#|\/\/)/.test(line))
+    .join('\n');
+
+  return SECRET_PATTERNS.find(({ pattern }) => pattern.test(scanContent))?.name ?? null;
 }
 
 const stagedFiles = getStagedFiles();

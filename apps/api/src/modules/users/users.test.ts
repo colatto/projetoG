@@ -30,6 +30,7 @@ function buildTestApp() {
   process.env.SUPABASE_URL = 'http://localhost:54321';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
   process.env.JWT_SECRET = 'test-jwt-secret-for-users-tests';
+  process.env.FRONTEND_URL = 'https://grf.ruatrez.com';
 
   return buildApp();
 }
@@ -166,6 +167,9 @@ describe('Users Routes — RBAC & Lifecycle', () => {
       const body = response.json();
       expect(body.data).toHaveProperty('id', newUserId);
       expect(body.data).toHaveProperty('role', UserRole.COMPRAS);
+      expect(mockInviteUserByEmail).toHaveBeenCalledWith('compras-new@grf.com.br', {
+        redirectTo: 'https://grf.ruatrez.com/reset-password',
+      });
     });
 
     it('should return 400 for duplicate email', async () => {
@@ -532,6 +536,13 @@ describe('Users Routes — RBAC & Lifecycle', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ success: true });
+      expect(mockAuthAdminGenerateLink).toHaveBeenCalledWith({
+        type: 'recovery',
+        email: 'target@grf.com.br',
+        options: {
+          redirectTo: 'https://grf.ruatrez.com/reset-password',
+        },
+      });
     });
 
     it('should return 403 for removed user', async () => {

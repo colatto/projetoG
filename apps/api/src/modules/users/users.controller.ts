@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateUserDto, UpdateUserDto, UserQueryDto } from '@projetog/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { UserRole, UserStatus } from '@projetog/domain';
+import { getPasswordRedirectUrl } from '../../config/frontend-url.js';
 
 import { NotificationService } from '../notifications/notification.service.js';
 
@@ -102,6 +103,7 @@ export class UsersController {
     // Utilizing admin API to invite user, it generates user and emails the magic link
     const { data: authUser, error: authError } = await supabase.auth.admin.inviteUserByEmail(
       payload.email,
+      { redirectTo: getPasswordRedirectUrl() },
     );
 
     if (authError || !authUser.user) {
@@ -380,6 +382,9 @@ export class UsersController {
     const { error } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email: user.email,
+      options: {
+        redirectTo: getPasswordRedirectUrl(),
+      },
     });
 
     if (error) return reply.code(500).send({ message: 'Erro ao gerar link de redefinição' });

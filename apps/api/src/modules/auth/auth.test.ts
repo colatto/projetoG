@@ -6,6 +6,7 @@ import { UserRole, UserStatus } from '@projetog/domain';
 const mockSignInWithPassword = vi.fn();
 const mockResetPasswordForEmail = vi.fn();
 const mockVerifyOtp = vi.fn();
+const mockGetUser = vi.fn();
 const mockUpdateUserById = vi.fn();
 const mockFrom = vi.fn();
 
@@ -15,6 +16,7 @@ vi.mock('@supabase/supabase-js', () => ({
       signInWithPassword: mockSignInWithPassword,
       resetPasswordForEmail: mockResetPasswordForEmail,
       verifyOtp: mockVerifyOtp,
+      getUser: mockGetUser,
       admin: {
         updateUserById: mockUpdateUserById,
       },
@@ -28,6 +30,7 @@ function buildTestApp() {
   process.env.SUPABASE_URL = 'http://localhost:54321';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
   process.env.JWT_SECRET = 'test-jwt-secret-for-auth-tests';
+  process.env.FRONTEND_URL = 'https://grf.ruatrez.com';
 
   return buildApp();
 }
@@ -287,6 +290,9 @@ describe('Auth Routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ success: true });
+      expect(mockResetPasswordForEmail).toHaveBeenCalledWith('any@grf.com.br', {
+        redirectTo: 'https://grf.ruatrez.com/reset-password',
+      });
     });
 
     it('should still return success even if Supabase errors (security)', async () => {
@@ -313,6 +319,34 @@ describe('Auth Routes', () => {
   // ── POST /api/auth/reset-password ─────────────────────────────────
 
   describe('POST /api/auth/reset-password', () => {
+    it('should update password from Supabase session access token', async () => {
+      const userId = '00000000-0000-0000-0000-000000000077';
+
+      mockGetUser.mockResolvedValueOnce({
+        data: { user: { id: userId, email: 'recover@grf.com.br' } },
+        error: null,
+      });
+      mockUpdateUserById.mockResolvedValueOnce({ error: null });
+
+      // AuditService insert mock
+      mockFrom.mockReturnValueOnce({
+        insert: () => Promise.resolve({ error: null }),
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: 'header.payload.signature', new_password: 'newpassword123' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ success: true });
+      expect(mockGetUser).toHaveBeenCalledWith('header.payload.signature');
+      expect(mockUpdateUserById).toHaveBeenCalledWith(userId, {
+        password: 'newpassword123',
+      });
+    });
+
     it('should return 400 with invalid or expired token', async () => {
       mockVerifyOtp.mockResolvedValueOnce({
         data: { user: null },
