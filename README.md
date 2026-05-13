@@ -9,24 +9,25 @@ Monorepo da GRF para portal do fornecedor, backoffice interno e integracao opera
 
 ## Estado Atual
 
-Atualizado em `2026-05-05`.
+Atualizado em `2026-05-13`.
 
-O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge e CI/CD. Build, lint e testes passam em todos os workspaces. Deploy de API e workers em producao documenta-se como **bundles Node 20** (Hostinger «Setup Node.js App»).
+O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, banco Supabase, integracao Sienge e CI/CD. Build, lint e testes passam em todos os workspaces. Deploy: **frontend** na **Vercel** (`grf.ruatrez.com`), **API** e **workers** na **Hostinger** (bundles Node 20).
 
 | Area            | Estado                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------ |
 | Funcionalidades | PRD-01 a PRD-09 implementados no codigo (PRD-09: auditoria operacional, aliases HTTP e UX transversal) |
-| Testes          | Passam em todos os workspaces                                                                          |
+| Testes          | **368 testes** em 58 test files — passam em todos os workspaces                                        |
 | Build           | Passa em todos os workspaces                                                                           |
 | Lint            | Passa em todos os workspaces                                                                           |
+| Deploy          | Frontend: Vercel; API + Workers: Hostinger (bundles CJS Node 20)                                       |
 | Auditoria       | `pnpm audit --audit-level=moderate` reporta vulnerabilidades moderadas                                 |
 | Licenca         | Nao ha arquivo `LICENSE` no repositorio                                                                |
 
 ## Modulos
 
-- `apps/web`: SPA React + Vite para login, recuperacao de senha, rotas protegidas, gestao de usuarios, monitoramento de integracao, trilha de auditoria operacional (`/admin/audit`), fluxo de cotacoes, pedidos, follow-up logistico, notificacoes, avarias e dashboards (PRD-08).
-- `apps/api`: API Fastify com autenticacao, RBAC, auditoria, webhooks Sienge, orquestracao de jobs, cotacoes, entregas, pedidos, notificacoes, follow-up, avarias, dashboards (PRD-08), health check, Swagger e metricas Prometheus.
-- `workers`: runtime Node.js + `pg-boss` para polling Sienge, reconciliacao, retries, processamento de webhooks, escrita outbound de negociacoes, expiracao de cotacoes, envio de e-mail, follow-up diario, recalculo de status de pedido e consolidacao diaria do dashboard (PRD-08).
+- `apps/web`: SPA React + Vite para login, recuperacao de senha (com suporte a convites e `PasswordResetRedirect`), rotas protegidas, gestao de usuarios, monitoramento de integracao, trilha de auditoria operacional (`/admin/audit`), fluxo de cotacoes, pedidos, follow-up logistico, notificacoes, avarias e dashboards (PRD-08).
+- `apps/api`: API Fastify com autenticacao (dual token JWT/OTP, auto-ativacao de convites), RBAC, auditoria centralizada (`AuditService`), CRUD de usuarios (com protecao contra RLS silencioso e cleanup de auth user orfao), webhooks Sienge, orquestracao de jobs, cotacoes, entregas, pedidos, notificacoes, follow-up, avarias, dashboards (PRD-08), health check, Swagger (condicionado a `HOSTINGER_BUNDLE`) e metricas Prometheus.
+- `workers`: runtime Node.js + `pg-boss` para polling Sienge, reconciliacao, retries, processamento de webhooks, escrita outbound de negociacoes, expiracao de cotacoes, envio de e-mail, follow-up diario, recalculo de status de pedido, consolidacao diaria do dashboard (PRD-08) e retry de auditoria (PRD-09). Inclui scripts de diagnostico para troubleshooting de sincronizacao Sienge (`test-sienge-order.ts`, `test-sync-error.ts`, `test-upsert.ts`).
 - `packages/domain`: enums, entidades e servicos de dominio, incluindo `OrderStatusEngine` e `TemplateRenderer`.
 - `packages/shared`: schemas Zod, tipos Supabase e utilitarios compartilhados.
 - `packages/integration-sienge`: cliente HTTP, clientes especializados, mapeadores, health check de integracao e criptografia de credenciais Sienge.
@@ -38,8 +39,8 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 ```text
 .
 ├── apps/
-│   ├── api/
-│   └── web/
+│   ├── api/             # Backend Fastify (Hostinger)
+│   └── web/             # SPA React+Vite (Vercel)
 ├── deploy/
 │   ├── compose/
 │   └── scripts/
@@ -52,32 +53,34 @@ O projeto ja ultrapassou a fase de bootstrap e possui frontend, API, workers, ba
 │   ├── domain/
 │   ├── integration-sienge/
 │   └── shared/
-├── scripts/
-├── supabase/
+├── scripts/             # Build scripts (Hostinger bundles)
+├── supabase/            # Migrations, config, seed
 ├── tools/
-└── workers/
+├── workers/             # Jobs pg-boss (Hostinger)
+├── vercel.json          # Config primaria Vercel (raiz)
+└── pnpm-workspace.yaml
 ```
 
-Observacao: o pacote `apps/` raiz ainda contem resquicios de scaffold Vite e nao deve ser tratado como aplicacao de producao. As aplicacoes reais sao `apps/web` e `apps/api`.
+> O scaffold residual em `apps/` raiz foi removido; `apps/` contem apenas `api/` e `web/`.
 
 ## Stack
 
-| Camada     | Tecnologias principais                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------- |
-| Workspace  | pnpm workspace, Node.js 20, TypeScript                                                                        |
-| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide, Recharts                               |
-| API        | Fastify 5, `@fastify/jwt`, Swagger, Zod, Supabase JS, pg-boss, Resend, Prometheus                             |
-| Workers    | Node.js, pg-boss 9, pg (transacoes atomicas), Supabase JS, Resend, Prometheus                                 |
-| Integracao | Axios, axios-retry, Bottleneck, cliente Sienge proprio                                                        |
-| Banco      | Supabase/PostgreSQL 17, RLS, migrations SQL                                                                   |
-| Qualidade  | Vitest, ESLint 9, Prettier 3, Husky, lint-staged, gitleaks                                                    |
-| Deploy     | GitHub Actions (CI, artefactos de bundle, seguranca); producao via bundles Node 20 na Hostinger (ver runbook) |
+| Camada     | Tecnologias principais                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Workspace  | pnpm workspace, Node.js 20, TypeScript                                                                                               |
+| Frontend   | React 19, React Router 7, Vite 8, React Hook Form, Axios, Zod, Lucide, Recharts                                                      |
+| API        | Fastify 5, `@fastify/jwt`, Swagger, Zod, Supabase JS, pg-boss, Resend, Prometheus                                                    |
+| Workers    | Node.js, pg-boss 9, pg (transacoes atomicas), Supabase JS, Resend, Prometheus                                                        |
+| Integracao | Axios, axios-retry, Bottleneck, cliente Sienge proprio                                                                               |
+| Banco      | Supabase/PostgreSQL 17, RLS, migrations SQL                                                                                          |
+| Qualidade  | Vitest, ESLint 9, Prettier 3, Husky, lint-staged, gitleaks                                                                           |
+| Deploy     | Frontend: **Vercel** (`grf.ruatrez.com`); API + Workers: **Hostinger** (bundles Node 20); GitHub Actions (CI, artefactos, seguranca) |
 
 Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `typescript`, `@types/node`, `zod` e `@supabase/supabase-js`.
 
 ## Funcionalidades
 
-- PRD-01: autenticacao, perfis, RBAC e gestao de usuarios.
+- PRD-01: autenticacao (dual token JWT/OTP, auto-ativacao de convites), perfis, RBAC e gestao de usuarios (protecao RLS, cleanup de auth orfao).
 - PRD-02: fluxo de cotacao com envio por Compras, resposta do fornecedor e revisao.
 - PRD-03: templates de notificacao, logs e envio de e-mail via Resend.
 - PRD-04: follow-up logistico, sugestao/aprovacao de nova data, notificacoes e calculo de dias uteis.
@@ -91,8 +94,8 @@ Ha heterogeneidade de versoes entre workspaces, especialmente em `vitest`, `type
 
 | Area                    | Rotas                                                                                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Saude e observabilidade | `GET /health`, `GET /metrics`, `GET /docs`                                                                                                        |
-| Auth                    | `/api/auth/*`                                                                                                                                     |
+| Saude e observabilidade | `GET /health`, `GET /metrics`, `GET /docs` (Swagger condicionado a `HOSTINGER_BUNDLE`)                                                            |
+| Auth                    | `/api/auth/*` (login, logout, forgot-password, reset-password com dual token JWT/OTP e auto-ativacao)                                             |
 | Usuarios                | `/api/users/*`                                                                                                                                    |
 | Integracao              | `/api/integration/*`, `GET /api/backoffice/integrations`, `POST /api/backoffice/integrations/:id/retry` (aliases PRD-09), `POST /webhooks/sienge` |
 | Cotacoes                | `/api/quotations/*`, `/api/backoffice/quotations/*`, `/api/supplier/quotations/*`, `/api/supplier-portal/quotations/*`                            |
@@ -157,6 +160,8 @@ EMAIL_PROVIDER_API_KEY=
 EMAIL_FROM_ADDRESS=GRF Cotações <cotacoes@grfincorporadora.com>
 FRONTEND_URL=http://localhost:5173
 COMPRAS_EMAIL=compras@grfincorporadora.com
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+# HOSTINGER_BUNDLE=1  # apenas em bundles de producao (desabilita Swagger UI)
 ```
 
 `DATABASE_URL` e opcional na API. Sem ela, a API sobe com publisher `pg-boss` desabilitado.
@@ -232,25 +237,28 @@ Depois de alterar migrations, gere novamente `packages/shared/src/database.types
 
 ## Checks
 
-Estado verificado em `2026-05-05`:
+Estado verificado em `2026-05-13`:
 
 ```bash
 pnpm -r run test
 pnpm -r run build
 pnpm -r run lint
+pnpm run format:check
 pnpm audit --audit-level=moderate
 ```
 
 Resultado atual:
 
-- `pnpm -r run test`: passa em todos os workspaces.
-- `pnpm --filter @projetog/api test`: passa, 168+ testes.
-- `pnpm --filter @projetog/web test`: passa, 53 testes.
-- `pnpm --filter @projetog/domain test`: passa, 16 testes.
-- `pnpm --filter @projetog/integration-sienge test`: passa, 53 testes.
+- `pnpm -r run test`: passa em todos os workspaces — **368 testes, 58 test files**.
+- `pnpm --filter @projetog/api test`: passa, **179 testes** (18 test files).
+- `pnpm --filter @projetog/workers test`: passa, **67 testes** (14 test files).
+- `pnpm --filter @projetog/web test`: passa, **53 testes** (16 test files).
+- `pnpm --filter @projetog/integration-sienge test`: passa, **53 testes** (8 test files).
+- `pnpm --filter @projetog/domain test`: passa, **16 testes** (2 test files).
 - `pnpm --filter @projetog/shared test`: passa sem arquivos de teste por `--passWithNoTests`.
 - `pnpm -r run build`: passa em todos os workspaces.
 - `pnpm -r run lint`: passa em todos os workspaces (inclui `apps/web` e regras `eslint-plugin-react-hooks` 7.x; ver [`CLAUDE.md`](CLAUDE.md) «Estado dos checks»).
+- `pnpm run format:check`: passa para documentacao; 10 arquivos `.ts` com issues pre-existentes.
 - `pnpm audit --audit-level=moderate`: reporta vulnerabilidades moderadas em dependencias transitivas.
 
 ## Auditoria De Dependencias
@@ -270,16 +278,24 @@ Mitigacoes ja presentes em `package.json`:
 - `fast-jwt`: `6.2.1`
 - `follow-redirects`: `1.16.0`
 
-## CI/CD
+## CI/CD e Deploy
 
 Workflows em `.github/workflows/`:
 
-- `ci.yml`: `format:check`, lint, typecheck, test e build em push/PR para `main` (Node 20, pnpm 10, `pnpm/action-setup@v4`).
+- `ci.yml`: `format:check`, lint, typecheck, test e build em push/PR para `main` (Node 20, pnpm 10, `pnpm/action-setup@v4`, `TZ=America/Sao_Paulo`).
 - `e2e.yml`: Playwright (Chromium) em `apps/web` nos mesmos gatilhos.
 - `security.yml`: `pnpm audit --audit-level=moderate`, gitleaks e dependency review em PRs.
 - `hostinger-api-bundle-artifact.yml` / `hostinger-workers-bundle-artifact.yml`: `workflow_dispatch`, upload de `apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js` como artefactos (alternativa a rodar esbuild no servidor).
 
-Bundles Node 20: `pnpm run build:api` e `pnpm run build:workers` na raiz geram os entrypoints; arranque com `pnpm run start:api` / `pnpm run start:workers`. Ver `docs/runbooks/deploy-hostinger.md`.
+### Topologia de producao
+
+| Servico  | Plataforma | URL                   | Config                                                                               |
+| -------- | ---------- | --------------------- | ------------------------------------------------------------------------------------ |
+| Frontend | Vercel     | `grf.ruatrez.com`     | [`vercel.json`](vercel.json) (raiz) + [`apps/web/vercel.json`](apps/web/vercel.json) |
+| API      | Hostinger  | `api.ruatrez.com`     | Bundle CJS: `apps/api/dist/hostinger-entry.js`                                       |
+| Workers  | Hostinger  | `workers.ruatrez.com` | Bundle CJS: `workers/dist/hostinger-entry.js`                                        |
+
+Bundles Node 20: `pnpm run build:api` e `pnpm run build:workers` na raiz geram os entrypoints; arranque com `pnpm run start:api` / `pnpm run start:workers`. Em bundles Hostinger, `HOSTINGER_BUNDLE=1` desabilita Swagger UI. Ver `docs/runbooks/deploy-hostinger.md`.
 
 ## Desenvolvimento E Contribuicao
 
@@ -310,14 +326,16 @@ Referencia: `docs/runbooks/branching-and-review.md`.
 
 ## Documentacao
 
-- `docs/architecture.md`: arquitetura, fluxos, inventario tecnico e debitos.
+- [`CLAUDE.md`](CLAUDE.md): baseline documental principal — estado completo do codebase, rotas, jobs, migracoes e historico.
+- [`GEMINI.md`](GEMINI.md): guardrails para agentes Gemini — ordem de precedencia, proibicoes e regras.
+- `docs/architecture.md`: arquitetura, fluxos (incluindo diagrama de autenticacao/convite), inventario tecnico e debitos.
 - `docs/runbooks/setup.md`: setup local e troubleshooting.
 - `docs/runbooks/sienge-homologation.md`: homologacao Sienge.
 - `docs/runbooks/sienge-inventory.md`: inventario da integracao.
 - `docs/runbooks/branching-and-review.md`: branching e review.
 - `docs/runbooks/typecheck-and-supabase-types.md`: instrucoes para validacao e geracao de tipos Supabase.
 - `docs/runbooks/deploy-hostinger.md`: deploy na Hostinger (duas Node.js Apps + bundles).
-- `docs/prd/`: PRDs por modulo.
+- `docs/prd/`: PRDs por modulo (PRD-01 a PRD-09).
 - `deploy/README.md`: deploy.
 - `workers/README.md`: workers.
 - `supabase/README.md`: Supabase.

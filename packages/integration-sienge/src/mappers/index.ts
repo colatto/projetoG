@@ -21,6 +21,7 @@ export type {
 } from './creditor-mapper.js';
 
 export {
+  resolveOrderId,
   mapOrderToLocal,
   mapOrderItemsToLocal,
   mapDeliverySchedulesToLocal,

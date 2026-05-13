@@ -12,6 +12,8 @@ const purchaseOrderItemsUpsertMock = vi.fn();
 const deliverySchedulesUpsertMock = vi.fn();
 const orderQuotationLinksUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
+const suppliersUpsertMock = vi.fn();
+const suppliersMaybeSingleMock = vi.fn();
 
 const supabaseMock = {
   from: vi.fn((table: string) => {
@@ -47,6 +49,15 @@ const supabaseMock = {
         return {
           insert: integrationEventsInsertMock,
         };
+      case 'suppliers':
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: suppliersMaybeSingleMock,
+            })),
+          })),
+          upsert: suppliersUpsertMock,
+        };
       default:
         throw new Error(`Unexpected table: ${table}`);
     }
@@ -72,6 +83,11 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
         getDeliverySchedules: getDeliverySchedulesMock,
       };
     }),
+    CreditorClient: vi.fn(function CreditorClientMock() {
+      return {
+        getById: vi.fn().mockRejectedValue(new Error('Not available in test')),
+      };
+    }),
   };
 });
 
@@ -92,13 +108,17 @@ describe('processSyncOrders', () => {
     deliverySchedulesUpsertMock.mockResolvedValue({ error: null });
     orderQuotationLinksUpsertMock.mockResolvedValue({ error: null });
     integrationEventsInsertMock.mockResolvedValue({ error: null });
+    suppliersUpsertMock.mockResolvedValue({ error: null });
+    // Supplier does not exist yet — triggers stub creation
+    suppliersMaybeSingleMock.mockResolvedValue({ data: null, error: null });
   });
 
   it('should process sync orders successfully', async () => {
     listPagedMock.mockResolvedValueOnce({
       results: [
         {
-          purchaseOrderId: 1,
+          // Real API uses `id`, not `purchaseOrderId`
+          id: 1,
           formattedPurchaseOrderId: 'PO-1',
           supplierId: 10,
           purchaseQuotations: [{ purchaseQuotationId: 100 }],
@@ -117,6 +137,9 @@ describe('processSyncOrders', () => {
     // Assert cursor running update
     expect(supabaseMock.from).toHaveBeenCalledWith('sienge_sync_cursor');
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.ORDERS);
+
+    // Assert supplier stub creation
+    expect(suppliersUpsertMock).toHaveBeenCalled();
 
     // Assert order upsert
     expect(purchaseOrdersUpsertMock).toHaveBeenCalled();
@@ -144,7 +167,7 @@ describe('processSyncOrders', () => {
     listPagedMock.mockResolvedValueOnce({
       results: [
         {
-          purchaseOrderId: 1,
+          id: 1,
           formattedPurchaseOrderId: 'PO-1',
           supplierId: 10,
           purchaseQuotations: [{ purchaseQuotationId: 100 }],
@@ -184,5 +207,33 @@ describe('processSyncOrders', () => {
 
     // Assert cursor is set to error
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.ORDERS);
+  });
+
+  it('should skip orders with missing supplier when supplier stub creation fails', async () => {
+    listPagedMock.mockResolvedValueOnce({
+      results: [
+        {
+          id: 2,
+          formattedPurchaseOrderId: 'PO-2',
+          supplierId: 999,
+        },
+      ],
+      resultSetMetadata: { count: 1 },
+    });
+
+    // Supplier stub creation fails
+    suppliersUpsertMock.mockResolvedValue({ error: { message: 'FK violation on suppliers' } });
+
+    await processSyncOrders({ id: 'job-4' } as never);
+
+    // Order upsert should NOT have happened due to supplier failure
+    expect(purchaseOrdersUpsertMock).not.toHaveBeenCalled();
+
+    // Integration event should reflect the error
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failure',
+      }),
+    );
   });
 });

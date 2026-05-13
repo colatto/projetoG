@@ -9,7 +9,9 @@ Servir o backend dedicado do projeto com Fastify 5.
 - autenticação por e-mail/senha
 - JWT próprio da aplicação
 - RBAC por perfil
-- CRUD administrativo de usuários
+- CRUD administrativo de usuários (criação via `supabaseAuth.auth.admin.inviteUserByEmail` com proteção contra insert `null` por RLS e cleanup de auth user órfão)
+- redefinição de senha com suporte dual (JWT session token e OTP hash) e auto-ativação de perfis pendentes no fluxo de convite (`user.auto_activated`)
+- URL de redirect centralizada em `config/frontend-url.ts` (`FRONTEND_URL` env, default `http://localhost:5173`)
 - auditoria persistida
 - recebimento de webhooks do Sienge (`WebhookController.ENTITY_TYPE_MAP` tipa ACK-only CONTRACT*/MEASUREMENT*/CLEARING\_ → PRD-07)
 - listagem e retry manual de eventos de integração (`GET /api/integration/events` com filtros; UI em `/admin/integration`)
@@ -31,7 +33,8 @@ Servir o backend dedicado do projeto com Fastify 5.
 ## Pontos de entrada reais
 
 - `src/server.ts`: bootstrap do servidor
-- `src/app.ts`: factory usada em runtime e testes
+- `src/app.ts`: factory usada em runtime e testes (Swagger UI condicionado a `HOSTINGER_BUNDLE !== '1'`)
+- `src/config/frontend-url.ts`: centralização de `FRONTEND_URL` (`getFrontendUrl()` / `getPasswordRedirectUrl()`)
 - `apps/api/dist/hostinger-entry.js`: bundle CJS único gerado por `pnpm run build:api` na raiz ([`scripts/build-hostinger-api.mjs`](../../scripts/build-hostinger-api.mjs)) para deploy Node.js sem Docker (ex.: Hostinger); arranque com `pnpm run start:api`
 
 ## Plugins registrados
@@ -89,10 +92,13 @@ Servir o backend dedicado do projeto com Fastify 5.
 - `DATABASE_URL` opcional
 - `EMAIL_PROVIDER_API_KEY` (Resend API key — PRD-03)
 - `COMPRAS_EMAIL` (endereço de e-mail para notificações de Compras)
+- `CORS_ALLOWED_ORIGINS` — opcional; lista de origens CORS separadas por vírgula; sem definir, mantém `origin: '*'`
+- `FRONTEND_URL` — URL do frontend para links em e-mails e redirect de convites (ex.: `https://grf.ruatrez.com`); default `http://localhost:5173`
+- `HOSTINGER_BUNDLE` — variável de build; quando `1`, desabilita Swagger UI
 
 ## Estado de qualidade
 
-- testes: inclui `audit.routes.test.ts` (PRD-09 leitura), `dashboard.routes.test.ts` (RBAC e filtros PRD-08), `notification.routes.test.ts` (PRD-03 §7.5), `followup.routes.test.ts`, `damages.routes.test.ts` (PRD-06), `webhooks.test.ts` (ACK-only), `integration.test.ts` (filtros + aliases PRD-09), `orders.test.ts` (PRD-05 + cancel/avaria via AuditService)
+- testes: 179 testes em 18 test files. Inclui `auth.test.ts` (14 testes: login, logout, me, forgot-password, reset-password dual token, auto-ativação), `users.test.ts` (19 testes: CRUD, block, reactivate, cleanup órfão), `audit.routes.test.ts` (PRD-09 leitura), `dashboard.routes.test.ts` (RBAC e filtros PRD-08), `notification.routes.test.ts` (PRD-03 §7.5), `followup.routes.test.ts`, `damages.routes.test.ts` (PRD-06), `webhooks.test.ts` (ACK-only), `integration.test.ts` (filtros + aliases PRD-09), `orders.test.ts` (PRD-05 + cancel/avaria via AuditService)
 - build: passa
 - lint: passa
 - vitest runner: estável — todas as suítes fazem teardown com `app.close()`, `pool: 'forks'` sem warnings de `MaxListeners` ou `tinypool`; `src/test/setup.ts` define `TZ=America/Sao_Paulo` para que o cálculo de dias úteis em follow-up (PRD-04) coincida com runners CI em UTC

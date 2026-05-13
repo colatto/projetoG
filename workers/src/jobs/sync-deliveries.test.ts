@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SyncResourceType, SyncStatus } from '@projetog/domain';
 
-const getDeliveriesAttendedPagedMock = vi.fn();
+const getDeliveriesAttendedMock = vi.fn();
 const getByIdMock = vi.fn();
 const getItemsMock = vi.fn();
 
@@ -12,6 +12,9 @@ const purchaseInvoicesUpsertMock = vi.fn();
 const invoiceItemsUpsertMock = vi.fn();
 const invoiceOrderLinksUpsertMock = vi.fn();
 const integrationEventsInsertMock = vi.fn();
+// Mock for purchase_orders.select('id').order() — returns array of order IDs
+const purchaseOrdersSelectOrderMock = vi.fn();
+
 type QueryResult = { data: unknown; error?: unknown };
 type ChainableQuery = {
   select: ReturnType<typeof vi.fn>;
@@ -103,7 +106,18 @@ const supabaseMock = {
         };
       case 'purchase_orders':
         return {
-          select: vi.fn(() => createChainableQuery({ data: { id: 1, date: '2026-04-10' } })),
+          select: vi.fn(() => ({
+            // Support both patterns:
+            // 1. .select('id').order() — returns array (used by new iteration approach)
+            order: purchaseOrdersSelectOrderMock,
+            // 2. .select('...').eq() — returns single (used by recalculateOrderStatus)
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 1, date: '2026-04-10', local_status: 'PENDENTE' },
+                error: null,
+              }),
+            })),
+          })),
           update: vi.fn(() => ({ eq: vi.fn() })),
         };
       case 'delivery_schedules':
@@ -114,6 +128,18 @@ const supabaseMock = {
       case 'audit_logs':
         return {
           insert: vi.fn(),
+        };
+      case 'follow_up_trackers':
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              neq: vi.fn(() => ({
+                select: vi.fn(() => ({
+                  single: vi.fn().mockResolvedValue({ data: null, error: null }),
+                })),
+              })),
+            })),
+          })),
         };
       default:
         throw new Error(`Unexpected table: ${table}`);
@@ -135,7 +161,7 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
     ...actual,
     InvoiceClient: vi.fn(function InvoiceClientMock() {
       return {
-        getDeliveriesAttendedPaged: getDeliveriesAttendedPagedMock,
+        getDeliveriesAttended: getDeliveriesAttendedMock,
         getById: getByIdMock,
         getItems: getItemsMock,
       };
@@ -154,6 +180,12 @@ describe('processSyncDeliveries', () => {
       error: null,
     });
     cursorUpdateEqMock.mockResolvedValue({ error: null });
+
+    // Default: one order exists in DB for iteration
+    purchaseOrdersSelectOrderMock.mockResolvedValue({
+      data: [{ id: 1 }],
+      error: null,
+    });
 
     // deliveriesUpsertMock returns a chainable with .select().single()
     deliveriesUpsertMock.mockImplementation(() => ({
@@ -176,18 +208,15 @@ describe('processSyncDeliveries', () => {
   });
 
   it('should process sync deliveries successfully', async () => {
-    getDeliveriesAttendedPagedMock.mockResolvedValueOnce({
-      results: [
-        {
-          purchaseOrderId: 1,
-          purchaseOrderItemNumber: 2,
-          sequentialNumber: 10,
-          invoiceItemNumber: 20,
-          quantity: 5,
-        },
-      ],
-      resultSetMetadata: { count: 1 },
-    });
+    getDeliveriesAttendedMock.mockResolvedValueOnce([
+      {
+        purchaseOrderId: 1,
+        purchaseOrderItemNumber: 2,
+        sequentialNumber: 10,
+        invoiceItemNumber: 20,
+        quantity: 5,
+      },
+    ]);
 
     getByIdMock.mockResolvedValue({
       sequentialNumber: 10,
@@ -225,18 +254,15 @@ describe('processSyncDeliveries', () => {
   });
 
   it('should handle partial failures gracefully (e.g. failing to fetch invoice details)', async () => {
-    getDeliveriesAttendedPagedMock.mockResolvedValueOnce({
-      results: [
-        {
-          purchaseOrderId: 1,
-          purchaseOrderItemNumber: 2,
-          sequentialNumber: 10,
-          invoiceItemNumber: 20,
-          quantity: 5,
-        },
-      ],
-      resultSetMetadata: { count: 1 },
-    });
+    getDeliveriesAttendedMock.mockResolvedValueOnce([
+      {
+        purchaseOrderId: 1,
+        purchaseOrderItemNumber: 2,
+        sequentialNumber: 10,
+        invoiceItemNumber: 20,
+        quantity: 5,
+      },
+    ]);
 
     getByIdMock.mockRejectedValue(new Error('API Error fetching invoice'));
 
@@ -252,40 +278,46 @@ describe('processSyncDeliveries', () => {
     expect(invoiceOrderLinksUpsertMock).toHaveBeenCalled();
   });
 
-  it('should handle total failure gracefully', async () => {
-    getDeliveriesAttendedPagedMock.mockRejectedValue(new Error('Total API failure'));
+  it('should handle total failure gracefully (no orders in DB)', async () => {
+    // No orders in DB — delivery sync should skip gracefully
+    purchaseOrdersSelectOrderMock.mockResolvedValue({
+      data: [],
+      error: null,
+    });
 
-    await expect(processSyncDeliveries({ id: 'job-3' } as never)).rejects.toThrow(
-      'Total API failure',
-    );
+    await processSyncDeliveries({ id: 'job-3' } as never);
 
     expect(deliveriesUpsertMock).not.toHaveBeenCalled();
 
-    // Assert error event is logged
-    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'failure',
-        error_message: expect.stringContaining('Total API failure'),
-      }),
-    );
-
-    // Assert cursor is set to error
+    // Cursor should be set back to IDLE (not ERROR)
     expect(cursorUpdateEqMock).toHaveBeenCalledWith('resource_type', SyncResourceType.DELIVERIES);
   });
 
+  it('should handle API failure for a specific order without crashing', async () => {
+    getDeliveriesAttendedMock.mockRejectedValue(new Error('Order API failure'));
+
+    await processSyncDeliveries({ id: 'job-3b' } as never);
+
+    expect(deliveriesUpsertMock).not.toHaveBeenCalled();
+
+    // Assert event is logged with failure status
+    expect(integrationEventsInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failure',
+      }),
+    );
+  });
+
   it('marks replacement as delivered and audits reposicao_entregue', async () => {
-    getDeliveriesAttendedPagedMock.mockResolvedValueOnce({
-      results: [
-        {
-          purchaseOrderId: 1,
-          purchaseOrderItemNumber: 2,
-          sequentialNumber: 10,
-          invoiceItemNumber: 20,
-          quantity: 5,
-        },
-      ],
-      resultSetMetadata: { count: 1 },
-    });
+    getDeliveriesAttendedMock.mockResolvedValueOnce([
+      {
+        purchaseOrderId: 1,
+        purchaseOrderItemNumber: 2,
+        sequentialNumber: 10,
+        invoiceItemNumber: 20,
+        quantity: 5,
+      },
+    ]);
 
     getByIdMock.mockResolvedValue({
       sequentialNumber: 10,

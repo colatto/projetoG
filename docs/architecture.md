@@ -1,6 +1,6 @@
 # Arquitetura Atual
 
-Atualizado em `2026-05-12` para refletir o estado real do monorepo.
+Atualizado em `2026-05-13` para refletir o estado real do monorepo.
 
 ## 1. Visão geral
 
@@ -142,6 +142,41 @@ sequenceDiagram
     C->>A: POST /api/quotations/:id/suppliers/:sid/review
     A->>DB: update quotation_responses (review_status)
     A->>DB: update supplier_negotiations (status)
+```
+
+### 3.5 Fluxo de autenticação e convite
+
+```mermaid
+sequenceDiagram
+    participant Admin as Administrador (web)
+    participant A as apps/api
+    participant SA as Supabase Auth
+    participant DB as Supabase
+    participant U as Novo Usuário (web)
+
+    Note over Admin,A: Criação de usuário
+    Admin->>A: POST /api/users
+    A->>SA: inviteUserByEmail(email, redirectTo)
+    SA-->>A: user.id
+    A->>DB: insert profiles (status=pendente)
+    alt Profile insert falha ou retorna null
+        A->>SA: deleteUser(userId) cleanup
+        A-->>Admin: 500 erro
+    else Sucesso
+        A-->>Admin: 201 profile
+    end
+
+    Note over U,A: Primeiro acesso (convite)
+    U->>A: POST /api/auth/reset-password {token, new_password}
+    alt Token JWT (3 segmentos)
+        A->>SA: getUser(token)
+    else Token OTP hash
+        A->>SA: verifyOtp(token_hash, recovery)
+    end
+    A->>SA: admin.updateUserById(password)
+    A->>DB: profiles pendente → ativo (auto-ativação)
+    A->>DB: audit_logs (user.auto_activated)
+    A-->>U: success
 ```
 
 ## 4. Inventário técnico com versões e racional
@@ -366,15 +401,18 @@ Planejamento controlado:
 
 ### 9.3 Frontend na Vercel
 
-O frontend (`apps/web`) é deployado na **Vercel** em `grf.ruatrez.com`. Configuração em [`apps/web/vercel.json`](../apps/web/vercel.json):
+O frontend (`apps/web`) é deployado na **Vercel** em `grf.ruatrez.com`. Existem duas configurações Vercel:
 
-- **Rewrite catch-all** (`/(.*) → /index.html`): necessário para SPA com `BrowserRouter`
-- **Cache imutável** em `/assets/*`: `max-age=31536000, immutable`
-- **Headers de segurança**: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`
+- **[`vercel.json`](../vercel.json) (raiz do monorepo):** configuração primária usada pelo dashboard Vercel. Define `framework: vite`, `buildCommand: pnpm --filter @projetog/web build`, `outputDirectory: apps/web/dist`, rewrites catch-all e headers (segurança + cache imutável).
+- **[`apps/web/vercel.json`](../apps/web/vercel.json):** configuração local ao workspace web com rewrites e headers de segurança. Serve como referência e fallback caso o deploy use o subdiretório como root.
+
+Headers de segurança: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. Cache imutável em `/assets/*`: `max-age=31536000, immutable`.
 
 Variáveis de ambiente (dashboard Vercel): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (`https://api.ruatrez.com/api`).
 
 CORS da API configurável via `CORS_ALLOWED_ORIGINS` (em produção: `https://grf.ruatrez.com`).
+
+Swagger UI está desabilitado em bundles Hostinger (`HOSTINGER_BUNDLE=1` em `app.ts`).
 
 ## 10. Fluxo de desenvolvimento até deployment
 

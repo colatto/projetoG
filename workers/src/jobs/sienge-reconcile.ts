@@ -1,10 +1,11 @@
 import PgBoss from 'pg-boss';
-import { OrderClient, QuotationClient } from '@projetog/integration-sienge';
+import { OrderClient, QuotationClient, CreditorClient } from '@projetog/integration-sienge';
 import {
   extractOrderQuotationLinks,
   mapOrderItemsToLocal,
   mapOrderToLocal,
   mapQuotationToLocal,
+  resolveOrderId,
 } from '@projetog/integration-sienge';
 import {
   IntegrationDirection,
@@ -157,7 +158,43 @@ export async function reconcileOrderFromApi(
   const order = await orderClient.getById(purchaseOrderId, context);
   const localOrder = mapOrderToLocal(order);
 
-  await supabase.from('purchase_orders').upsert(
+  // Ensure supplier exists before order upsert (prevents FK violation)
+  const { data: existingSupplier } = await supabase
+    .from('suppliers')
+    .select('id')
+    .eq('id', localOrder.supplierId)
+    .maybeSingle();
+
+  if (!existingSupplier) {
+    let supplierName = `Fornecedor ${localOrder.supplierId}`;
+    let creditorId: number | null = null;
+    try {
+      const creditorClient = new CreditorClient(siengeClient);
+      const creditor = await creditorClient.getById(localOrder.supplierId, context);
+      supplierName = creditor.creditorName || supplierName;
+      creditorId = creditor.creditorId;
+    } catch {
+      // Creditor lookup failed; use stub name
+    }
+    const { error: supplierUpsertError } = await supabase
+      .from('suppliers')
+      .upsert(
+        {
+          id: localOrder.supplierId,
+          creditor_id: creditorId,
+          name: supplierName,
+          access_status: 'ACTIVE',
+        },
+        { onConflict: 'id' },
+      );
+    if (supplierUpsertError) {
+      console.warn(
+        `[${JOB_NAME}] Failed to create supplier stub ${localOrder.supplierId} during reconciliation: ${supplierUpsertError.message}. CorrelationId: ${context.correlationId}`,
+      );
+    }
+  }
+
+  const { error: orderUpsertError } = await supabase.from('purchase_orders').upsert(
     {
       id: localOrder.id,
       formatted_purchase_order_id: localOrder.formattedPurchaseOrderId,
@@ -175,10 +212,16 @@ export async function reconcileOrderFromApi(
     { onConflict: 'id' },
   );
 
+  if (orderUpsertError) {
+    throw new Error(
+      `Order reconciliation upsert failed for ${purchaseOrderId}: ${orderUpsertError.message}`,
+    );
+  }
+
   const items = await orderClient.getItems(purchaseOrderId, context);
   const localItems = mapOrderItemsToLocal(purchaseOrderId, items);
   for (const item of localItems) {
-    await supabase.from('purchase_order_items').upsert(
+    const { error: itemUpsertError } = await supabase.from('purchase_order_items').upsert(
       {
         purchase_order_id: item.purchaseOrderId,
         item_number: item.itemNumber,
@@ -189,19 +232,31 @@ export async function reconcileOrderFromApi(
       },
       { onConflict: 'purchase_order_id,item_number' },
     );
+
+    if (itemUpsertError) {
+      console.warn(
+        `[${JOB_NAME}] Item upsert warning for order ${purchaseOrderId} item ${item.itemNumber}: ${itemUpsertError.message}. CorrelationId: ${context.correlationId}`,
+      );
+    }
   }
 
   const apiQuotationIds = extractOrderQuotationLinks(order).map((link) => link.purchaseQuotationId);
   const quotationIdsToPersist = [...new Set([...expectedQuotationIds, ...apiQuotationIds])];
 
   for (const purchaseQuotationId of quotationIdsToPersist) {
-    await supabase.from('order_quotation_links').upsert(
+    const { error: linkUpsertError } = await supabase.from('order_quotation_links').upsert(
       {
         purchase_order_id: purchaseOrderId,
         purchase_quotation_id: purchaseQuotationId,
       },
       { onConflict: 'purchase_order_id,purchase_quotation_id' },
     );
+
+    if (linkUpsertError) {
+      console.warn(
+        `[${JOB_NAME}] Link upsert warning for order ${purchaseOrderId} quotation ${purchaseQuotationId}: ${linkUpsertError.message}. CorrelationId: ${context.correlationId}`,
+      );
+    }
   }
 
   const divergenceMessages: string[] = [];
@@ -257,7 +312,7 @@ export async function reconcileQuotationFromApi(
 
   for (const negotiation of negotiations) {
     const localQuotation = mapQuotationToLocal(negotiation);
-    await supabase.from('purchase_quotations').upsert(
+    const { error: quotationUpsertError } = await supabase.from('purchase_quotations').upsert(
       {
         id: localQuotation.id,
         quotation_date: localQuotation.quotationDate,
@@ -269,19 +324,40 @@ export async function reconcileQuotationFromApi(
       { onConflict: 'id' },
     );
 
+    if (quotationUpsertError) {
+      console.warn(
+        `[${JOB_NAME}] Quotation upsert warning for ${localQuotation.id}: ${quotationUpsertError.message}. CorrelationId: ${context.correlationId}`,
+      );
+    }
+
     for (const supplier of negotiation.suppliers) {
-      for (const neg of supplier.negotiations) {
+      // Handle documented contract: negotiations[] array
+      if (supplier.negotiations && supplier.negotiations.length > 0) {
+        for (const neg of supplier.negotiations) {
+          await supabase
+            .from('supplier_negotiations')
+            .update({
+              status: neg.authorized ? 'INTEGRADA_SIENGE' : 'AGUARDANDO_RESPOSTA',
+              delivery_date: neg.supplierAnswerDate ?? null,
+              sienge_negotiation_id: neg.negotiationId,
+              sienge_negotiation_number: neg.negotiationNumber,
+            })
+            .eq('purchase_quotation_id', negotiation.purchaseQuotationId)
+            .eq('supplier_id', supplier.supplierId)
+            .eq('sienge_negotiation_id', neg.negotiationId);
+        }
+      } else if (supplier.latestNegotiation) {
+        // Handle real API (2026-05): latestNegotiation single object
+        const neg = supplier.latestNegotiation;
         await supabase
           .from('supplier_negotiations')
           .update({
             status: neg.authorized ? 'INTEGRADA_SIENGE' : 'AGUARDANDO_RESPOSTA',
-            delivery_date: neg.supplierAnswerDate ?? null,
+            delivery_date: neg.responseDate ?? null,
             sienge_negotiation_id: neg.negotiationId,
-            sienge_negotiation_number: neg.negotiationNumber,
           })
           .eq('purchase_quotation_id', negotiation.purchaseQuotationId)
-          .eq('supplier_id', supplier.supplierId)
-          .eq('sienge_negotiation_id', neg.negotiationId);
+          .eq('supplier_id', supplier.supplierId);
       }
     }
   }

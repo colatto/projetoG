@@ -145,7 +145,9 @@ export class UsersController {
       );
       // Cleanup: remove orphaned auth user since profile was not persisted
       await supabaseAuth.auth.admin.deleteUser(userId);
-      return reply.code(500).send({ message: 'Erro ao registrar perfil local — dados não persistidos' });
+      return reply
+        .code(500)
+        .send({ message: 'Erro ao registrar perfil local — dados não persistidos' });
     }
 
     await this.auditService.log({

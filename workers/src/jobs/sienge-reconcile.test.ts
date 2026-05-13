@@ -12,6 +12,8 @@ const purchaseOrderItemsUpsertMock = vi.fn();
 const orderQuotationLinksUpsertMock = vi.fn();
 const purchaseQuotationsUpsertMock = vi.fn();
 const supplierNegotiationsEqMock3 = vi.fn();
+const suppliersMaybeSingleMock = vi.fn();
+const suppliersUpsertMock = vi.fn();
 
 const integrationEventsInsertMock = vi.fn();
 const profilesSelectMock = vi.fn();
@@ -67,6 +69,15 @@ const supabaseMock = {
         return {
           insert: vi.fn().mockResolvedValue({ error: null }),
         };
+      case 'suppliers':
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: suppliersMaybeSingleMock,
+            })),
+          })),
+          upsert: suppliersUpsertMock,
+        };
       default:
         throw new Error(`Unexpected table: ${table}`);
     }
@@ -96,6 +107,11 @@ vi.mock('@projetog/integration-sienge', async (importOriginal) => {
         listNegotiations: listNegotiationsMock,
       };
     }),
+    CreditorClient: vi.fn(function CreditorClientMock() {
+      return {
+        getById: vi.fn().mockRejectedValue(new Error('Not available in test')),
+      };
+    }),
   };
 });
 
@@ -115,6 +131,9 @@ describe('sienge-reconcile', () => {
     purchaseQuotationsUpsertMock.mockResolvedValue({ error: null });
     supplierNegotiationsEqMock3.mockResolvedValue({ error: null });
     integrationEventsInsertMock.mockResolvedValue({ error: null });
+    // Supplier already exists in DB (no stub needed)
+    suppliersMaybeSingleMock.mockResolvedValue({ data: { id: 10 }, error: null });
+    suppliersUpsertMock.mockResolvedValue({ error: null });
     profilesSelectMock.mockResolvedValue({
       data: [
         {
@@ -132,9 +151,11 @@ describe('sienge-reconcile', () => {
   describe('processSiengeReconcile', () => {
     it('should run order reconciliation successfully', async () => {
       getByIdMock.mockResolvedValue({
-        purchaseOrderId: 100,
+        // Real API uses `id`, not `purchaseOrderId`
+        id: 100,
         status: 'PENDING',
         authorized: false,
+        supplierId: 10,
         purchaseQuotations: [],
       });
       getItemsMock.mockResolvedValue([]);
@@ -163,9 +184,10 @@ describe('sienge-reconcile', () => {
 
       // API returns APPROVED/true
       getByIdMock.mockResolvedValue({
-        purchaseOrderId: 100,
+        id: 100,
         status: 'APPROVED',
         authorized: true,
+        supplierId: 10,
         purchaseQuotations: [{ purchaseQuotationId: 999 }],
       });
       getItemsMock.mockResolvedValue([]);
@@ -196,9 +218,10 @@ describe('sienge-reconcile', () => {
 
     it('should log divergence if expected quotation is missing from API links', async () => {
       getByIdMock.mockResolvedValue({
-        purchaseOrderId: 100,
+        id: 100,
         status: 'PENDING',
         authorized: false,
+        supplierId: 10,
         purchaseQuotations: [{ purchaseQuotationId: 888 }], // Only has 888
       });
       getItemsMock.mockResolvedValue([]);

@@ -22,21 +22,51 @@ export interface SiengePaginatedResponse<T> {
 
 export interface SiengeQuotationNegotiation {
   purchaseQuotationId: number;
-  quotationNumber: string;
+  /** Present in some environments; absent in real API observed 2026-05 */
+  quotationNumber?: string;
   buyerId: string;
-  buyerName: string;
+  /** Present in some environments; absent in real API observed 2026-05 */
+  buyerName?: string;
   status: string;
-  consistency: string;
+  /** Defensive: accept both `consistency` (string, documented) and `consistent` (boolean, real API) */
+  consistency?: string;
+  consistent?: boolean;
   quotationDate: string;
-  responseDate: string;
+  responseDate: string | null;
   suppliers: SiengeQuotationSupplier[];
 }
 
 export interface SiengeQuotationSupplier {
   supplierId: number;
-  creditorId: number;
-  creditorName: string;
-  negotiations: SiengeNegotiationSummary[];
+  /** Optional: present in documented contract but absent in real API observed 2026-05 */
+  creditorId?: number;
+  /** Optional: present in documented contract but absent in real API observed 2026-05 */
+  creditorName?: string;
+  /** Present in real API as supplier display name */
+  supplierName?: string;
+  /** Documented contract: array of negotiations */
+  negotiations?: SiengeNegotiationSummary[];
+  /** Real API (2026-05): single latest negotiation object */
+  latestNegotiation?: SiengeLatestNegotiation;
+}
+
+/**
+ * Latest negotiation summary as returned by the real Sienge API (2026-05).
+ * This is a single object (not an array) under `suppliers[].latestNegotiation`.
+ */
+export interface SiengeLatestNegotiation {
+  negotiationId: number;
+  responseDate: string | null;
+  shippingCosts: number;
+  ipiShippingFlag: string;
+  ipiShippingCosts: number;
+  discountValue: number;
+  otherCosts: number;
+  totalItemsCosts: number;
+  itemsShipping: number;
+  authorized: boolean;
+  totalItemsNegotiationCosts: number;
+  disapprovalReason: string | null;
 }
 
 export interface SiengeNegotiationSummary {
@@ -80,7 +110,10 @@ export interface SiengeCreditorContact {
 // ============================================================
 
 export interface SiengePurchaseOrder {
-  purchaseOrderId: number;
+  /** Real API (2026-05) uses `id`; documented contract used `purchaseOrderId` */
+  id?: number;
+  /** Documented contract field; kept for backward compatibility */
+  purchaseOrderId?: number;
   formattedPurchaseOrderId: string;
   supplierId: number;
   buyerId: string;
@@ -91,7 +124,8 @@ export interface SiengePurchaseOrder {
   deliveryLate: boolean;
   consistent: string;
   date: string;
-  purchaseQuotations: SiengeOrderQuotationLink[];
+  /** Optional: may be absent in list endpoint, present in detail/webhook context */
+  purchaseQuotations?: SiengeOrderQuotationLink[];
 }
 
 export interface SiengeOrderQuotationLink {

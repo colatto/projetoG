@@ -3,6 +3,7 @@ export type {
   SiengeQuotationNegotiation,
   SiengeQuotationSupplier,
   SiengeNegotiationSummary,
+  SiengeLatestNegotiation,
   SiengeNegotiationItem,
   SiengeCreditor,
   SiengeCreditorContact,

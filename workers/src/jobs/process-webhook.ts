@@ -1,6 +1,10 @@
 import PgBoss from 'pg-boss';
 import { OrderClient } from '@projetog/integration-sienge';
-import { mapOrderItemsToLocal, mapOrderToLocal } from '@projetog/integration-sienge';
+import {
+  mapOrderItemsToLocal,
+  mapOrderToLocal,
+  resolveOrderId,
+} from '@projetog/integration-sienge';
 import {
   IntegrationDirection,
   IntegrationEntityType,
@@ -373,7 +377,7 @@ async function handleOrderItemModified(
   const localItems = mapOrderItemsToLocal(purchaseOrderId, items);
 
   for (const item of localItems) {
-    await supabase.from('purchase_order_items').upsert(
+    const { error: itemUpsertError } = await supabase.from('purchase_order_items').upsert(
       {
         purchase_order_id: item.purchaseOrderId,
         item_number: item.itemNumber,
@@ -384,6 +388,12 @@ async function handleOrderItemModified(
       },
       { onConflict: 'purchase_order_id,item_number' },
     );
+
+    if (itemUpsertError) {
+      console.warn(
+        `[${JOB_NAME}] Item upsert warning for order ${purchaseOrderId} item ${item.itemNumber}: ${itemUpsertError.message}. CorrelationId: ${context.correlationId}`,
+      );
+    }
   }
 
   return {

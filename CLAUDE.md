@@ -1,6 +1,6 @@
 # Contexto do Projeto
 
-Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-12`.
+Documento-base para agentes e mantenedores. Atualizado para refletir o estado real do codebase em `2026-05-13`.
 
 ## Ordem de consulta
 
@@ -28,14 +28,14 @@ Construir uma aplicação web para a GRF com:
 
 O repositório não está mais em fase de scaffold. Hoje ele já contém:
 
-- SPA React funcional para autenticação, recuperação de senha, gestão administrativa de usuários, monitoramento de eventos de integração, trilha de auditoria operacional em `/admin/audit` (PRD-09), listagem e detalhe de cotações (backoffice e portal do fornecedor) com filtro "Exigem ação" no backoffice quando aplicável (PRD-09), gestão de templates e histórico de notificações (PRD-03), listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05), follow-up logístico com listagem, detalhe, aprovação de datas e ações de fornecedor (PRD-04), gestão de avarias com registro, sugestão de ação corretiva, decisão de Compras, reposição e badges de status (PRD-06), e dashboards analíticos com KPIs, ranking, lead time, atrasos, criticidade e avarias (PRD-08)
-- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários, webhooks Sienge, endpoints de integração e aliases PRD-09 (`/api/backoffice/integrations`), fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, leitura paginada da trilha em `/api/backoffice/audit` (PRD-09), módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05) e alias `/api/supplier-portal/orders`, módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04), módulo de avarias com registro, sugestão, resolução, reposição, cancelamento de reposição, listagem, detalhe e auditoria completa com 11 eventos (PRD-06), e leitura de indicadores consolidados em `/api/dashboard/*` (PRD-08)
+- SPA React funcional para autenticação (login, recuperação de senha e redefinição com suporte a convites), gestão administrativa de usuários, monitoramento de eventos de integração, trilha de auditoria operacional em `/admin/audit` (PRD-09), listagem e detalhe de cotações (backoffice e portal do fornecedor) com filtro "Exigem ação" no backoffice quando aplicável (PRD-09), gestão de templates e histórico de notificações (PRD-03), listagem e detalhe de pedidos (backoffice e portal do fornecedor, PRD-05), follow-up logístico com listagem, detalhe, aprovação de datas e ações de fornecedor (PRD-04), gestão de avarias com registro, sugestão de ação corretiva, decisão de Compras, reposição e badges de status (PRD-06), e dashboards analíticos com KPIs, ranking, lead time, atrasos, criticidade e avarias (PRD-08)
+- API Fastify com JWT próprio, RBAC, CRUD administrativo de usuários (com proteção contra RLS silencioso e cleanup de auth user órfão), webhooks Sienge, endpoints de integração e aliases PRD-09 (`/api/backoffice/integrations`), fluxo completo de cotações (backoffice e fornecedor) com envio, resposta, revisão e retry de integração, leitura paginada da trilha em `/api/backoffice/audit` (PRD-09), módulo de entregas com validação e listagem pendente, módulo de pedidos com listagem, detalhes de entregas, cancelamento, histórico de status e recepção de avaria/reposição (PRD-05) e alias `/api/supplier-portal/orders`, módulo de notificações por e-mail com templates editáveis, logs e envio via Resend (PRD-03), módulo de follow-up logístico com listagem, detalhe, confirmação de prazo, sugestão/aprovação/reprovação de nova data e histórico de notificações (PRD-04), módulo de avarias com registro, sugestão, resolução, reposição, cancelamento de reposição, listagem, detalhe e auditoria completa com 11 eventos (PRD-06), e leitura de indicadores consolidados em `/api/dashboard/*` (PRD-08)
 - workers com polling de cotações, pedidos e entregas (com recálculo automático de status de pedido via `OrderStatusEngine`, sinalização de follow-up e confirmação automática de reposição entregue PRD-06), reconciliação por webhook, retry de eventos, escrita outbound de negociação, verificação automática de expiração de cotações, job de envio de e-mail de notificação (`notification:send-email`) com alerta de sem resposta (PRD-03), follow-up scheduler diário com régua de notificações, detecção de atraso, encerramento automático e cálculo de dias úteis (PRD-04), e consolidação diária de snapshots do dashboard (`dashboard:consolidation`, PRD-08)
 - schema Supabase com tabelas operacionais, RLS, triggers de `updated_at`, migrações cobrindo PRD-07, PRD-02 (respostas de cotação versionadas), PRD-05 (delivery_records, order_status_history, campos calculados em purchase_orders), PRD-03 (notification_templates, notification_logs com enums notification_type e notification_status), PRD-04 (extensão de follow_up_trackers, follow_up_date_changes, business_days_holidays, 4 novos tipos de notificação com templates seed), PRD-06 (extensão de damages, damage_replacements, damage_audit_logs com RLS e constraints), PRD-08 (`dashboard_snapshot`, `dashboard_snapshot_por_fornecedor`, `dashboard_snapshot_por_obra`, `dashboard_criticidade_item`) e PRD-09 (colunas operacionais em `audit_logs`: summary, actor_type, event_timestamp, purchase_quotation_id, purchase_order_id, supplier_id + índices)
 - `AuditService` centralizado com `registerEvent()`: summary obrigatório (fallback automático via `fallbackSummary()`), campos operacionais PRD-09, e enfileiramento via pg-boss (`audit:retry`) em caso de falha de escrita (§9.6). Guarda contra exceções lançadas (e.g., erros de rede) via `try/catch` externo — auditoria nunca bloqueia o fluxo principal
 - pacote de integração Sienge com clientes HTTP, paginação, rate limiting, retry, mapeadores e criptografia de credenciais
 - pacote de domínio com `OrderStatusEngine` (regras de precedência de status PRD-05), `OrderOperationalStatus` enum, `NotificationType` / `NotificationStatus` enums (incluindo PRD-04: `FOLLOWUP_REMINDER`, `OVERDUE_ALERT`, `CONFIRMATION_RECEIVED`, `NEW_DATE_PENDING`), `TemplateRenderer` service, enums PRD-06 (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`) e testes unitários
-- deploy em produção: **frontend** (`apps/web`) na **Vercel** em `grf.ruatrez.com` com `vercel.json` (SPA rewrite catch-all + headers de segurança); **API** e **workers** na **Hostinger** «Setup Node.js App» como bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js`) via [`scripts/build-hostinger-api.mjs`](scripts/build-hostinger-api.mjs) e [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `pnpm run build:api` / `build:workers` / `start:api` / `start:workers`, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md); CI com `ci.yml`, artefactos opcionais `hostinger-*-bundle-artifact.yml` e `security.yml`
+- deploy em produção: **frontend** (`apps/web`) na **Vercel** em `grf.ruatrez.com` com dois `vercel.json` — [`vercel.json`](vercel.json) na raiz (com `buildCommand`, `outputDirectory` e headers/rewrites globais) e [`apps/web/vercel.json`](apps/web/vercel.json) (SPA rewrite catch-all + headers de segurança + cache imutável em assets); **API** e **workers** na **Hostinger** «Setup Node.js App» como bundles CJS Node 20 (`apps/api/dist/hostinger-entry.js` e `workers/dist/hostinger-entry.js`) via [`scripts/build-hostinger-api.mjs`](scripts/build-hostinger-api.mjs) e [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `pnpm run build:api` / `build:workers` / `start:api` / `start:workers`, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md); CI com `ci.yml`, artefactos opcionais `hostinger-*-bundle-artifact.yml` e `security.yml`; Swagger UI desabilitado em bundles Hostinger (`HOSTINGER_BUNDLE=1`)
 - CORS da API configurável via `CORS_ALLOWED_ORIGINS` (lista separada por vírgula); em desenvolvimento mantém `origin: '*'` como fallback
 - scaffold residual em `apps/` raiz (package.json "temp", index.html, vite.config.ts, tsconfig.\*, src/, public/) removido; `apps/` agora contém apenas `api/` e `web/`
 
@@ -110,10 +110,10 @@ Componentes:
 - `GET /docs` (Swagger UI)
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
+- `POST /api/auth/forgot-password` (usa `getPasswordRedirectUrl()` via `config/frontend-url.ts`)
+- `POST /api/auth/reset-password` (suporte dual: JWT session token e OTP hash; auto-ativação `pendente` → `ativo` no fluxo de convite com auditoria `user.auto_activated`)
 - `GET /api/auth/me`
-- `GET/POST/PATCH/DELETE /api/users...`
+- `GET/POST/PATCH/DELETE /api/users...` (criação via `supabaseAuth.auth.admin.inviteUserByEmail` com cleanup de auth user órfão em caso de falha; proteção contra insert `null` por RLS silencioso)
 - `POST /api/users/:id/block`
 - `POST /api/users/:id/reactivate`
 - `POST /api/users/:id/reset-password`
@@ -232,6 +232,7 @@ Infraestrutura de suporte:
 - `operational-notifications.ts`: notificações operacionais para `Compras` e envio de alerta por e-mail de cotação sem resposta (PRD-03)
 - `utils/business-days.ts`: cálculo de dias úteis (addBusinessDays, countBusinessDays) com suporte a feriados (PRD-04)
 - `utils/order-status-recalc.ts`: recálculo de status de pedido com sinalização de follow-up (PRD-05)
+- `jobs/test-sienge-order.ts`, `jobs/test-sync-error.ts`, `jobs/test-upsert.ts`: scripts de diagnóstico para troubleshooting de sincronização Sienge (não são testes vitest; executar com `tsx`)
 - `test-utils/`: fixtures, mocks de pg-boss e supabase
 
 ## Regras obrigatórias
@@ -327,7 +328,8 @@ Identificadores mínimos persistidos:
 - `EMAIL_FROM_NAME`
 - `DATABASE_URL` opcional para publicar jobs via `pg-boss`
 - `CORS_ALLOWED_ORIGINS` — opcional; lista de origens CORS separadas por vírgula (ex.: `https://grf.ruatrez.com`); sem definir, mantém `origin: '*'`
-- `FRONTEND_URL` — URL do frontend para links em e-mails (ex.: `https://grf.ruatrez.com`)
+- `FRONTEND_URL` — URL do frontend para links em e-mails e redirect de convites/redefinição de senha (ex.: `https://grf.ruatrez.com`); centralizado em `apps/api/src/config/frontend-url.ts` (`getFrontendUrl()` / `getPasswordRedirectUrl()`); default `http://localhost:5173`
+- `HOSTINGER_BUNDLE` — variável de build (não runtime); quando `1`, desabilita Swagger UI no bundle Hostinger
 
 ### Workers
 
@@ -361,12 +363,12 @@ Identificadores mínimos persistidos:
 
 ## Estado dos checks
 
-Em `2026-05-12` (última verificação local, pós-preparação deploy Vercel):
+Em `2026-05-13` (última verificação local, pós-correções auth/users e deploy Vercel):
 
 - `pnpm run format:check`: OK
 - `pnpm -r run typecheck`: OK (6 workspaces com script)
 - `pnpm -r run build`: OK (6 workspaces)
-- `pnpm -r run test`: OK — `apps/api`: 175 testes (18 test files), `workers`: 61 testes (14 test files), `packages/domain`: 16 testes (2 test files), `packages/integration-sienge`: 53 testes (8 test files), `apps/web`: 53 testes (16 test files) — total **358 testes, 58 test files**
+- `pnpm -r run test`: OK — `apps/api`: 179 testes (18 test files), `workers`: 67 testes (14 test files), `packages/domain`: 16 testes (2 test files), `packages/integration-sienge`: 53 testes (8 test files), `apps/web`: 53 testes (16 test files) — total **368 testes, 58 test files**
 - `pnpm --filter @projetog/web run test:e2e`: OK — 3 cenários Playwright (`login.spec.ts` + fluxos cross-módulo em `e2e/`)
 - `pnpm -r run lint`: OK (todos os workspaces passam; `apps/web` sem erros nem warnings de `eslint-plugin-react-hooks` 7.x — ver nota abaixo)
 
@@ -442,6 +444,8 @@ CORS da API: configurável via `CORS_ALLOWED_ORIGINS` (ex.: `https://grf.ruatrez
 
 > **Nota (2026-05-12 — preparação deploy Vercel):** scaffold residual removido de `apps/` (package.json "temp", vite.config.ts, tsconfig._, src/, public/). Criado [`apps/web/vercel.json`](apps/web/vercel.json) com SPA rewrite catch-all, cache imutável em `/assets/_`e headers de segurança (X-Content-Type-Options, X-Frame-Options, Referrer-Policy). CORS da API tornado configurável via`CORS_ALLOWED_ORIGINS` em [`apps/api/src/app.ts`](apps/api/src/app.ts) — em produção: `https://grf.ruatrez.com`; sem a variável, mantém `origin: '*'`. Adicionados `credentials: true` e método `PATCH` à lista de métodos CORS. Topologia de deploy: frontend na Vercel (`grf.ruatrez.com`), API na Hostinger (`api.ruatrez.com`), workers na Hostinger (`workers.ruatrez.com`).
 
+> **Nota (2026-05-13 — correções auth, users e deploy):** (i) **Fluxo de redefinição de senha:** `resetPassword` agora aceita JWT session token (3 segmentos) via `getUser()` ou OTP hash via `verifyOtp()` — unificando convites Supabase e recuperação de senha. Auto-ativação de perfis `pendente` → `ativo` após definição de senha no fluxo de convite (auditoria `user.auto_activated`). URL de redirect centralizada em [`apps/api/src/config/frontend-url.ts`](apps/api/src/config/frontend-url.ts) (`FRONTEND_URL` env, default `http://localhost:5173`). (ii) **Criação de usuários:** proteção contra insert silencioso por RLS (verifica `null` no retorno de `.insert().select().single()`); cleanup de auth user órfão via `deleteUser()` quando o profile não persiste; auth operations movidas para `supabaseAuth` dedicado (`inviteUserByEmail`). (iii) **Frontend:** componente `PasswordResetRedirect` em `App.tsx` intercepta tokens de convite/recovery na URL e redireciona para `/reset-password`; `ResetPassword.tsx` detecta `type=invite|signup` para UX de primeiro acesso vs recuperação. (iv) **Deploy Vercel:** [`vercel.json`](vercel.json) criado na raiz do monorepo com `framework: vite`, `buildCommand`, `outputDirectory` e rewrites/headers (coexiste com `apps/web/vercel.json`). (v) **Supabase Auth:** `supabase/config.toml` `site_url` = `https://grf.ruatrez.com`; `additional_redirect_urls` incluem produção e localhost. (vi) **Swagger:** UI condicionada a `HOSTINGER_BUNDLE !== '1'` em `app.ts`. (vii) **Workers:** 3 scripts de diagnóstico (`test-sienge-order.ts`, `test-sync-error.ts`, `test-upsert.ts`) para troubleshooting de sincronização Sienge (executar com `tsx`).
+
 > **Nota (2026-05-05 — deploy Hostinger sem Docker):** duas Node.js Apps no painel (API + workers), bundles únicos `hostinger-entry.js`, script [`scripts/build-hostinger-workers.mjs`](scripts/build-hostinger-workers.mjs), scripts raiz `build` / `build:api` / `build:workers` / `start:api` / `start:workers`, workflows `hostinger-*-bundle-artifact.yml`, workers com `PORT` preferido a `WORKER_METRICS_PORT` e `HOST` configurável, runbook [`docs/runbooks/deploy-hostinger.md`](docs/runbooks/deploy-hostinger.md) com secção «Setup Node.js App» e mitigação de idle shutdown do Passenger.
 
 > **Nota (2026-05-05 — lint `react-hooks` em `apps/web`):** conformidade com `eslint-plugin-react-hooks` 7.x sem afrouxar regras (`queueMicrotask` nos efeitos que chamam loaders, ref de filtros apenas em efeito, pureza no render da cotação fornecedor, `useWatch` em `UserCreate`). Pormenores na secção «Estado dos checks» deste ficheiro e em [`apps/web/CLAUDE.md`](apps/web/CLAUDE.md).
@@ -458,10 +462,11 @@ CORS da API: configurável via `CORS_ALLOWED_ORIGINS` (ex.: `https://grf.ruatrez
 - `2026-04-23`: implementação do PRD-04 (Follow-up Logístico, Fases 1–4) — migração `20260423110000_prd04_followup_logistico.sql` (extensão de `follow_up_trackers`, `follow_up_date_changes`, `business_days_holidays`, 4 novos tipos de notificação com templates seed), NotificationType PRD-04 enums no domínio, schemas Zod de follow-up no shared, módulo API `followup` (controller, routes com 7 endpoints, RBAC, isolamento de fornecedor, auditoria, notificações), worker `follow-up.ts` completo (ensureTrackers, processTracker, régua de notificações, detecção de atraso, encerramento automático, integração com notification:send-email), utilitário `business-days.ts`, telas frontend (FollowUpList, FollowUpDetail no backoffice; SupplierFollowUpList, SupplierFollowUpDetail no portal do fornecedor), e telas de pedidos PRD-05 (OrderList, OrderDetail, SupplierOrderList, SupplierOrderDetail com navegação no AdminLayout)
 - `2026-04-28`: implementação do PRD-06 (Avaria e Ação Corretiva, Fases 1–6) — migração `20260428150000_prd06_damages_and_corrective_actions.sql` (extensão de `damages` com 10 novas colunas, tabelas `damage_replacements` e `damage_audit_logs` com RLS, constraints e índices), enums PRD-06 no domínio (`DamageStatus`, `DamageAction`, `DamageReplacementStatus`, `DamageReplacementScope`), schemas Zod de avaria no shared, módulo API `damages` (controller com 595+ linhas, routes com 8 endpoints, RBAC, isolamento de fornecedor, auditoria completa com 11 eventos §10, cancelamento de reposição), integração worker `sync-deliveries.ts` para confirmação automática de reposição entregue, telas frontend (backoffice: DamageList com filtros status/fornecedor/pedido/obra e badges coloridos, DamageDetail com atalhos Aceitar/Recusar sugestão e timeline de auditoria; fornecedor: SupplierDamageList com badges, SupplierDamageDetail com sugestão, data de reposição e timeline de auditoria; compartilhado: DamageCreate para registro), helper `damages-helpers.ts` para mapeamento de badges, e 15 testes (API 12, worker 1, frontend 2)
 - `2026-05-12`: preparação deploy Vercel — scaffold residual removido de `apps/`, criado `apps/web/vercel.json`, CORS configurável via `CORS_ALLOWED_ORIGINS`
+- `2026-05-13 (dcbfda4..b044c40)`: correções de CI/deploy (Prettier, mocks de TZ, `vercel.json` raiz, variáveis de ambiente); correção do fluxo de redefinição de senha (suporte dual token JWT+OTP, `config/frontend-url.ts`, `PasswordResetRedirect` no frontend); auto-ativação de perfis pendentes no fluxo de convite (`user.auto_activated`); robustez na criação de usuários (proteção contra insert `null` por RLS, cleanup de auth user órfão, uso de `supabaseAuth` dedicado); `supabase/config.toml` com `site_url` e `additional_redirect_urls` para produção (`grf.ruatrez.com`); Swagger UI condicionado a `HOSTINGER_BUNDLE`; scripts de diagnóstico de sync nos workers
 
 ### Working tree atual
 
-Limpa — nenhuma alteração pendente após execução das correções da meta-auditoria PRD-09.
+Limpa — nenhuma alteração pendente após correções de auth/users e deploy.
 
 > **Atualização (2026-05-05):** após subida para regras `react-hooks` da série 7.x no preset recommended, o `apps/web` voltou a exigir ajustes (efeitos + refs + pureza + `UserCreate`); ver secção «Estado dos checks» e nota «lint react-hooks» acima.
 

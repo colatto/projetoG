@@ -58,6 +58,9 @@ function buildQuotationWindow(lastSyncedAt?: string | null): {
  * Polls GET /purchase-quotations/all/negotiations with pagination,
  * resolves creditor emails, and upserts into the local database.
  *
+ * Supports both documented contract (negotiations[] array with creditorId)
+ * and real API (2026-05) format (latestNegotiation object, no creditorId).
+ *
  * PRD-07 §6.1, §9.3.1, RN-05
  */
 export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
@@ -133,8 +136,8 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
         try {
           const localQuotation = mapQuotationToLocal(negotiation);
 
-          // Upsert quotation
-          await supabase.from('purchase_quotations').upsert(
+          // Upsert quotation with error checking
+          const { error: quotationUpsertError } = await supabase.from('purchase_quotations').upsert(
             {
               id: localQuotation.id,
               quotation_date: localQuotation.quotationDate,
@@ -146,12 +149,22 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
             { onConflict: 'id' },
           );
 
-          await supabase.from('audit_logs').insert({
+          if (quotationUpsertError) {
+            throw new Error(`Quotation upsert failed: ${quotationUpsertError.message}`);
+          }
+
+          const { error: auditError } = await supabase.from('audit_logs').insert({
             entity_type: IntegrationEntityType.QUOTATION,
             entity_id: String(localQuotation.id),
             event_type: 'quotation_imported',
             metadata: { source: 'sync-quotations' },
           });
+
+          if (auditError) {
+            console.warn(
+              `[${JOB_NAME}] Audit log insert warning for quotation ${localQuotation.id}: ${auditError.message}. CorrelationId: ${correlationId}`,
+            );
+          }
 
           // Process each supplier in this negotiation
           for (const supplier of negotiation.suppliers) {
@@ -162,11 +175,16 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
               );
 
               // Resolve creditor email (RN-05)
+              // Use creditorId if available (documented contract), otherwise fall back to supplierId
+              const creditorLookupId = supplier.creditorId ?? supplier.supplierId;
               let primaryEmail: string | null = null;
               let localSupplier = mapCreditorToSupplier(
                 {
-                  creditorId: supplier.creditorId,
-                  creditorName: supplier.creditorName,
+                  creditorId: creditorLookupId,
+                  creditorName:
+                    supplier.creditorName ??
+                    supplier.supplierName ??
+                    `Fornecedor ${supplier.supplierId}`,
                   tradeName: null,
                   cpf: null,
                   cnpj: null,
@@ -178,7 +196,7 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
               let localContacts: ReturnType<typeof mapCreditorContacts> = [];
 
               try {
-                const creditor = await creditorClient.getById(supplier.creditorId, context);
+                const creditor = await creditorClient.getById(creditorLookupId, context);
                 emailResult = extractCreditorEmail(creditor);
                 primaryEmail = emailResult.email;
 
@@ -187,20 +205,20 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
 
                 if (!emailResult.hasValidEmail) {
                   console.warn(
-                    `[${JOB_NAME}] Supplier ${supplier.supplierId} (creditor ${supplier.creditorId}) has no valid email. Blocking per RN-05. CorrelationId: ${correlationId}`,
+                    `[${JOB_NAME}] Supplier ${supplier.supplierId} (creditor ${creditorLookupId}) has no valid email. Blocking per RN-05. CorrelationId: ${correlationId}`,
                   );
                 }
               } catch (creditorError: unknown) {
                 const err = creditorError as { message?: string };
                 console.warn(
-                  `[${JOB_NAME}] Failed to resolve creditor ${supplier.creditorId}: ${err.message}. CorrelationId: ${correlationId}`,
+                  `[${JOB_NAME}] Failed to resolve creditor ${creditorLookupId} for supplier ${supplier.supplierId}: ${err.message}. CorrelationId: ${correlationId}`,
                 );
               }
 
               localSupplier.accessStatus = emailResult.hasValidEmail ? 'ACTIVE' : 'BLOCKED';
 
-              // Upsert Supplier
-              await supabase.from('suppliers').upsert(
+              // Upsert Supplier with error checking
+              const { error: supplierUpsertError } = await supabase.from('suppliers').upsert(
                 {
                   id: localSupplier.id,
                   creditor_id: localSupplier.creditorId,
@@ -210,6 +228,12 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
                 },
                 { onConflict: 'id' },
               );
+
+              if (supplierUpsertError) {
+                throw new Error(
+                  `Supplier upsert failed for ${localSupplier.id}: ${supplierUpsertError.message}`,
+                );
+              }
 
               // Upsert Supplier Contacts
               for (const contact of localContacts) {
@@ -221,27 +245,41 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
                   .maybeSingle();
 
                 if (existingContact) {
-                  await supabase
+                  const { error: contactUpdateError } = await supabase
                     .from('supplier_contacts')
                     .update({
                       name: contact.name,
                       is_primary: contact.isPrimary,
                     })
                     .eq('id', existingContact.id);
+
+                  if (contactUpdateError) {
+                    console.warn(
+                      `[${JOB_NAME}] Contact update warning for supplier ${contact.supplierId}: ${contactUpdateError.message}. CorrelationId: ${correlationId}`,
+                    );
+                  }
                 } else {
-                  await supabase.from('supplier_contacts').insert({
-                    supplier_id: contact.supplierId,
-                    name: contact.name,
-                    email: contact.email,
-                    is_primary: contact.isPrimary,
-                  });
+                  const { error: contactInsertError } = await supabase
+                    .from('supplier_contacts')
+                    .insert({
+                      supplier_id: contact.supplierId,
+                      name: contact.name,
+                      email: contact.email,
+                      is_primary: contact.isPrimary,
+                    });
+
+                  if (contactInsertError) {
+                    console.warn(
+                      `[${JOB_NAME}] Contact insert warning for supplier ${contact.supplierId}: ${contactInsertError.message}. CorrelationId: ${correlationId}`,
+                    );
+                  }
                 }
               }
 
               // Persist the supplier negotiation row and keep quotation items as stubs.
               // The negotiation payload does not carry the item's base catalog data.
               for (const [index, sn] of supplierNegotiations.entries()) {
-                const { data: persistedSupplierNegotiation } = await supabase
+                const { data: persistedSupplierNegotiation, error: snUpsertError } = await supabase
                   .from('supplier_negotiations')
                   .upsert(
                     {
@@ -258,7 +296,15 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
                   .select('id')
                   .single();
 
-                const negotiationSummary = supplier.negotiations[index];
+                if (snUpsertError) {
+                  console.warn(
+                    `[${JOB_NAME}] Supplier negotiation upsert warning for quotation ${sn.purchaseQuotationId} supplier ${sn.supplierId}: ${snUpsertError.message}. CorrelationId: ${correlationId}`,
+                  );
+                  continue;
+                }
+
+                // Only process items if negotiations[] array format was used (has items)
+                const negotiationSummary = supplier.negotiations?.[index];
                 if (!persistedSupplierNegotiation || !negotiationSummary) {
                   continue;
                 }
@@ -266,24 +312,40 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
                 const localNegotiationItems = mapNegotiationItemsToLocal(negotiationSummary.items);
 
                 for (const item of localNegotiationItems) {
-                  await supabase.from('purchase_quotation_items').upsert(
-                    {
-                      id: item.purchaseQuotationItemId,
-                      purchase_quotation_id: sn.purchaseQuotationId,
-                    },
-                    { onConflict: 'id' },
-                  );
+                  const { error: itemUpsertError } = await supabase
+                    .from('purchase_quotation_items')
+                    .upsert(
+                      {
+                        id: item.purchaseQuotationItemId,
+                        purchase_quotation_id: sn.purchaseQuotationId,
+                      },
+                      { onConflict: 'id' },
+                    );
 
-                  await supabase.from('supplier_negotiation_items').upsert(
-                    {
-                      supplier_negotiation_id: persistedSupplierNegotiation.id,
-                      purchase_quotation_item_id: item.purchaseQuotationItemId,
-                      quantity: item.quantity,
-                      unit_price: item.unitPrice,
-                      delivery_date: item.deliveryDate,
-                    },
-                    { onConflict: 'supplier_negotiation_id,purchase_quotation_item_id' },
-                  );
+                  if (itemUpsertError) {
+                    console.warn(
+                      `[${JOB_NAME}] Quotation item upsert warning for item ${item.purchaseQuotationItemId}: ${itemUpsertError.message}. CorrelationId: ${correlationId}`,
+                    );
+                  }
+
+                  const { error: sniUpsertError } = await supabase
+                    .from('supplier_negotiation_items')
+                    .upsert(
+                      {
+                        supplier_negotiation_id: persistedSupplierNegotiation.id,
+                        purchase_quotation_item_id: item.purchaseQuotationItemId,
+                        quantity: item.quantity,
+                        unit_price: item.unitPrice,
+                        delivery_date: item.deliveryDate,
+                      },
+                      { onConflict: 'supplier_negotiation_id,purchase_quotation_item_id' },
+                    );
+
+                  if (sniUpsertError) {
+                    console.warn(
+                      `[${JOB_NAME}] Negotiation item upsert warning for item ${item.purchaseQuotationItemId}: ${sniUpsertError.message}. CorrelationId: ${correlationId}`,
+                    );
+                  }
                 }
               }
             } catch (supplierError: unknown) {
@@ -292,9 +354,6 @@ export async function processSyncQuotations(job: PgBoss.Job): Promise<void> {
                 `[${JOB_NAME}] Failed to sync supplier ${supplier.supplierId} for quotation ${negotiation.purchaseQuotationId}: ${err.message}. CorrelationId: ${correlationId}`,
               );
               // Non-fatal for the whole quotation, simply skip to next supplier.
-              // We use errorCount later to mark event_status, but we should distinguish quotation failure vs item failure.
-              // Let's increment errorCount here to signal partial failure.
-              // Let's increment totalErrors here to signal partial failure.
               totalErrors++;
             }
           }
