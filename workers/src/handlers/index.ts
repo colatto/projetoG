@@ -3,6 +3,7 @@ import { processFollowUp } from '../jobs/follow-up.js';
 import { processSyncQuotations } from '../jobs/sync-quotations.js';
 import { processSyncOrders } from '../jobs/sync-orders.js';
 import { processSyncDeliveries } from '../jobs/sync-deliveries.js';
+import { processSyncCreditors } from '../jobs/sync-creditors.js';
 import { processSiengeReconcile } from '../jobs/sienge-reconcile.js';
 import { processRetryIntegration } from '../jobs/retry-integration.js';
 import { processWebhook } from '../jobs/process-webhook.js';
@@ -69,6 +70,8 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
 
   await boss.work<object>('sienge:sync-deliveries', async (job) => processSyncDeliveries(job));
 
+  await boss.work<object>('sienge:sync-creditors', async (job) => processSyncCreditors(job));
+
   // Reconcile — webhook-triggered re-reads (Sprint 5)
   await boss.work<object>('sienge:reconcile', async (job) => processSiengeReconcile(job));
 
@@ -130,6 +133,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     '*/15 * * * *', // Every 15 minutes
     {},
     { singletonKey: 'sienge:sync-deliveries:singleton', ...SEND_OPTIONS.syncPolling },
+  );
+
+  await boss.schedule(
+    'sienge:sync-creditors',
+    '0 */6 * * *', // Every 6 hours (cadastral data changes infrequently)
+    {},
+    { singletonKey: 'sienge:sync-creditors:singleton', ...SEND_OPTIONS.syncPolling },
   );
 
   await boss.schedule(
