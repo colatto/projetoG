@@ -53,11 +53,11 @@ export const userQuerySchema = z.object({
   status: z.nativeEnum(UserStatus).optional(),
   search: z.string().optional(),
   page: z.preprocess(
-    (a) => parseInt(z.string().parse(a), 10),
+    (a) => (a === undefined || a === null ? undefined : parseInt(String(a), 10)),
     z.number().int().min(1).optional().default(1),
   ),
   per_page: z.preprocess(
-    (a) => parseInt(z.string().parse(a), 10),
+    (a) => (a === undefined || a === null ? undefined : parseInt(String(a), 10)),
     z.number().int().min(1).max(100).optional().default(20),
   ),
 });

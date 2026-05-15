@@ -18,8 +18,10 @@ setup-admin.mjs
 .setup-admin.mjs.swp
 .vercel
 .env*.local
+docs/sql/bootstrap-superadministrador-supabase.sql
 
 # Compose secrets na VPS (templates ficam como *.example)
 deploy/compose/compose.env
 deploy/compose/api.env
 deploy/compose/workers.env
+

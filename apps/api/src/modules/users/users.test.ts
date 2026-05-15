@@ -120,6 +120,68 @@ describe('Users Routes — RBAC & Lifecycle', () => {
     });
   });
 
+  // ── GET /api/users (list) ─────────────────────────────────────────
+
+  describe('GET /api/users', () => {
+    it('should return 200 with paginated users without explicit page/per_page', async () => {
+      const token = await getAdminToken(app);
+
+      const mockUsers = [
+        {
+          id: '00000000-0000-0000-0000-000000000001',
+          name: 'User 1',
+          email: 'user1@grf.com.br',
+          role: UserRole.ADMINISTRADOR,
+          status: UserStatus.ATIVO,
+          created_at: '2026-05-01T00:00:00Z',
+        },
+        {
+          id: '00000000-0000-0000-0000-000000000002',
+          name: 'User 2',
+          email: 'user2@grf.com.br',
+          role: UserRole.COMPRAS,
+          status: UserStatus.ATIVO,
+          created_at: '2026-05-02T00:00:00Z',
+        },
+      ];
+
+      // List query with count
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery(mockUsers, null, 2));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/users',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data).toHaveLength(2);
+      expect(body.pagination).toEqual({
+        total: 2,
+        page: 1,
+        per_page: 20,
+      });
+    });
+
+    it('should accept search and role filters', async () => {
+      const token = await getAdminToken(app);
+
+      mockFrom.mockReturnValueOnce(mockSupabaseQuery([], null, 0));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/users?search=admin&role=administrador',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data).toHaveLength(0);
+      expect(body.pagination.total).toBe(0);
+    });
+  });
+
   // ── POST /api/users (create) ────────────────────────────────────
 
   describe('POST /api/users', () => {

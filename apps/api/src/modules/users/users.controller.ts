@@ -201,8 +201,9 @@ export class UsersController {
         return reply.code(400).send({ message: 'Novo e-mail já está em uso' });
       }
 
-      // Update in Auth Supabase
-      const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+      // Update in Auth Supabase — uses supabaseAuth to avoid contaminating data client
+      const supabaseAuth = request.server.supabaseAuth;
+      const { error: authError } = await supabaseAuth.auth.admin.updateUserById(id, {
         email: changes.email,
       });
 
@@ -359,7 +360,9 @@ export class UsersController {
       return reply.code(409).send({ message: 'Usuário já está removido' });
 
     // Set auth to suspended or just delete from auth. In this context, we just mark as removido as soft delete.
-    await supabase.auth.admin.deleteUser(id); // Or keep it if we want to retain references, but deleting from auth revokes everything.
+    // Uses supabaseAuth to avoid contaminating the data client's session.
+    const supabaseAuth = request.server.supabaseAuth;
+    await supabaseAuth.auth.admin.deleteUser(id); // Or keep it if we want to retain references, but deleting from auth revokes everything.
 
     // We will do soft delete locally
     const { error } = await supabase
@@ -385,6 +388,8 @@ export class UsersController {
     const { id } = request.params;
     const adminId = request.user.sub;
     const supabase = request.server.supabase;
+    // Uses supabaseAuth to avoid contaminating the data client's session.
+    const supabaseAuth = request.server.supabaseAuth;
 
     const { data: user } = await supabase
       .from('profiles')
@@ -396,7 +401,7 @@ export class UsersController {
     if (user.status === UserStatus.REMOVIDO)
       return reply.code(403).send({ message: 'Usuário removido' });
 
-    const { error } = await supabase.auth.admin.generateLink({
+    const { error } = await supabaseAuth.auth.admin.generateLink({
       type: 'recovery',
       email: user.email,
       options: {

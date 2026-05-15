@@ -18,18 +18,23 @@ export default function UserList() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (roleFilter) params.append('role', roleFilter);
 
       const response = await api.get(`/users?${params.toString()}`);
-      setUsers(response.data.data);
-    } catch {
-      console.error('Falha ao carregar lista de usuários');
+      setUsers(response.data.data ?? []);
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string }; status?: number } };
+      const msg = apiErr.response?.data?.message || 'Falha ao carregar lista de usuários.';
+      setError(msg);
+      console.error('Erro na listagem de usuários:', msg);
     } finally {
       setIsLoading(false);
     }
@@ -113,6 +118,20 @@ export default function UserList() {
           </select>
         </div>
       </div>
+
+      {error && (
+        <div
+          className="mb-4 p-3 rounded"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            color: 'var(--color-error)',
+            border: '1px solid var(--color-error)',
+            fontSize: '0.875rem',
+          }}
+        >
+          ⚠ {error}
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0 }}>
         {isLoading ? (
